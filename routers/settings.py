@@ -92,7 +92,7 @@ async def save_settings(
     twilio_token: str = Form(""),
     whatsapp_from: str = Form(""),
     language: str = Form("en"),
-    reminder_days: list[str] = Form([]),
+    reminder_days: str = Form(""),
     module_renewal_reminder: str = Form("off"),
     module_enquiry_handler: str = Form("off"),
     module_quotation_formatter: str = Form("off"),
@@ -105,7 +105,7 @@ async def save_settings(
     account_id = user.get("account_id")
     sb = get_supabase()
 
-    days = [int(d) for d in reminder_days if d.strip()]
+    days = [int(d.strip()) for d in reminder_days.split(",") if d.strip()]
     modules = {
         "renewal_reminder": module_renewal_reminder == "on",
         "enquiry_handler": module_enquiry_handler == "on",

@@ -14,7 +14,7 @@ router = APIRouter()
 def verify_cron(request: Request):
     """Verify Authorization header for cron endpoints."""
     auth = request.headers.get("Authorization", "")
-    expected = f"Bearer {cfg.SECRET_KEY}"
+    expected = f"Bearer {cfg.CRON_SECRET}"
     if auth != expected:
         raise HTTPException(status_code=403, detail="Invalid cron auth")
 

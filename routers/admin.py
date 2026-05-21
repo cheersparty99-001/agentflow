@@ -1,4 +1,5 @@
 import os
+import html
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from jinja2 import Environment, FileSystemLoader
@@ -124,12 +125,12 @@ async def admin_edit_account_page(account_id: str, request: Request):
     return HTMLResponse(f"""
     <html>
     <body>
-        <h1>Edit Account: {account['agency_name']}</h1>
+        <h1>Edit Account: {html.escape(account['agency_name'])}</h1>
         <form method="post" action="/admin/accounts/edit/{account_id}">
-            <p>Agency Name: <input name="agency_name" value="{account['agency_name']}"></p>
-            <p>Phone: <input name="phone" value="{account['phone']}"></p>
-            <p>Email: <input name="email" value="{account['email']}"></p>
-            <p>Monthly Fee: <input name="monthly_fee" value="{account['monthly_fee']}"></p>
+            <p>Agency Name: <input name="agency_name" value="{html.escape(account['agency_name'])}"></p>
+            <p>Phone: <input name="phone" value="{html.escape(account['phone'])}"></p>
+            <p>Email: <input name="email" value="{html.escape(account['email'])}"></p>
+            <p>Monthly Fee: <input name="monthly_fee" value="{html.escape(account['monthly_fee'])}"></p>
             <p><button type="submit">Save</button></p>
         </form>
         <a href="/admin/accounts">Back</a>
