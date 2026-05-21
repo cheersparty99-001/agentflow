@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %} - All Logs{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-8">
+  <div>
+    <h2 class="text-2xl font-bold text-slate-900">All Agent Logs</h2>
+    <p class="text-slate-500 text-sm mt-1">Cross-account activity feed</p>
+  </div>
+  <div class="flex items-center gap-3">
+    <a href="/admin/api/logs/export"
+      class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <span data-i18n="export_csv">Export CSV</span>
+    </a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="flex flex-wrap items-center gap-3 mb-4">
+  <select id="filter-module" onchange="applyFilters()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+    <option value="" data-i18n="all">All Modules</option>
+    <option value="renewal_reminder">Renewal Reminder</option>
+    <option value="enquiry_handler">Enquiry Handler</option>
+    <option value="quotation_formatter">Quotation Formatter</option>
+    <option value="claims_tracker">Claims Tracker</option>
+  </select>
+  <select id="filter-status" onchange="applyFilters()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+    <option value="" data-i18n="all">All Status</option>
+    <option value="success">Success</option>
+    <option value="demo">Demo</option>
+    <option value="failed">Failed</option>
+  </select>
+  <button onclick="document.getElementById('filter-module').value='';document.getElementById('filter-status').value='';applyFilters();" class="text-sm text-slate-500 hover:text-slate-700" data-i18n="filter">Clear Filters</button>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm" id="logs-table">
+      <thead>
+        <tr class="bg-slate-50 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <th class="px-5 py-3" data-i18n="time">Time</th>
+          <th class="px-5 py-3">Account</th>
+          <th class="px-5 py-3" data-i18n="module">Module</th>
+          <th class="px-5 py-3">Action</th>
+          <th class="px-5 py-3">Message</th>
+          <th class="px-5 py-3" data-i18n="status">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% if logs %}
+        {% for log in logs %}
+        <tr class="hover:bg-slate-50 log-row" data-module="{{ log.module }}" data-status="{{ log.status }}">
+          <td class="px-5 py-3 text-slate-500 whitespace-nowrap text-xs">{{ log.created_at[:19].replace('T', ' ') }}</td>
+          <td class="px-5 py-3 text-slate-600 text-xs">{{ log.get('account_id', 'demo')[:8] }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ log.module }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ log.action }}</td>
+          <td class="px-5 py-3 text-slate-500 text-xs max-w-xs truncate">{{ log.message[:60] }}</td>
+          <td class="px-5 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if log.status == 'success' %}bg-green-100 text-green-800
+              {% elif log.status == 'demo' %}bg-amber-100 text-amber-800
+              {% elif log.status == 'failed' %}bg-red-100 text-red-800
+              {% else %}bg-slate-100 text-slate-800{% endif %}">
+              {{ log.status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-5 py-8 text-center text-slate-400">No logs available.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function applyFilters() {
+  const moduleFilter = document.getElementById('filter-module').value;
+  const statusFilter = document.getElementById('filter-status').value;
+  document.querySelectorAll('.log-row').forEach(row => {
+    const showModule = !moduleFilter || row.dataset.module === moduleFilter;
+    const showStatus = !statusFilter || row.dataset.status === statusFilter;
+    row.style.display = showModule && showStatus ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

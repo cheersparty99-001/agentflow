@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentFlow{% block title %}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/i18n.js"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col shrink-0 hidden md:flex">
+      <div class="p-6 border-b border-slate-700">
+        <h1 class="text-xl font-bold tracking-tight">AgentFlow</h1>
+        <p class="text-xs text-slate-400 mt-1">Insurance Agent Platform</p>
+      </div>
+      {% if demo_mode %}
+      <div class="mx-4 mt-3 px-3 py-1.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded text-center border border-amber-500/30" data-i18n="demo_mode">
+        DEMO MODE
+      </div>
+      {% endif %}
+      <div class="px-4 mt-2 flex gap-1">
+        <button onclick="setLang('en')" class="flex-1 px-2 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors">EN</button>
+        <button onclick="setLang('bm')" class="flex-1 px-2 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors">BM</button>
+        <button onclick="setLang('zh')" class="flex-1 px-2 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors">中文</button>
+      </div>
+      <nav class="flex-1 px-4 py-6 space-y-1">
+        <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path == '/dashboard' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors" data-i18n="dashboard">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Dashboard
+        </a>
+        <a href="/policies" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path == '/policies' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors" data-i18n="policies">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Policies
+        </a>
+        <a href="/agents" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path == '/agents' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors" data-i18n="agents">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Agents
+        </a>
+        <a href="/settings" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path == '/settings' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors" data-i18n="settings">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Settings
+        </a>
+        {% if is_admin %}
+        <a href="/admin" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path.startswith('/admin') %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors" data-i18n="admin_panel">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          Admin Panel
+        </a>
+        {% endif %}
+      </nav>
+      <div class="p-4 border-t border-slate-700 space-y-1">
+        {% if user_email %}
+        <div class="px-3 py-1.5 text-xs text-slate-400 truncate">{{ user_email }}</div>
+        {% endif %}
+        <a href="/logout" class="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" data-i18n="logout">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Mobile header -->
+    <div class="md:hidden fixed top-0 left-0 right-0 bg-slate-900 text-white z-50 flex items-center justify-between px-4 py-3">
+      <h1 class="text-lg font-bold">AgentFlow</h1>
+      <div class="flex items-center gap-2">
+        <button onclick="setLang('en')" class="text-xs px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">EN</button>
+        <button onclick="setLang('bm')" class="text-xs px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">BM</button>
+        <button onclick="setLang('zh')" class="text-xs px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">中文</button>
+      </div>
+      <button id="mobile-menu-btn" class="p-2 rounded hover:bg-slate-800">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+
+    <!-- Mobile menu overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-slate-900 z-40 hidden">
+      <div class="flex justify-end p-4">
+        <button id="close-menu-btn" class="text-white p-2">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <nav class="px-6 space-y-2">
+        <a href="/dashboard" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="dashboard">Dashboard</a>
+        <a href="/policies" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="policies">Policies</a>
+        <a href="/agents" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="agents">Agents</a>
+        <a href="/settings" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="settings">Settings</a>
+        {% if is_admin %}
+        <a href="/admin" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="admin_panel">Admin Panel</a>
+        {% endif %}
+        <a href="/logout" class="block px-4 py-3 text-slate-400 rounded-lg hover:bg-slate-800" data-i18n="logout">Logout</a>
+      </nav>
+    </div>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-y-auto md:pt-0 pt-16">
+      <div class="p-6 md:p-8 max-w-7xl mx-auto">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const menuBtn = document.getElementById('mobile-menu-btn');
+    const closeBtn = document.getElementById('close-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (menuBtn) menuBtn.addEventListener('click', () => mobileMenu.classList.remove('hidden'));
+    if (closeBtn) closeBtn.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %} - Admin Accounts{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-8">
+  <div>
+    <h2 class="text-2xl font-bold text-slate-900" data-i18n="admin_panel">Admin Panel</h2>
+    <p class="text-slate-500 text-sm mt-1">Manage agency accounts</p>
+  </div>
+  <a href="/admin/accounts/create"
+    class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    <span data-i18n="create_account">Create Account</span>
+  </a>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-slate-50 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <th class="px-5 py-3">Agency Name</th>
+          <th class="px-5 py-3">Phone</th>
+          <th class="px-5 py-3">Email</th>
+          <th class="px-5 py-3" data-i18n="monthly_fee">Monthly Fee</th>
+          <th class="px-5 py-3" data-i18n="status">Status</th>
+          <th class="px-5 py-3" data-i18n="last_active">Last Active</th>
+          <th class="px-5 py-3" data-i18n="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for a in accounts %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-5 py-3 font-medium text-slate-900">
+            <a href="/admin/account/{{ a.id }}" class="text-blue-600 hover:text-blue-800">{{ a.agency_name }}</a>
+          </td>
+          <td class="px-5 py-3 text-slate-700">{{ a.phone }}</td>
+          <td class="px-5 py-3 text-slate-500">{{ a.email }}</td>
+          <td class="px-5 py-3 text-slate-700">RM {{ "%.2f"|format(a.monthly_fee) }}</td>
+          <td class="px-5 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if a.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+              {% if a.is_active %}<span data-i18n="active">Active</span>{% else %}<span data-i18n="suspended">Suspended</span>{% endif %}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-slate-400 text-xs">{{ a.created_at[:10] }}</td>
+          <td class="px-5 py-3">
+            <div class="flex items-center gap-2">
+              <a href="/admin/accounts/edit/{{ a.id }}" class="text-blue-600 hover:text-blue-800 text-xs font-medium" data-i18n="save">Edit</a>
+              <button onclick="toggleSuspend('{{ a.id }}')" class="text-amber-600 hover:text-amber-800 text-xs font-medium">
+                {% if a.is_active %}Suspend{% else %}Activate{% endif %}
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function toggleSuspend(id) {
+  if (!confirm('Toggle account status?')) return;
+  try {
+    const res = await fetch('/admin/accounts/suspend/' + id, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) location.reload();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+</script>
+{% endblock %}

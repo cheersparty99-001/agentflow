@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% block title %} - Policies{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h2 class="text-2xl font-bold text-slate-900" data-i18n="policies">Policies</h2>
+    <p class="text-slate-500 text-sm mt-1">Manage all insurance policies</p>
+  </div>
+  <button onclick="openAddModal()"
+    class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    <span data-i18n="add_policy">Add Policy</span>
+  </button>
+</div>
+
+<!-- Filter Bar -->
+<div class="flex flex-wrap items-center gap-2 mb-4">
+  <a href="/policies" class="px-3 py-1.5 text-xs font-medium rounded-full {% if not active_type and not active_expiry %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors" data-i18n="all">All</a>
+  <a href="/policies?type=motor" class="px-3 py-1.5 text-xs font-medium rounded-full {% if active_type == 'motor' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors" data-i18n="motor">Motor</a>
+  <a href="/policies?type=medical" class="px-3 py-1.5 text-xs font-medium rounded-full {% if active_type == 'medical' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors" data-i18n="medical">Medical</a>
+  <a href="/policies?type=fire" class="px-3 py-1.5 text-xs font-medium rounded-full {% if active_type == 'fire' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors" data-i18n="fire">Fire</a>
+  <a href="/policies?type=travel" class="px-3 py-1.5 text-xs font-medium rounded-full {% if active_type == 'travel' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors" data-i18n="travel">Travel</a>
+  <span class="text-slate-300 mx-1">|</span>
+  <a href="/policies?expiry=30" class="px-3 py-1.5 text-xs font-medium rounded-full {% if active_expiry == '30' %}bg-amber-500 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors" data-i18n="expiring_30">Expiring in 30 Days</a>
+  <a href="/policies?expiry=14" class="px-3 py-1.5 text-xs font-medium rounded-full {% if active_expiry == '14' %}bg-orange-500 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors" data-i18n="expiring_14">Expiring in 14 Days</a>
+  <a href="/policies?expiry=7" class="px-3 py-1.5 text-xs font-medium rounded-full {% if active_expiry == '7' %}bg-red-500 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors" data-i18n="expiring_7">Expiring in 7 Days</a>
+</div>
+
+<!-- Policies Table -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-slate-50 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <th class="px-5 py-3" data-i18n="customer_name">Customer Name</th>
+          <th class="px-5 py-3" data-i18n="insurance_type">Insurance Type</th>
+          <th class="px-5 py-3">Policy No.</th>
+          <th class="px-5 py-3" data-i18n="expiry_date">Expiry Date</th>
+          <th class="px-5 py-3" data-i18n="status">Status</th>
+          <th class="px-5 py-3">Days Left</th>
+          <th class="px-5 py-3" data-i18n="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for p in policies %}
+        {% set days = p.days_left %}
+        <tr class="hover:bg-slate-50 {% if days <= 7 %}bg-red-50/50{% elif days <= 14 %}bg-orange-50/30{% elif days <= 30 %}bg-amber-50/20{% endif %}">
+          <td class="px-5 py-3 font-medium text-slate-900">{{ p.customer_name }}</td>
+          <td class="px-5 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+              {% if p.insurance_type == 'motor' %}bg-blue-100 text-blue-700
+              {% elif p.insurance_type == 'medical' %}bg-green-100 text-green-700
+              {% elif p.insurance_type == 'fire' %}bg-red-100 text-red-700
+              {% elif p.insurance_type == 'travel' %}bg-purple-100 text-purple-700
+              {% else %}bg-slate-100 text-slate-700{% endif %}">
+              {{ p.insurance_type|capitalize }}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-slate-500 font-mono text-xs">{{ p.get('policy_number', '-') }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ p.expiry_date }}</td>
+          <td class="px-5 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if p.status == 'Active' %}bg-green-100 text-green-800
+              {% elif p.status == 'Expired' %}bg-red-100 text-red-800
+              {% else %}bg-slate-100 text-slate-800{% endif %}">
+              {{ p.status }}
+            </span>
+          </td>
+          <td class="px-5 py-3">
+            <span class="font-medium {% if days <= 7 %}text-red-600{% elif days <= 14 %}text-orange-600{% elif days <= 30 %}text-amber-600{% else %}text-slate-600{% endif %}">
+              {{ days }} days
+            </span>
+          </td>
+          <td class="px-5 py-3">
+            <div class="flex items-center gap-2">
+              <button onclick='openEditModal({{ p|tojson }})' class="text-blue-600 hover:text-blue-800 text-xs font-medium">Edit</button>
+              <button onclick='deletePolicy("{{ p.id }}")' class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="policy-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <h3 id="modal-title" class="text-lg font-semibold text-slate-900">Add Policy</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <form id="policy-form" class="p-6 space-y-4">
+      <input type="hidden" name="policy_id" id="policy-id">
+
+      <!-- Insurance Type -->
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" data-i18n="insurance_type">Insurance Type</label>
+        <select name="insurance_type" id="f-insurance-type" onchange="toggleInsuranceFields()"
+          class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+          <option value="motor">Motor Insurance</option>
+          <option value="medical">Medical Insurance</option>
+          <option value="fire">Fire Insurance</option>
+          <option value="travel">Travel Insurance</option>
+        </select>
+      </div>
+
+      <!-- Common fields -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" data-i18n="customer_name">Customer Name</label>
+          <input type="text" name="customer_name" id="f-customer-name" required
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" data-i18n="phone">Phone</label>
+          <input type="text" name="phone" id="f-phone" required
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">IC Number</label>
+          <input type="text" name="ic_number" id="f-ic-number"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+          <input type="email" name="email" id="f-email"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Policy Number</label>
+          <input type="text" name="policy_number" id="f-policy-number"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Insurer</label>
+          <input type="text" name="insurer" id="f-insurer"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Sum Insured (RM)</label>
+          <input type="number" name="sum_insured" id="f-sum-insured"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Premium (RM)</label>
+          <input type="number" name="premium" id="f-premium"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" data-i18n="expiry_date">Expiry Date</label>
+          <input type="date" name="expiry_date" id="f-expiry-date" required
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" data-i18n="status">Status</label>
+          <select name="status" id="f-status"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            <option value="Active">Active</option>
+            <option value="Expired">Expired</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Motor fields -->
+      <div id="motor-fields" class="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-blue-50 rounded-lg">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Car Plate</label>
+          <input type="text" name="car_plate" id="f-car-plate"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Car Make</label>
+          <input type="text" name="car_make" id="f-car-make"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Car Model</label>
+          <input type="text" name="car_model" id="f-car-model"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Year</label>
+          <input type="number" name="car_year" id="f-car-year"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Coverage Type</label>
+          <select name="coverage_type" id="f-coverage-type"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            <option value="Comprehensive">Comprehensive</option>
+            <option value="Third Party">Third Party</option>
+            <option value="Third Party Fire & Theft">Third Party Fire & Theft</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">NCD</label>
+          <input type="text" name="ncd" id="f-ncd" placeholder="e.g. 25%"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+      </div>
+
+      <!-- Medical fields -->
+      <div id="medical-fields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-green-50 rounded-lg">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Coverage Type</label>
+          <input type="text" name="medical_coverage" id="f-medical-coverage" placeholder="e.g. Hospital & Surgical"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Dependents</label>
+          <input type="number" name="dependents" id="f-dependents" value="0"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+      </div>
+
+      <!-- Fire fields -->
+      <div id="fire-fields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-red-50 rounded-lg">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Property Address</label>
+          <input type="text" name="property_address" id="f-property-address"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Property Type</label>
+          <input type="text" name="property_type" id="f-property-type" placeholder="e.g. Terrace House"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+      </div>
+
+      <!-- Travel fields -->
+      <div id="travel-fields" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-purple-50 rounded-lg">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Destination</label>
+          <input type="text" name="destination" id="f-destination"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Travel Start</label>
+          <input type="date" name="travel_start" id="f-travel-start"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Travel End</label>
+          <input type="date" name="travel_end" id="f-travel-end"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+        <textarea name="notes" id="f-notes" rows="2"
+          class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"></textarea>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" onclick="closeModal()"
+          class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-300 rounded-lg" data-i18n="cancel">Cancel</button>
+        <button type="submit"
+          class="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleInsuranceFields() {
+  const type = document.getElementById('f-insurance-type').value;
+  document.getElementById('motor-fields').classList.toggle('hidden', type !== 'motor');
+  document.getElementById('medical-fields').classList.toggle('hidden', type !== 'medical');
+  document.getElementById('fire-fields').classList.toggle('hidden', type !== 'fire');
+  document.getElementById('travel-fields').classList.toggle('hidden', type !== 'travel');
+}
+
+function openAddModal() {
+  document.getElementById('modal-title').textContent = 'Add Policy';
+  document.getElementById('policy-id').value = '';
+  document.querySelectorAll('#policy-form input, #policy-form select').forEach(el => {
+    if (el.name !== 'status' && el.name !== 'insurance_type' && el.name !== 'coverage_type' && el.name !== 'dependents') {
+      if (el.type !== 'number') el.value = '';
+      else el.value = '0';
+    }
+  });
+  document.getElementById('f-status').value = 'Active';
+  document.getElementById('f-insurance-type').value = 'motor';
+  document.getElementById('f-dependents').value = '0';
+  toggleInsuranceFields();
+  document.getElementById('policy-modal').classList.remove('hidden');
+  document.getElementById('policy-modal').classList.add('flex');
+}
+
+function openEditModal(policy) {
+  document.getElementById('modal-title').textContent = 'Edit Policy';
+  document.getElementById('policy-id').value = policy.id;
+  document.getElementById('f-customer-name').value = policy.customer_name || '';
+  document.getElementById('f-phone').value = policy.phone || '';
+  document.getElementById('f-insurance-type').value = policy.insurance_type || 'motor';
+  document.getElementById('f-policy-number').value = policy.policy_number || '';
+  document.getElementById('f-insurer').value = policy.insurer || '';
+  document.getElementById('f-sum-insured').value = policy.sum_insured || '0';
+  document.getElementById('f-premium').value = policy.premium || '0';
+  document.getElementById('f-expiry-date').value = policy.expiry_date || '';
+  document.getElementById('f-status').value = policy.status || 'Active';
+  document.getElementById('f-car-plate').value = policy.car_plate || '';
+  document.getElementById('f-ncd').value = policy.ncd || '';
+  document.getElementById('f-car-make').value = policy.car_make || '';
+  document.getElementById('f-car-model').value = policy.car_model || '';
+  document.getElementById('f-car-year').value = policy.car_year || '';
+  document.getElementById('f-coverage-type').value = policy.coverage_type || 'Comprehensive';
+  document.getElementById('f-dependents').value = policy.dependents || '0';
+  document.getElementById('f-property-address').value = policy.property_address || '';
+  document.getElementById('f-property-type').value = policy.property_type || '';
+  document.getElementById('f-destination').value = policy.destination || '';
+  document.getElementById('f-travel-start').value = policy.travel_start || '';
+  document.getElementById('f-travel-end').value = policy.travel_end || '';
+  document.getElementById('f-ic-number').value = policy.ic_number || '';
+  document.getElementById('f-email').value = policy.email || '';
+  document.getElementById('f-notes').value = policy.notes || '';
+  toggleInsuranceFields();
+  document.getElementById('policy-modal').classList.remove('hidden');
+  document.getElementById('policy-modal').classList.add('flex');
+}
+
+function closeModal() {
+  document.getElementById('policy-modal').classList.add('hidden');
+  document.getElementById('policy-modal').classList.remove('flex');
+}
+
+document.getElementById('policy-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const policyId = document.getElementById('policy-id').value;
+  const formData = new FormData(this);
+  const endpoint = policyId ? '/policies/edit/' + policyId : '/policies/add';
+
+  try {
+    const res = await fetch(endpoint, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Error: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+});
+
+async function deletePolicy(id) {
+  if (!confirm('Are you sure you want to delete this policy?')) return;
+  try {
+    const res = await fetch('/policies/delete/' + id, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) location.reload();
+    else alert('Error: ' + (data.error || 'Unknown error'));
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+</script>
+{% endblock %}

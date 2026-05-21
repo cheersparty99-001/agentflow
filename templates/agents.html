@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %} - Agents{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-8">
+  <div>
+    <h2 class="text-2xl font-bold text-slate-900" data-i18n="agents">AI Agents</h2>
+    <p class="text-slate-500 text-sm mt-1" data-i18n="agent_modules">AI Agent Modules</p>
+  </div>
+</div>
+
+<!-- Module Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+  <!-- Renewal Reminder -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6 col-span-1">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-semibold text-slate-900">Renewal Reminder</h3>
+          <p class="text-xs text-slate-400">Automated WhatsApp reminders</p>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full" data-i18n="enabled">Enabled</span>
+    </div>
+    <div class="flex items-center gap-4 mb-4 text-sm">
+      <div><span class="text-slate-400">Scanned:</span> <span class="font-semibold text-slate-700" id="stats-scanned">0</span></div>
+      <div><span class="text-slate-400">Sent:</span> <span class="font-semibold text-green-600" id="stats-sent">0</span></div>
+      <div><span class="text-slate-400">Skipped:</span> <span class="font-semibold text-slate-500" id="stats-skipped">0</span></div>
+    </div>
+    <button onclick="runRenewalReminder()" id="run-agent-btn"
+      class="w-full bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      <span data-i18n="run_agent">Run Renewal Reminder Agent</span>
+    </button>
+
+    <!-- Recent logs for this module -->
+    <div id="module-logs" class="mt-4 space-y-2 max-h-48 overflow-y-auto">
+    </div>
+  </div>
+
+  <!-- Enquiry Handler - Coming Soon -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6 opacity-60">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-semibold text-slate-900">Enquiry Handler</h3>
+          <p class="text-xs text-slate-400">Auto-respond to customer enquiries</p>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full" data-i18n="coming_soon">Coming Soon</span>
+    </div>
+    <button onclick="alert('Upgrade to enable this module.')" class="w-full bg-slate-100 text-slate-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" data-i18n="notify_me">
+      Notify me when available
+    </button>
+  </div>
+
+  <!-- Quotation Formatter - Coming Soon -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6 opacity-60">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-semibold text-slate-900">Quotation Formatter</h3>
+          <p class="text-xs text-slate-400">Generate formatted quotations</p>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full" data-i18n="coming_soon">Coming Soon</span>
+    </div>
+    <button onclick="alert('Upgrade to enable this module.')" class="w-full bg-slate-100 text-slate-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" data-i18n="notify_me">
+      Notify me when available
+    </button>
+  </div>
+
+  <!-- Claims Tracker - Coming Soon -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6 opacity-60">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-semibold text-slate-900">Claims Tracker</h3>
+          <p class="text-xs text-slate-400">Track insurance claims</p>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full" data-i18n="coming_soon">Coming Soon</span>
+    </div>
+    <button onclick="alert('Upgrade to enable this module.')" class="w-full bg-slate-100 text-slate-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" data-i18n="notify_me">
+      Notify me when available
+    </button>
+  </div>
+
+  <!-- Birthday Greeting - Coming Soon -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6 opacity-60">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0A2.701 2.701 0 002 15.546M21 15.546V21H3v-5.454M21 15.546l-9-4.5-9 4.5M12 3v6m0 0l-2-2m2 2l2-2"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-semibold text-slate-900">Birthday Greeting</h3>
+          <p class="text-xs text-slate-400">Automated birthday wishes</p>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full" data-i18n="coming_soon">Coming Soon</span>
+    </div>
+    <button onclick="alert('Upgrade to enable this module.')" class="w-full bg-slate-100 text-slate-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" data-i18n="notify_me">
+      Notify me when available
+    </button>
+  </div>
+
+  <!-- Annual Report - Coming Soon -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6 opacity-60">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-semibold text-slate-900">Annual Report</h3>
+          <p class="text-xs text-slate-400">Portfolio report generation</p>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full" data-i18n="coming_soon">Coming Soon</span>
+    </div>
+    <button onclick="alert('Upgrade to enable this module.')" class="w-full bg-slate-100 text-slate-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" data-i18n="notify_me">
+      Notify me when available
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function runRenewalReminder() {
+  const btn = document.getElementById('run-agent-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Running...';
+
+  try {
+    const res = await fetch('/agents/run/renewal-reminder', { method: 'POST' });
+    const data = await res.json();
+    document.getElementById('stats-scanned').textContent = data.scanned || 0;
+    document.getElementById('stats-sent').textContent = data.sent || 0;
+    document.getElementById('stats-skipped').textContent = data.skipped || 0;
+    loadModuleLogs();
+  } catch (err) {
+    alert('Error running agent: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span data-i18n="run_agent">Run Renewal Reminder Agent</span>';
+  }
+}
+
+async function loadModuleLogs() {
+  try {
+    const res = await fetch('/agents/logs');
+    const logs = await res.json();
+    const container = document.getElementById('module-logs');
+    container.innerHTML = '';
+    if (logs.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4" data-i18n="no_activity">No agent activity yet.</p>';
+      return;
+    }
+    logs.slice(0, 10).forEach(log => {
+      const div = document.createElement('div');
+      div.className = 'flex items-center justify-between text-xs p-2 bg-slate-50 rounded';
+      const time = (log.created_at || '').substring(11, 19);
+      div.innerHTML = `<span class="text-slate-400">${time}</span><span class="text-slate-600">${log.action}</span><span class="text-slate-500">${log.customer || '-'}</span>`;
+      container.appendChild(div);
+    });
+  } catch (e) {}
+}
+
+document.addEventListener('DOMContentLoaded', loadModuleLogs);
+</script>
+{% endblock %}
