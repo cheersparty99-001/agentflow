@@ -1,6 +1,6 @@
 """Telegram Bot Webhook — receives messages from Telegram and routes to EnquiryHandler."""
 
-import json
+import traceback
 from fastapi import APIRouter, Request, HTTPException
 import config as cfg
 from services.enquiry_handler import handle_enquiry
@@ -41,11 +41,22 @@ async def telegram_webhook(request: Request):
     if message.get("from", {}).get("is_bot"):
         return {"ok": True, "skipped": "bot message"}
 
-    # Route to enquiry handler
-    reply = handle_enquiry(text, chat_id)
+    # Route to enquiry handler with error handling
+    try:
+        reply = handle_enquiry(text, chat_id)
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[TelegramBot] ERROR in handle_enquiry: {e}\n{tb}")
+        reply = "Sorry, an error occurred. Please try again later."
 
     # Send reply
-    sent = send_message(chat_id, reply)
+    try:
+        sent = send_message(chat_id, reply)
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[TelegramBot] ERROR in send_message: {e}\n{tb}")
+        sent = False
+
     return {"ok": True, "replied": sent, "chat_id": chat_id}
 
 
