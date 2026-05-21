@@ -109,24 +109,30 @@ def _fmt_policy(p: dict) -> str:
 
 def lookup_by_phone(phone: str) -> list:
     """Find policies matching a phone number. Returns list of policy dicts."""
-    sb = get_supabase()
-    policies = safe_multi(
-        lambda: sb.table("policies").select("*").eq("phone", phone),
-        default=[],
-    )
+    try:
+        sb = get_supabase()
+        policies = safe_multi(
+            lambda: sb.table("policies").select("*").eq("phone", phone),
+            default=[],
+        )
+    except Exception:
+        policies = []
     if not policies and cfg.DEMO_MODE:
         # Search demo policies
-        policies = [p for p in DEMO_POLICIES if p["phone"] == phone]
+        policies = [p for p in DEMO_POLICIES if str(p.get("phone", "")) == phone]
     return policies
 
 
 def lookup_by_policy_number(policy_number: str) -> list:
     """Find policies matching a policy number. Returns list of policy dicts."""
-    sb = get_supabase()
-    policies = safe_multi(
-        lambda: sb.table("policies").select("*").eq("policy_number", policy_number),
-        default=[],
-    )
+    try:
+        sb = get_supabase()
+        policies = safe_multi(
+            lambda: sb.table("policies").select("*").eq("policy_number", policy_number),
+            default=[],
+        )
+    except Exception:
+        policies = []
     if not policies and cfg.DEMO_MODE:
         policies = [p for p in DEMO_POLICIES if p.get("policy_number", "").upper() == policy_number.upper()]
     return policies

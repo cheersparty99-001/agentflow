@@ -5,12 +5,19 @@ import config as cfg
 _supabase: Client | None = None
 
 
-def get_supabase() -> Client:
+def get_supabase() -> Client | None:
     global _supabase
     if _supabase is None:
         url = cfg.SUPABASE_URL
         key = cfg.SUPABASE_SERVICE_KEY or cfg.SUPABASE_KEY
-        _supabase = create_client(url, key)
+        if not url or not key:
+            print("[Supabase] WARNING: SUPABASE_URL or SUPABASE_KEY not configured")
+            return None
+        try:
+            _supabase = create_client(url, key)
+        except Exception as e:
+            print(f"[Supabase] Failed to create client: {e}")
+            return None
     return _supabase
 
 
