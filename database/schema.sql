@@ -117,3 +117,14 @@ INSERT INTO modules (account_id, module_code, is_enabled) VALUES
   ('00000000-0000-0000-0000-000000000001', 'birthday_greeting', false),
   ('00000000-0000-0000-0000-000000000001', 'annual_report', false)
 ON CONFLICT DO NOTHING;
+
+-- Customer Telegram bot link table
+CREATE TABLE IF NOT EXISTS customer_bot_links (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  phone TEXT NOT NULL,
+  chat_id BIGINT NOT NULL,
+  customer_name TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE policies ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT;

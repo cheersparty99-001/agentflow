@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 .env
+.railway_token.txt
+.yes.txt

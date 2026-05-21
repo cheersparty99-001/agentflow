@@ -12,7 +12,7 @@ app.add_middleware(SessionMiddleware, secret_key=cfg.SECRET_KEY)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/locales", StaticFiles(directory="locales"), name="locales")
 
-from routers import auth, dashboard, policies, agents, settings, admin
+from routers import auth, dashboard, policies, agents, settings, admin, telegram_bot, cron
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
@@ -20,6 +20,8 @@ app.include_router(policies.router)
 app.include_router(agents.router)
 app.include_router(settings.router)
 app.include_router(admin.router)
+app.include_router(telegram_bot.router)
+app.include_router(cron.router)
 
 @app.get("/")
 async def root():
@@ -48,3 +50,15 @@ async def startup():
     if missing:
         print(f"[AgentFlow] WARNING: Missing env vars: {', '.join(missing)}")
     print(f"[AgentFlow] Demo mode: {cfg.DEMO_MODE}")
+
+    # Set Telegram webhook on startup
+    if cfg.TELEGRAM_BOT_TOKEN:
+        railway_url = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
+        if railway_url:
+            webhook_url = f"https://{railway_url}/telegram/webhook"
+        else:
+            webhook_url = "https://agentflow-app-production.up.railway.app/telegram/webhook"
+        from services.telegram_bot import set_webhook
+        set_webhook(webhook_url, secret_token=cfg.TELEGRAM_BOT_WEBHOOK_SECRET)
+    else:
+        print("[AgentFlow] TELEGRAM_BOT_TOKEN not set — skipping webhook setup")
