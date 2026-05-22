@@ -113,18 +113,35 @@ def _fmt_policy(p: dict) -> str:
 
 def lookup_by_phone(phone: str) -> list:
     """Find policies matching a phone number. Returns list of policy dicts."""
+    # Normalize: if user enters 0124418007, also try 60124418007
+    variants = [phone]
+    if phone.startswith("0"):
+        variants.append("60" + phone[1:])
+    elif phone.startswith("60"):
+        variants.append("0" + phone[2:])
+    # Also try with and without leading +
+    if phone.startswith("+"):
+        variants.append(phone[1:])
+    variants = list(set(variants))  # deduplicate
+
     try:
         sb = get_supabase()
-        policies = safe_multi(
-            lambda: sb.table("policies").select("*").eq("phone", phone),
-            default=[],
-        )
+        for v in variants:
+            policies = safe_multi(
+                lambda v=v: sb.table("policies").select("*").eq("phone", v),
+                default=[],
+            )
+            if policies:
+                return policies
     except Exception:
-        policies = []
-    if not policies and cfg.DEMO_MODE:
-        # Search demo policies
-        policies = [p for p in DEMO_POLICIES if str(p.get("phone", "")) == phone]
-    return policies
+        pass
+
+    if cfg.DEMO_MODE:
+        for v in variants:
+            policies = [p for p in DEMO_POLICIES if str(p.get("phone", "")) == v]
+            if policies:
+                return policies
+    return []
 
 
 def lookup_by_policy_number(policy_number: str) -> list:
