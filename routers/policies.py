@@ -26,7 +26,7 @@ DEMO_POLICIES = [
     {"id": "d-p2", "customer_name": "Tan Wei Ming", "phone": "60198765432", "ic_number": "850615-08-5678", "email": "tanwm@email.com",
      "car_plate": "JHB 5678", "car_make": "Honda", "car_model": "Civic", "car_year": 2023, "ncd": "38%", "coverage_type": "Comprehensive",
      "expiry_date": (date.today() + timedelta(days=14)).isoformat(), "status": "Active", "insurance_type": "motor", "policy_number": "MTR-2026-002", "insurer": "Allianz", "sum_insured": 120000, "premium": 2200},
-    {"id": "d-p9", "customer_name": "Mohd Hafiz", "phone": "60139001122", "ic_number": "930822-07-3344", "email": "hafiz@email.com",
+    {"id": "d-p9", "customer_name": "Mohd Hafiz", "phone": "60124418007", "ic_number": "930822-07-3344", "email": "hafiz@email.com",
      "car_plate": "KEL 1122", "car_make": "Perodua", "car_model": "Myvi", "car_year": 2024, "ncd": "0%", "coverage_type": "Third Party Fire & Theft",
      "expiry_date": (date.today() + timedelta(days=5)).isoformat(), "status": "Active", "insurance_type": "motor", "policy_number": "MTR-2026-009", "insurer": "Proton Insurance", "sum_insured": 45000, "premium": 950},
     {"id": "d-p10", "customer_name": "Lily Chang", "phone": "60164002233", "ic_number": "881212-14-5566", "email": "lily@email.com",
