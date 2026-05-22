@@ -7,21 +7,23 @@ import config as cfg
 # Demo policies for DEMO_MODE fallback
 DEMO_POLICIES = [
     {"id": "d-p1", "customer_name": "Ahmad Razif", "phone": "60123456789", "car_plate": "WXY 1234",
-     "expiry_date": str(date.today().replace(day=min(28, date.today().day)) if False else (date.today()).isoformat()),
      "ncd": "25%", "status": "Active", "insurance_type": "motor", "policy_number": "MTR-2026-001",
      "insurer": "Etiqa", "sum_insured": 85000, "premium": 1850},
     {"id": "d-p2", "customer_name": "Tan Wei Ming", "phone": "60198765432", "car_plate": "JHB 5678",
-     "expiry_date": str(date.today().replace(day=min(28, date.today().day)) if False else (date.today()).isoformat()),
      "ncd": "38%", "status": "Active", "insurance_type": "motor", "policy_number": "MTR-2026-002",
      "insurer": "Allianz", "sum_insured": 120000, "premium": 2200},
-    {"id": "d-p3", "customer_name": "Priya Nair", "phone": "60112223334", "car_plate": "PEN 9012",
-     "expiry_date": str(date.today().replace(day=min(28, date.today().day)) if False else (date.today()).isoformat()),
+    {"id": "d-p3", "customer_name": "Priya Nair", "phone": "60112223334",
      "ncd": "55%", "status": "Active", "insurance_type": "medical", "policy_number": "MED-2026-001",
      "insurer": "Great Eastern", "sum_insured": 500000, "premium": 3600},
-    {"id": "d-p5", "customer_name": "Nurul Ain", "phone": "60134445556", "car_plate": "SGR 7890",
-     "expiry_date": str(date.today().replace(day=min(28, date.today().day)) if False else (date.today()).isoformat()),
-     "ncd": "25%", "status": "Active", "insurance_type": "travel", "policy_number": "TRV-2026-001",
+    {"id": "d-p5", "customer_name": "Nurul Ain", "phone": "60134445556",
+     "status": "Active", "insurance_type": "travel", "policy_number": "TRV-2026-001",
      "insurer": "AIA", "sum_insured": 200000, "premium": 350},
+    {"id": "d-p9", "customer_name": "Mohd Hafiz", "phone": "60124418007", "car_plate": "KEL 1122",
+     "ncd": "0%", "status": "Active", "insurance_type": "motor", "policy_number": "MTR-2026-009",
+     "insurer": "Proton Insurance", "sum_insured": 45000, "premium": 950},
+    {"id": "d-p10", "customer_name": "Lily Chang", "phone": "60164002233", "car_plate": "SGR 5566",
+     "ncd": "55%", "status": "Active", "insurance_type": "motor", "policy_number": "MTR-2026-010",
+     "insurer": "AXA Affin", "sum_insured": 200000, "premium": 4500},
 ]
 
 # Set expiry dates relative to today for demo
@@ -30,6 +32,8 @@ DEMO_POLICIES[0]["expiry_date"] = (date.today() + timedelta(days=30)).isoformat(
 DEMO_POLICIES[1]["expiry_date"] = (date.today() + timedelta(days=14)).isoformat()
 DEMO_POLICIES[2]["expiry_date"] = (date.today() + timedelta(days=7)).isoformat()
 DEMO_POLICIES[3]["expiry_date"] = (date.today() + timedelta(days=100)).isoformat()
+DEMO_POLICIES[4]["expiry_date"] = (date.today() + timedelta(days=5)).isoformat()
+DEMO_POLICIES[5]["expiry_date"] = (date.today() + timedelta(days=60)).isoformat()
 
 
 # ── Message parser ──────────────────────────────────────────────
