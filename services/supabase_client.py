@@ -5,12 +5,22 @@ import config as cfg
 _supabase: Client | None = None
 
 
-def get_supabase() -> Client:
+def get_supabase() -> Client | None:
     global _supabase
     if _supabase is None:
         url = cfg.SUPABASE_URL
         key = cfg.SUPABASE_SERVICE_KEY or cfg.SUPABASE_KEY
-        _supabase = create_client(url, key)
+        if not url or not key:
+            if cfg.DEMO_MODE:
+                return None
+            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
+        try:
+            _supabase = create_client(url, key)
+        except Exception as e:
+            print(f"[Supabase] Failed to create client: {e}")
+            if cfg.DEMO_MODE:
+                return None
+            raise
     return _supabase
 
 
@@ -48,6 +58,8 @@ def safe_count(query_fn, default=0):
 def safe_insert(table_name: str, data: dict):
     """Execute a supabase insert, ignoring connection errors in demo mode."""
     sb = get_supabase()
+    if sb is None:
+        return
     try:
         sb.table(table_name).insert(data).execute()
     except Exception as e:
@@ -60,6 +72,8 @@ def safe_insert(table_name: str, data: dict):
 def safe_update(table_name: str, data: dict, eq_field: str, eq_value: str):
     """Execute a supabase update, ignoring connection errors in demo mode."""
     sb = get_supabase()
+    if sb is None:
+        return
     try:
         sb.table(table_name).update(data).eq(eq_field, eq_value).execute()
     except Exception as e:
@@ -72,6 +86,8 @@ def safe_update(table_name: str, data: dict, eq_field: str, eq_value: str):
 def safe_delete(table_name: str, eq_field: str, eq_value: str):
     """Execute a supabase delete, ignoring connection errors in demo mode."""
     sb = get_supabase()
+    if sb is None:
+        return
     try:
         sb.table(table_name).delete().eq(eq_field, eq_value).execute()
     except Exception as e:

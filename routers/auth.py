@@ -39,6 +39,8 @@ async def login_page(request: Request):
 @router.post("/login")
 async def login(request: Request, email: str = Form(...), password: str = Form(...)):
     if cfg.DEMO_MODE:
+        if not password or len(password) < 4:
+            raise HTTPException(status_code=401, detail="Invalid demo credentials")
         if email == "admin@agentflow.my":
             session_data = {
                 "user_id": "admin-user",
