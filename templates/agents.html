@@ -66,22 +66,28 @@
     </div>
   </div>
 
-  <!-- Quotation Formatter - Coming Soon -->
-  <div class="bg-white rounded-xl border border-slate-200 p-6 opacity-60">
+  <!-- Quotation Formatter - Active -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         </div>
         <div>
           <h3 class="text-base font-semibold text-slate-900">Quotation Formatter</h3>
           <p class="text-xs text-slate-400">Generate formatted quotations</p>
         </div>
       </div>
-      <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full" data-i18n="coming_soon">Coming Soon</span>
+      <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full" data-i18n="enabled">Enabled</span>
     </div>
-    <button onclick="alert('Upgrade to enable this module.')" class="w-full bg-slate-100 text-slate-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" data-i18n="notify_me">
-      Notify me when available
+    <div class="flex items-center gap-4 mb-4 text-sm">
+      <div><span class="text-slate-400">Generated:</span> <span class="font-semibold text-slate-700" id="stats-quotations">0</span></div>
+      <div><span class="text-slate-400">Total Premium:</span> <span class="font-semibold text-green-600" id="stats-premium">RM 0</span></div>
+    </div>
+    <button onclick="runQuotationFormatter()" id="run-quotation-btn"
+      class="w-full bg-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Generate Quotations
     </button>
   </div>
 
@@ -104,22 +110,29 @@
     </button>
   </div>
 
-  <!-- Birthday Greeting - Coming Soon -->
-  <div class="bg-white rounded-xl border border-slate-200 p-6 opacity-60">
+  <!-- Birthday Greeting - Active -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0A2.701 2.701 0 002 15.546M21 15.546V21H3v-5.454M21 15.546l-9-4.5-9 4.5M12 3v6m0 0l-2-2m2 2l2-2"/></svg>
+        <div class="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0A2.701 2.701 0 002 15.546M21 15.546V21H3v-5.454M21 15.546l-9-4.5-9 4.5M12 3v6m0 0l-2-2m2 2l2-2"/></svg>
         </div>
         <div>
           <h3 class="text-base font-semibold text-slate-900">Birthday Greeting</h3>
           <p class="text-xs text-slate-400">Automated birthday wishes</p>
         </div>
       </div>
-      <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full" data-i18n="coming_soon">Coming Soon</span>
+      <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full" data-i18n="enabled">Enabled</span>
     </div>
-    <button onclick="alert('Upgrade to enable this module.')" class="w-full bg-slate-100 text-slate-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" data-i18n="notify_me">
-      Notify me when available
+    <div class="flex items-center gap-4 mb-4 text-sm">
+      <div><span class="text-slate-400">Scanned:</span> <span class="font-semibold text-slate-700" id="stats-birthday-scanned">0</span></div>
+      <div><span class="text-slate-400">Sent:</span> <span class="font-semibold text-green-600" id="stats-birthday-sent">0</span></div>
+      <div><span class="text-slate-400">Skipped:</span> <span class="font-semibold text-slate-500" id="stats-birthday-skipped">0</span></div>
+    </div>
+    <button onclick="runBirthdayGreeting()" id="run-birthday-btn"
+      class="w-full bg-pink-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-pink-700 transition-colors flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0A2.701 2.701 0 002 15.546M21 15.546V21H3v-5.454M21 15.546l-9-4.5-9 4.5M12 3v6m0 0l-2-2m2 2l2-2"/></svg>
+      Send Birthday Greetings
     </button>
   </div>
 
@@ -163,6 +176,45 @@ async function runRenewalReminder() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span data-i18n="run_agent">Run Renewal Reminder Agent</span>';
+  }
+}
+
+async function runBirthdayGreeting() {
+  const btn = document.getElementById('run-birthday-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Sending...';
+
+  try {
+    const res = await fetch('/agents/run/birthday-greeting', { method: 'POST' });
+    const data = await res.json();
+    document.getElementById('stats-birthday-scanned').textContent = data.scanned || 0;
+    document.getElementById('stats-birthday-sent').textContent = data.sent || 0;
+    document.getElementById('stats-birthday-skipped').textContent = data.skipped || 0;
+    loadModuleLogs();
+  } catch (err) {
+    alert('Error running birthday greeting: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0A2.701 2.701 0 002 15.546M21 15.546V21H3v-5.454M21 15.546l-9-4.5-9 4.5M12 3v6m0 0l-2-2m2 2l2-2"/></svg> Send Birthday Greetings';
+  }
+}
+
+async function runQuotationFormatter() {
+  const btn = document.getElementById('run-quotation-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Generating...';
+
+  try {
+    const res = await fetch('/agents/run/quotation-formatter', { method: 'POST' });
+    const data = await res.json();
+    document.getElementById('stats-quotations').textContent = data.total || 0;
+    document.getElementById('stats-premium').textContent = 'RM ' + (data.total_premium || 0).toLocaleString('en-MY', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    loadModuleLogs();
+  } catch (err) {
+    alert('Error generating quotations: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Generate Quotations';
   }
 }
 

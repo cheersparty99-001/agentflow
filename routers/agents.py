@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from jinja2 import Environment, FileSystemLoader
 from services.supabase_client import get_supabase, safe_single, safe_multi, safe_insert
-from services import renewal_reminder
+from services import renewal_reminder, birthday_greeting, quotation_formatter
 from routers.auth import get_current_user
 import config as cfg
 
@@ -49,6 +49,36 @@ async def run_renewal_reminder(request: Request):
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
     account_id = user.get("account_id")
     result = renewal_reminder.run(account_id, demo_mode=cfg.DEMO_MODE, log_store=request.app.state.demo_logs)
+    return JSONResponse(result)
+
+
+@router.post("/agents/run/birthday-greeting")
+async def run_birthday_greeting(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    account_id = user.get("account_id")
+    result = birthday_greeting.run(account_id, demo_mode=cfg.DEMO_MODE, log_store=request.app.state.demo_logs)
+    return JSONResponse(result)
+
+
+@router.post("/agents/run/quotation-formatter")
+async def run_quotation_formatter(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    account_id = user.get("account_id")
+    result = quotation_formatter.run_all(account_id, demo_mode=cfg.DEMO_MODE, log_store=request.app.state.demo_logs)
+    return JSONResponse(result)
+
+
+@router.post("/agents/run/quotation-formatter/{policy_id}")
+async def run_quotation_formatter_policy(request: Request, policy_id: str):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    account_id = user.get("account_id")
+    result = quotation_formatter.run(account_id, policy_id=policy_id, demo_mode=cfg.DEMO_MODE, log_store=request.app.state.demo_logs)
     return JSONResponse(result)
 
 

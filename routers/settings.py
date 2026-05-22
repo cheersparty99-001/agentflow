@@ -64,7 +64,7 @@ async def get_settings(request: Request):
             "whatsapp_from": "",
             "language": "en",
             "reminder_days": [30, 14, 7],
-            "modules": {"renewal_reminder": True, "enquiry_handler": False, "quotation_formatter": False, "claims_tracker": False},
+            "modules": {"renewal_reminder": True, "enquiry_handler": False, "quotation_formatter": False, "claims_tracker": False, "birthday_greeting": False},
         })
 
     return JSONResponse({
@@ -97,6 +97,7 @@ async def save_settings(
     module_enquiry_handler: str = Form("off"),
     module_quotation_formatter: str = Form("off"),
     module_claims_tracker: str = Form("off"),
+    module_birthday_greeting: str = Form("off"),
 ):
     user = await require_user(request)
     if not user:
@@ -111,6 +112,7 @@ async def save_settings(
         "enquiry_handler": module_enquiry_handler == "on",
         "quotation_formatter": module_quotation_formatter == "on",
         "claims_tracker": module_claims_tracker == "on",
+        "birthday_greeting": module_birthday_greeting == "on",
     }
 
     safe_update("accounts", {
