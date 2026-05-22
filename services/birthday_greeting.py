@@ -42,12 +42,16 @@ def run(account_id: str, demo_mode: bool = True, log_store: list = None) -> dict
         if not DEMO_BIRTHDAY_CUSTOMERS:
             base = today
             DEMO_BIRTHDAY_CUSTOMERS.extend([
-                {"id": "b-demo-1", "customer_name": "Ahmad Razif", "phone": "60123456789",
+                {"id": "b-demo-1", "customer_name": "Ahmad Razif", "phone": "60123456789", "ic_number": "900101-10-1234",
                  "birthday": base.isoformat(), "last_greeted_year": None},
-                {"id": "b-demo-2", "customer_name": "Siti Fatimah", "phone": "60167778889",
+                {"id": "b-demo-2", "customer_name": "Siti Fatimah", "phone": "60178889990", "ic_number": "850615-08-7777",
                  "birthday": (base + timedelta(days=1)).isoformat(), "last_greeted_year": None},
-                {"id": "b-demo-3", "customer_name": "Raj Kumar", "phone": "60156667770",
+                {"id": "b-demo-3", "customer_name": "Tan Sri William Ng", "phone": "60192001122", "ic_number": "650305-07-1122",
                  "birthday": (base - timedelta(days=1)).isoformat(), "last_greeted_year": None},
+                {"id": "b-demo-4", "customer_name": "Lily Chang", "phone": "60164002233", "ic_number": "881212-14-5566",
+                 "birthday": (base + timedelta(days=2)).isoformat(), "last_greeted_year": None},
+                {"id": "b-demo-5", "customer_name": "Emily Wong", "phone": "60155556667", "ic_number": "900410-14-7788",
+                 "birthday": (base + timedelta(days=3)).isoformat(), "last_greeted_year": None},
             ])
         birthday_people = DEMO_BIRTHDAY_CUSTOMERS
     else:
