@@ -39,6 +39,22 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
           Agents
         </a>
+        <!-- Sales Automation Subheading -->
+        <div class="px-3 pt-4 pb-1">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Sales Automation</p>
+        </div>
+        <a href="/sales/dashboard" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path == '/sales/dashboard' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Dashboard
+        </a>
+        <a href="/sales/leads" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path.startswith('/sales/leads') %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          Leads
+        </a>
+        <a href="/sales/pipeline" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path == '/sales/pipeline' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+          Pipeline
+        </a>
         <a href="/settings" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg {% if current_path == '/settings' %}bg-slate-800 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %} transition-colors" data-i18n="settings">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           Settings
@@ -85,6 +101,10 @@
         <a href="/dashboard" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="dashboard">Dashboard</a>
         <a href="/policies" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="policies">Policies</a>
         <a href="/agents" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="agents">Agents</a>
+        <div class="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Sales Automation</div>
+        <a href="/sales/dashboard" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800">Sales Dashboard</a>
+        <a href="/sales/leads" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800">Sales Leads</a>
+        <a href="/sales/pipeline" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800">Pipeline</a>
         <a href="/settings" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="settings">Settings</a>
         {% if is_admin %}
         <a href="/admin" class="block px-4 py-3 text-white rounded-lg hover:bg-slate-800" data-i18n="admin_panel">Admin Panel</a>

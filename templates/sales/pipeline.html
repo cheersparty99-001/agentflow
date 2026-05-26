@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %} - Pipeline{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h2 class="text-2xl font-bold text-slate-900">Sales Pipeline</h2>
+    <p class="text-slate-500 text-sm mt-1">Kanban board view</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+  {% for status_key in all_statuses %}
+  {% set col = columns.get(status_key, []) %}
+  <div class="bg-slate-50 rounded-xl border border-slate-200 p-3 min-h-[300px]">
+    <!-- Column Header -->
+    <div class="flex items-center justify-between mb-3 px-2">
+      <h3 class="text-sm font-semibold capitalize
+        {% if status_key == 'cold' %}text-blue-700
+        {% elif status_key == 'contacted' %}text-amber-700
+        {% elif status_key == 'replied' %}text-purple-700
+        {% elif status_key == 'interested' %}text-green-700
+        {% elif status_key == 'closed_won' %}text-emerald-700
+        {% else %}text-red-700{% endif %}">
+        {{ status_key.replace('_', ' ') }}
+      </h3>
+      <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">{{ col|length }}</span>
+    </div>
+
+    <!-- Cards -->
+    <div class="space-y-2">
+      {% for lead in col %}
+      <a href="/sales/leads/{{ lead.id }}" class="block bg-white rounded-lg border border-slate-200 p-3 hover:shadow-md transition-shadow">
+        <div class="flex items-start justify-between mb-1">
+          <h4 class="text-sm font-semibold text-slate-900 leading-tight">{{ lead.name }}</h4>
+          <span class="shrink-0 ml-2 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
+            {% if lead.score >= 9 %}bg-green-100 text-green-700
+            {% elif lead.score >= 7 %}bg-blue-100 text-blue-700
+            {% else %}bg-slate-100 text-slate-600{% endif %}">
+            {{ lead.score }}
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 truncate">{{ lead.contact }}</p>
+        <div class="flex items-center gap-2 mt-2">
+          <span class="text-xs text-slate-400 capitalize">{{ lead.industry.replace('_', ' ') }}</span>
+          <span class="text-xs text-slate-300">&middot;</span>
+          <span class="text-xs text-slate-400">{{ lead.business }}</span>
+        </div>
+        {% if lead.notes %}
+        <p class="text-xs text-slate-400 mt-1 truncate">{{ lead.notes }}</p>
+        {% endif %}
+      </a>
+      {% else %}
+      <div class="flex flex-col items-center justify-center py-8 text-slate-400">
+        <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+        </svg>
+        <p class="text-xs">No leads</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

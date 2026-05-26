@@ -12,7 +12,7 @@ app.add_middleware(SessionMiddleware, secret_key=cfg.SECRET_KEY)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/locales", StaticFiles(directory="locales"), name="locales")
 
-from routers import auth, dashboard, policies, agents, settings, admin, telegram_bot, cron
+from routers import auth, dashboard, policies, agents, settings, admin, telegram_bot, cron, sales
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
@@ -22,6 +22,7 @@ app.include_router(settings.router)
 app.include_router(admin.router)
 app.include_router(telegram_bot.router)
 app.include_router(cron.router)
+app.include_router(sales.router)
 
 @app.get("/")
 async def root():
@@ -32,6 +33,9 @@ async def startup():
     app.state.demo_logs = []
     app.state.demo_accounts = {}
     app.state.demo_policies = []
+    # Seed Sales Automation demo data
+    from routers.sales import seed_demo_data
+    seed_demo_data(app.state)
     # Seed rich demo logs
     from datetime import datetime, timedelta
     now = datetime.utcnow()

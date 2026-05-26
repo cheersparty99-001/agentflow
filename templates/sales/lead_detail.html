@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %} - {{ lead.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="/sales/leads" class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Back to Leads
+  </a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Left Panel: Profile -->
+  <div class="lg:col-span-1">
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-slate-900">{{ lead.name }}</h2>
+        <span class="px-2.5 py-0.5 text-xs font-medium rounded-full
+          {% if lead.score >= 9 %}bg-green-100 text-green-700
+          {% elif lead.score >= 7 %}bg-blue-100 text-blue-700
+          {% else %}bg-slate-100 text-slate-600{% endif %}">
+          Score {{ lead.score }}
+        </span>
+      </div>
+
+      <!-- Status Badge -->
+      <div class="mb-5">
+        <span class="px-3 py-1 text-sm font-medium rounded-full
+          {% if lead.status == 'cold' %}bg-blue-100 text-blue-700
+          {% elif lead.status == 'contacted' %}bg-amber-100 text-amber-700
+          {% elif lead.status == 'replied' %}bg-purple-100 text-purple-700
+          {% elif lead.status == 'interested' %}bg-green-100 text-green-700
+          {% elif lead.status == 'closed_won' %}bg-emerald-100 text-emerald-700
+          {% else %}bg-red-100 text-red-700{% endif %}">
+          {{ lead.status.replace('_', ' ') }}
+        </span>
+      </div>
+
+      <!-- Quick Status Change -->
+      <div class="mb-6 p-3 bg-slate-50 rounded-lg">
+        <p class="text-xs font-medium text-slate-500 mb-2">Change Status</p>
+        <div class="flex flex-wrap gap-1.5">
+          {% for s in ['cold', 'contacted', 'replied', 'interested', 'closed_won', 'closed_lost'] %}
+          <button onclick="updateStatus('{{ lead.id }}', '{{ s }}')"
+            class="px-2 py-1 text-xs font-medium rounded-lg border transition-colors
+            {% if lead.status == s %}bg-slate-800 text-white border-slate-800
+            {% else %}bg-white text-slate-600 border-slate-300 hover:bg-slate-100{% endif %}">
+            {{ s.replace('_', ' ') }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="space-y-3 text-sm">
+        <div>
+          <p class="text-xs text-slate-400">Contact Person</p>
+          <p class="text-slate-800 font-medium">{{ lead.contact }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Phone</p>
+          <p class="text-slate-800">{{ lead.phone }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Email</p>
+          <p class="text-slate-800">{{ lead.email }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Industry</p>
+          <p class="text-slate-800 capitalize">{{ lead.industry.replace('_', ' ') }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Business</p>
+          <p class="text-slate-800">{{ lead.business }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Location</p>
+          <p class="text-slate-800">{{ lead.location }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Notes</p>
+          <p class="text-slate-600">{{ lead.notes }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Created</p>
+          <p class="text-slate-600">{{ lead.created_at[:19].replace('T', ' ') }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Last Updated</p>
+          <p class="text-slate-600">{{ lead.updated_at[:19].replace('T', ' ') }}</p>
+        </div>
+      </div>
+
+      <!-- Add Note -->
+      <div class="mt-6 pt-4 border-t border-slate-200">
+        <p class="text-sm font-semibold text-slate-900 mb-3">Add Note</p>
+        <form id="note-form" onsubmit="addNote(event, '{{ lead.id }}')">
+          <input type="text" name="summary" placeholder="Summary" required
+            class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <textarea name="detail" rows="2" placeholder="Detail (optional)"
+            class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+          <button type="submit" class="w-full px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Save Note</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Timeline -->
+  <div class="lg:col-span-2">
+    <div class="bg-white rounded-xl border border-slate-200 p-6">
+      <h3 class="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Activity Timeline
+        <span class="ml-auto text-xs text-slate-400 font-normal">{{ activities|length }} entries</span>
+      </h3>
+
+      <div class="relative">
+        <!-- Timeline line -->
+        <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200"></div>
+
+        <div class="space-y-0">
+          {% for act in activities %}
+          <div class="relative pl-12 pb-6 last:pb-0">
+            <!-- Timeline dot -->
+            <div class="absolute left-2.5 top-1 w-3 h-3 rounded-full border-2 border-white
+              {% if act.type == 'call' %}bg-blue-500
+              {% elif act.type == 'email' %}bg-purple-500
+              {% elif act.type == 'message' %}bg-green-500
+              {% else %}bg-slate-400{% endif %}">
+            </div>
+
+            <!-- Activity card -->
+            <div class="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+              <div class="flex items-start justify-between mb-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-medium px-1.5 py-0.5 rounded
+                    {% if act.type == 'call' %}bg-blue-100 text-blue-600
+                    {% elif act.type == 'email' %}bg-purple-100 text-purple-600
+                    {% elif act.type == 'message' %}bg-green-100 text-green-600
+                    {% else %}bg-slate-100 text-slate-600{% endif %}">
+                    {{ act.type }}
+                  </span>
+                  <span class="text-xs text-slate-400">{{ act.created_at[:19].replace('T', ' ') }}</span>
+                </div>
+                <button onclick="toggleMessage('msg-{{ loop.index }}')" class="text-slate-400 hover:text-slate-600">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="text-sm font-medium text-slate-800">{{ act.summary }}</p>
+
+              <!-- Expandable detail -->
+              <div id="msg-{{ loop.index }}" class="hidden mt-2 pt-2 border-t border-slate-100">
+                <p class="text-sm text-slate-600 whitespace-pre-wrap">{{ act.detail }}</p>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="flex flex-col items-center justify-center py-12 text-slate-400">
+            <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            <p class="text-sm">No activity recorded yet.</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleMessage(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('hidden');
+}
+
+async function updateStatus(leadId, status) {
+  const formData = new FormData();
+  formData.append('status', status);
+  try {
+    const res = await fetch(`/sales/leads/${leadId}/status`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.ok) window.location.reload();
+    else alert('Error: ' + (data.error || 'unknown'));
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function addNote(event, leadId) {
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+  try {
+    const res = await fetch(`/sales/leads/${leadId}/note`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.ok) window.location.reload();
+    else alert('Error: ' + (data.error || 'unknown'));
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+</script>
+{% endblock %}
