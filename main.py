@@ -34,8 +34,8 @@ async def startup():
     app.state.demo_accounts = {}
     app.state.demo_policies = []
     # Seed Sales Automation demo data
-    from routers.sales import seed_demo_data
-    seed_demo_data(app.state)
+    from routers.sales import init_sales_demo_data
+    init_sales_demo_data(app.state)
     # Seed rich demo logs
     from datetime import datetime, timedelta
     now = datetime.utcnow()

@@ -129,6 +129,71 @@ def seed_demo_data(app_state):
     print(f"[Sales] Seeded {len(leads)} demo leads with {len(activities)} activities")
 
 
+def init_sales_demo_data(app_state):
+    """Initialize all sales demo data (call from startup)."""
+    # Existing seed
+    seed_demo_data(app_state)
+
+    # Target profiles
+    if not hasattr(app_state, 'sales_target_profiles') or not app_state.sales_target_profiles:
+        app_state.sales_target_profiles = [
+            {
+                'id': 'tp-001',
+                'account_id': '00000000-0000-0000-0000-000000000001',
+                'business_id': 'b1000000-0000-0000-0000-000000000001',
+                'business_name': 'Boleh AI',
+                'name': 'Default - Boleh AI',
+                'industries': ['Food & Beverage','Retail','Healthcare','Insurance','Optical','Wholesale'],
+                'locations': ['Kuala Lumpur','Selangor','Penang','Johor'],
+                'company_size': 'any',
+                'keywords_include': ['sdn bhd','enterprise'],
+                'keywords_exclude': [],
+                'min_ai_score': 7,
+                'is_active': True,
+            },
+            {
+                'id': 'tp-002',
+                'account_id': '00000000-0000-0000-0000-000000000001',
+                'business_id': 'b1000000-0000-0000-0000-000000000002',
+                'business_name': 'Wise Solutions',
+                'name': 'Default - Wise Solutions',
+                'industries': ['Technology','Fintech','Healthcare','Education','Ecommerce'],
+                'locations': ['Kuala Lumpur','Selangor'],
+                'company_size': 'any',
+                'keywords_include': ['startup','funding','expansion'],
+                'keywords_exclude': [],
+                'min_ai_score': 7,
+                'is_active': True,
+            },
+        ]
+
+    # Onboarding state
+    if not hasattr(app_state, 'sales_onboarding'):
+        app_state.sales_onboarding = {
+            'status': 'pending',
+            'sampling_start_date': None,
+            'sampling_lead_count': 0,
+        }
+
+    # Businesses (for target profile form)
+    if not hasattr(app_state, 'sales_businesses'):
+        app_state.sales_businesses = [
+            {'id': 'b1000000-0000-0000-0000-000000000001', 'name': 'Boleh AI', 'type': 'boleh_ai'},
+            {'id': 'b1000000-0000-0000-0000-000000000002', 'name': 'Wise Solutions', 'type': 'wise_solutions'},
+        ]
+
+    # Usage & limits
+    if not hasattr(app_state, 'sales_usage'):
+        app_state.sales_usage = {
+            'total_leads_scraped': 0,
+            'total_outreach_sent': 0,
+            'total_samples': 0,
+            'sampling_limit': 30,
+            'monthly_outreach_limit': 500,
+            'daily_scrape_limit': 200,
+        }
+
+
 # ── Helper functions for template rendering ────────────────────────────────────
 
 def _render(request, template_name, **extra):
@@ -380,41 +445,7 @@ async def sales_outreach_trigger(request: Request, campaign: str = Form(""), cha
     return JSONResponse({"ok": True, "sent": sent_count, "channel": channel, "campaign": campaign})
 
 
-@router.post("/sales/scraper/run")
-async def sales_scraper_run(request: Request, url: str = Form(""), source: str = Form("linkedin")):
-    user = await require_user(request)
-    if not user:
-        return JSONResponse({"error": "Not authenticated"}, status_code=401)
-
-    # Simulate scraper result
-    scraped = []
-    if source == "linkedin":
-        scraped.append({"name": "TechCorp Malaysia", "industry": "technology", "contact": "N/A", "phone": "", "email": "", "location": "Kuala Lumpur", "notes": f"Scraped from LinkedIn URL: {url}"})
-        scraped.append({"name": "GreenEnergy Solutions", "industry": "energy", "contact": "N/A", "phone": "", "email": "", "location": "Selangor", "notes": f"Scraped from LinkedIn URL: {url}"})
-
-    state = _get_leads_state(request.app.state)
-    imported = 0
-    for s in scraped:
-        lid = f"lead-import-{uuid.uuid4().hex[:8]}"
-        state["leads"].append({
-            "id": lid,
-            "name": s["name"],
-            "industry": s["industry"],
-            "business": "Boleh AI",
-            "score": 5,
-            "status": "cold",
-            "contact": s["contact"],
-            "phone": s["phone"],
-            "email": s["email"],
-            "location": s["location"],
-            "notes": s["notes"],
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-        })
-        imported += 1
-
-    _save_leads_state(request.app.state, state)
-    return JSONResponse({"ok": True, "source": source, "scraped": imported})
+# (replaced below with expanded version including google_maps support)
 
 
 @router.post("/sales/webhook/whatsapp")
@@ -531,3 +562,484 @@ async def sales_webhook_gmail(request: Request):
 
     _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, "matched": len(matched)})
+
+
+# ── Target Profiles ────────────────────────────────────────────────────────────
+
+
+@router.get("/sales/target-profiles", response_class=HTMLResponse)
+async def sales_target_profiles_list(request: Request):
+    user = await require_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+
+    profiles = getattr(request.app.state, "sales_target_profiles", [])
+    businesses = getattr(request.app.state, "sales_businesses", [])
+    return _render(request, "sales/target_profile.html", profiles=profiles, businesses=businesses)
+
+
+@router.post("/sales/target-profiles")
+async def sales_target_profiles_create(
+    request: Request,
+    name: str = Form(...),
+    business_id: str = Form(""),
+    industries: list[str] = Form([]),
+    locations: list[str] = Form([]),
+    company_size: str = Form("any"),
+    keywords_include: str = Form(""),
+    keywords_exclude: str = Form(""),
+    min_ai_score: int = Form(7),
+):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if not hasattr(request.app.state, "sales_target_profiles"):
+        request.app.state.sales_target_profiles = []
+
+    businesses = getattr(request.app.state, "sales_businesses", [])
+    biz = next((b for b in businesses if b["id"] == business_id), None)
+
+    profile = {
+        "id": f"tp-{uuid.uuid4().hex[:8]}",
+        "account_id": user.get("account_id", "00000000-0000-0000-0000-000000000001"),
+        "business_id": business_id,
+        "business_name": biz["name"] if biz else business_id,
+        "name": name,
+        "industries": industries if isinstance(industries, list) else [industries],
+        "locations": locations if isinstance(locations, list) else [locations],
+        "company_size": company_size,
+        "keywords_include": [kw.strip() for kw in keywords_include.split(",") if kw.strip()],
+        "keywords_exclude": [kw.strip() for kw in keywords_exclude.split(",") if kw.strip()],
+        "min_ai_score": min_ai_score,
+        "is_active": True,
+    }
+    request.app.state.sales_target_profiles.append(profile)
+    return RedirectResponse(url="/sales/target-profiles", status_code=303)
+
+
+@router.get("/sales/target-profiles/{profile_id}")
+async def sales_target_profiles_get(request: Request, profile_id: str):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    profiles = getattr(request.app.state, "sales_target_profiles", [])
+    profile = next((p for p in profiles if p["id"] == profile_id), None)
+    if not profile:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    return JSONResponse(profile)
+
+
+@router.post("/sales/target-profiles/{profile_id}")
+async def sales_target_profiles_update(
+    request: Request,
+    profile_id: str,
+    name: str = Form(...),
+    business_id: str = Form(""),
+    industries: list[str] = Form([]),
+    locations: list[str] = Form([]),
+    company_size: str = Form("any"),
+    keywords_include: str = Form(""),
+    keywords_exclude: str = Form(""),
+    min_ai_score: int = Form(7),
+):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    profiles = getattr(request.app.state, "sales_target_profiles", [])
+    businesses = getattr(request.app.state, "sales_businesses", [])
+    biz = next((b for b in businesses if b["id"] == business_id), None)
+
+    for p in profiles:
+        if p["id"] == profile_id:
+            p["name"] = name
+            p["business_id"] = business_id
+            p["business_name"] = biz["name"] if biz else business_id
+            p["industries"] = industries if isinstance(industries, list) else [industries]
+            p["locations"] = locations if isinstance(locations, list) else [locations]
+            p["company_size"] = company_size
+            p["keywords_include"] = [kw.strip() for kw in keywords_include.split(",") if kw.strip()]
+            p["keywords_exclude"] = [kw.strip() for kw in keywords_exclude.split(",") if kw.strip()]
+            p["min_ai_score"] = min_ai_score
+            return RedirectResponse(url="/sales/target-profiles", status_code=303)
+
+    return JSONResponse({"error": "Not found"}, status_code=404)
+
+
+@router.delete("/sales/target-profiles/{profile_id}")
+async def sales_target_profiles_delete(request: Request, profile_id: str):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    profiles = getattr(request.app.state, "sales_target_profiles", [])
+    request.app.state.sales_target_profiles = [p for p in profiles if p["id"] != profile_id]
+    return JSONResponse({"ok": True})
+
+
+# ── Onboarding / Sampling ─────────────────────────────────────────────────────
+
+
+@router.post("/sales/onboarding/start-sampling")
+async def sales_onboarding_start_sampling(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    onboarding = getattr(request.app.state, "sales_onboarding", {})
+    if not onboarding:
+        request.app.state.sales_onboarding = {
+            "status": "pending",
+            "sampling_start_date": None,
+            "sampling_lead_count": 0,
+        }
+        onboarding = request.app.state.sales_onboarding
+
+    if onboarding.get("status") == "sampling":
+        return JSONResponse({"error": "Already sampling"}, status_code=400)
+
+    # Create 30 sample leads
+    state = _get_leads_state(request.app.state)
+    sample_count = 0
+    for i in range(30):
+        lid = f"sample-{uuid.uuid4().hex[:8]}"
+        state["leads"].append({
+            "id": lid,
+            "name": f"Sample Lead #{i+1}",
+            "industry": ["Food & Beverage", "Retail", "Technology", "Healthcare", "Manufacturing"][i % 5],
+            "business": "Boleh AI",
+            "score": 5 + (i % 4),
+            "status": "cold",
+            "contact": f"contact{i}@sample.com",
+            "phone": f"+60 1{i:02d}-{i:07d}",
+            "email": f"sample{i}@leads.my",
+            "location": ["Kuala Lumpur", "Selangor", "Penang", "Johor"][i % 4],
+            "notes": "Sample lead for onboarding evaluation",
+            "is_sample": True,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        })
+        sample_count += 1
+
+    _save_leads_state(request.app.state, state)
+
+    onboarding["status"] = "sampling"
+    onboarding["sampling_start_date"] = datetime.utcnow().isoformat()
+    onboarding["sampling_lead_count"] = sample_count
+
+    usage = getattr(request.app.state, "sales_usage", {})
+    usage["total_samples"] = (usage.get("total_samples", 0) or 0) + sample_count
+    usage["total_leads_scraped"] = (usage.get("total_leads_scraped", 0) or 0) + sample_count
+
+    return JSONResponse({"ok": True, "samples_created": sample_count, "status": "sampling"})
+
+
+@router.get("/sales/onboarding/samples")
+async def sales_onboarding_list_samples(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    state = _get_leads_state(request.app.state)
+    samples = [l for l in state["leads"] if l.get("is_sample")]
+    return JSONResponse({"samples": samples, "count": len(samples)})
+
+
+@router.post("/sales/onboarding/confirm")
+async def sales_onboarding_confirm(request: Request, quality_rating: int = Form(7), notes: str = Form("")):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    onboarding = getattr(request.app.state, "sales_onboarding", {})
+    if not onboarding or onboarding.get("status") != "sampling":
+        return JSONResponse({"error": "Not in sampling phase"}, status_code=400)
+
+    onboarding["status"] = "confirmed"
+    onboarding["quality_rating"] = quality_rating
+    onboarding["confirmation_notes"] = notes
+    onboarding["confirmed_at"] = datetime.utcnow().isoformat()
+
+    return JSONResponse({"ok": True, "status": "confirmed", "quality_rating": quality_rating})
+
+
+@router.post("/sales/onboarding/activate")
+async def sales_onboarding_activate(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if not user.get("is_admin", False):
+        return JSONResponse({"error": "Admin only"}, status_code=403)
+
+    onboarding = getattr(request.app.state, "sales_onboarding", {})
+    if not onboarding or onboarding.get("status") != "confirmed":
+        return JSONResponse({"error": "Must confirm sampling first"}, status_code=400)
+
+    onboarding["status"] = "active"
+    onboarding["activated_at"] = datetime.utcnow().isoformat()
+
+    return JSONResponse({"ok": True, "status": "active", "message": "Real outreach enabled"})
+
+
+# ── Usage & Limits ─────────────────────────────────────────────────────────────
+
+
+@router.get("/sales/usage")
+async def sales_usage_get(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    usage = getattr(request.app.state, "sales_usage", {})
+    if not usage:
+        usage = {
+            "total_leads_scraped": 0,
+            "total_outreach_sent": 0,
+            "total_samples": 0,
+            "sampling_limit": 30,
+            "monthly_outreach_limit": 500,
+            "daily_scrape_limit": 200,
+        }
+        request.app.state.sales_usage = usage
+
+    return JSONResponse(usage)
+
+
+@router.post("/sales/usage/limits")
+async def sales_usage_set_limits(
+    request: Request,
+    sampling_limit: int = Form(30),
+    monthly_outreach_limit: int = Form(500),
+    daily_scrape_limit: int = Form(200),
+):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    usage = getattr(request.app.state, "sales_usage", {})
+    if not usage:
+        usage = {}
+        request.app.state.sales_usage = usage
+
+    usage["sampling_limit"] = sampling_limit
+    usage["monthly_outreach_limit"] = monthly_outreach_limit
+    usage["daily_scrape_limit"] = daily_scrape_limit
+
+    return JSONResponse({"ok": True, "limits": usage})
+
+
+# ── Updated Scraper (google_maps support) ──────────────────────────────────────
+
+
+@router.post("/sales/scraper/run")
+async def sales_scraper_run(
+    request: Request,
+    url: str = Form(""),
+    source: str = Form("linkedin"),
+    query: str = Form(""),
+    location: str = Form(""),
+    max_results: int = Form(10),
+):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    scraped = []
+    usage = getattr(request.app.state, "sales_usage", {})
+
+    if source == "google_maps":
+        # Simulate Google Maps scraping
+        industries_pool = ["Food & Beverage", "Retail", "Healthcare", "Technology", "Manufacturing", "Logistics", "Education"]
+        for i in range(min(max_results, 20)):
+            scraped.append({
+                "name": f"{query or 'Business'} #{i+1}",
+                "industry": industries_pool[i % len(industries_pool)],
+                "contact": "N/A",
+                "phone": f"+60 1{i:02d}-{i:05d}",
+                "email": f"info@business{i}.my",
+                "location": location or "Kuala Lumpur",
+                "notes": f"Scraped from Google Maps — query: {query or 'N/A'}, location: {location or 'N/A'}",
+            })
+    elif source == "linkedin":
+        scraped.append({"name": "TechCorp Malaysia", "industry": "technology", "contact": "N/A", "phone": "", "email": "", "location": "Kuala Lumpur", "notes": f"Scraped from LinkedIn URL: {url}"})
+        scraped.append({"name": "GreenEnergy Solutions", "industry": "energy", "contact": "N/A", "phone": "", "email": "", "location": "Selangor", "notes": f"Scraped from LinkedIn URL: {url}"})
+    else:
+        # Default simulation
+        scraped.append({"name": f"Lead from {source}", "industry": "other", "contact": "N/A", "phone": "", "email": "", "location": "", "notes": f"Scraped from {source}"})
+
+    state = _get_leads_state(request.app.state)
+    imported = 0
+    for s in scraped:
+        lid = f"lead-import-{uuid.uuid4().hex[:8]}"
+        state["leads"].append({
+            "id": lid,
+            "name": s["name"],
+            "industry": s["industry"],
+            "business": "Boleh AI",
+            "score": 5,
+            "status": "cold",
+            "contact": s["contact"],
+            "phone": s["phone"],
+            "email": s["email"],
+            "location": s["location"],
+            "notes": s["notes"],
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        })
+        imported += 1
+
+    _save_leads_state(request.app.state, state)
+    if usage:
+        usage["total_leads_scraped"] = (usage.get("total_leads_scraped", 0) or 0) + imported
+
+    return JSONResponse({"ok": True, "source": source, "query": query, "location": location, "scraped": imported})
+
+
+# ── Real API Scraping (non-demo) ───────────────────────────────────────────────
+
+
+@router.post("/sales/scraper/google-maps")
+async def sales_scraper_google_maps(
+    request: Request,
+    query: str = Form(...),
+    location: str = Form(""),
+    max_results: int = Form(10),
+    api_key: str = Form(""),
+):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    # Demo mode: return simulated leads
+    if cfg.DEMO_MODE:
+        from services.sales.scraper import scrape_google_maps as demo_scrape
+        leads = await demo_scrape(query, location, max_results)
+        return JSONResponse({"ok": True, "source": "google_maps", "places_found": len(leads), "imported": len(leads), "demo": True})
+
+    # Real Google Maps Places API call
+    import httpx
+
+    places = []
+    try:
+        params = {
+            "query": f"{query} {location}" if location else query,
+            "key": api_key or getattr(cfg, "GOOGLE_MAPS_API_KEY", "") or "",
+        }
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                "https://maps.googleapis.com/maps/api/place/textsearch/json",
+                params=params,
+            )
+            data = resp.json()
+            for result in data.get("results", [])[:max_results]:
+                places.append({
+                    "name": result.get("name", "Unknown"),
+                    "address": result.get("formatted_address", ""),
+                    "rating": result.get("rating"),
+                    "place_id": result.get("place_id", ""),
+                    "types": result.get("types", []),
+                    "location": result.get("geometry", {}).get("location", {}),
+                })
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    # Import as leads
+    state = _get_leads_state(request.app.state)
+    imported = 0
+    for p in places:
+        lid = f"lead-gmaps-{uuid.uuid4().hex[:8]}"
+        state["leads"].append({
+            "id": lid,
+            "name": p["name"],
+            "industry": (p.get("types") or ["other"])[0] if p.get("types") else "other",
+            "business": "Boleh AI",
+            "score": min(10, int((p.get("rating") or 0) * 2)),
+            "status": "cold",
+            "contact": "",
+            "phone": "",
+            "email": "",
+            "location": p.get("address", ""),
+            "notes": f"Google Maps — place_id: {p['place_id']}, rating: {p.get('rating', 'N/A')}",
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        })
+        imported += 1
+
+    _save_leads_state(request.app.state, state)
+    usage = getattr(request.app.state, "sales_usage", {})
+    if usage:
+        usage["total_leads_scraped"] = (usage.get("total_leads_scraped", 0) or 0) + imported
+
+    return JSONResponse({"ok": True, "source": "google_maps", "places_found": len(places), "imported": imported})
+
+
+@router.post("/sales/scraper/news")
+async def sales_scraper_news(request: Request, query: str = Form(...), max_results: int = Form(10)):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    # Demo mode: return simulated news leads
+    if cfg.DEMO_MODE:
+        from services.sales.scraper import scrape_news_leads as demo_scrape
+        leads = await demo_scrape(query.split(), max_results)
+        return JSONResponse({"ok": True, "source": "news", "articles_found": len(leads), "imported": len(leads), "demo": True})
+
+    # Google News RSS feed
+    import httpx
+    import xml.etree.ElementTree as ET
+    from urllib.parse import quote
+
+    articles = []
+    try:
+        search_url = f"https://news.google.com/rss/search?q={quote(query)}&hl=en-MY&gl=MY&ceid=MY:en"
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+            resp = await client.get(search_url)
+            root = ET.fromstring(resp.text)
+            ns = {"atom": "http://www.w3.org/2005/Atom"}
+            for item in list(root.iter("item"))[:max_results]:
+                title = item.findtext("title", "")
+                link = item.findtext("link", "")
+                pub_date = item.findtext("pubDate", "")
+                source_el = item.find("source")
+                source_name = source_el.text if source_el is not None else ""
+                articles.append({
+                    "title": title,
+                    "url": link,
+                    "published": pub_date,
+                    "source": source_name,
+                })
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    # Import as leads (from news mentions)
+    state = _get_leads_state(request.app.state)
+    imported = 0
+    for art in articles[:max_results]:
+        lid = f"lead-news-{uuid.uuid4().hex[:8]}"
+        state["leads"].append({
+            "id": lid,
+            "name": f"News: {art['title'][:60]}",
+            "industry": "other",
+            "business": "Boleh AI",
+            "score": 6,
+            "status": "cold",
+            "contact": "",
+            "phone": "",
+            "email": "",
+            "location": "",
+            "notes": f"Google News — {art['source']}: {art['title']} ({art['url']})",
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+        })
+        imported += 1
+
+    _save_leads_state(request.app.state, state)
+    usage = getattr(request.app.state, "sales_usage", {})
+    if usage:
+        usage["total_leads_scraped"] = (usage.get("total_leads_scraped", 0) or 0) + imported
+
+    return JSONResponse({"ok": True, "source": "news", "articles_found": len(articles), "imported": imported})

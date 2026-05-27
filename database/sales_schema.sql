@@ -120,3 +120,55 @@ VALUES
   ('00000000-0000-0000-0000-000000000001', 'linkedin', 'Elite Retail Group', 'https://eliteretail.my', '60167778889', 'hello@eliteretail.my', 'Retail', 200, 'Michelle Wong', 'CEO', 'Johor Bahru', 'new', 78),
   ('00000000-0000-0000-0000-000000000001', 'manual', 'SmartStart Academy', 'https://smartstart.edu.my', '60134445556', 'info@smartstart.edu.my', 'Education', 30, 'Prof. David Ng', 'Principal', 'Ipoh', 'new', 65)
 ON CONFLICT DO NOTHING;
+
+-- 3-Day Sampling mode columns
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS sales_onboarding_status TEXT DEFAULT 'pending';
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS sampling_start_date TIMESTAMP;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS sampling_lead_count INTEGER DEFAULT 0;
+
+-- Sample leads marker
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS is_sample BOOLEAN DEFAULT false;
+
+-- Usage limits
+CREATE TABLE IF NOT EXISTS usage_limits (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  account_id UUID REFERENCES accounts(id),
+  monthly_lead_limit INTEGER DEFAULT 200,
+  monthly_message_limit INTEGER DEFAULT 400,
+  daily_message_limit INTEGER DEFAULT 20,
+  current_month_leads INTEGER DEFAULT 0,
+  current_month_messages INTEGER DEFAULT 0,
+  current_day_messages INTEGER DEFAULT 0,
+  last_reset_date DATE DEFAULT CURRENT_DATE,
+  last_daily_reset TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Target profiles
+CREATE TABLE IF NOT EXISTS target_profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  account_id UUID REFERENCES accounts(id),
+  business_id UUID REFERENCES sales_businesses(id),
+  name TEXT NOT NULL,
+  industries TEXT[],
+  locations TEXT[],
+  company_size TEXT DEFAULT 'any',
+  keywords_include TEXT[],
+  keywords_exclude TEXT[],
+  min_ai_score INTEGER DEFAULT 7,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Seed target profile
+INSERT INTO target_profiles (account_id, business_id, name, industries, locations, keywords_include, min_ai_score)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  'b1000000-0000-0000-0000-000000000001',
+  'Default - Boleh AI',
+  ARRAY['Food & Beverage','Retail','Healthcare','Professional Services','Insurance','Optical','Wholesale'],
+  ARRAY['Kuala Lumpur','Selangor','Penang','Johor'],
+  ARRAY['sdn bhd','enterprise','solutions'],
+  7
+)
+ON CONFLICT DO NOTHING;

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %} — Target Profiles{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-800">Target Profiles</h1>
+    <p class="text-sm text-slate-500 mt-1">Configure who to target for lead generation</p>
+  </div>
+  <button onclick="document.getElementById('profile-modal').classList.remove('hidden')" class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors">
+    + New Profile
+  </button>
+</div>
+
+{% if profiles %}
+<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+  {% for p in profiles %}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-semibold text-slate-800">{{ p.name }}</h3>
+      <span class="{% if p.is_active %}bg-green-100 text-green-700{% else %}bg-slate-100 text-slate-500{% endif %} text-xs px-2 py-0.5 rounded-full">
+        {{ 'Active' if p.is_active else 'Inactive' }}
+      </span>
+    </div>
+    <div class="space-y-2 text-sm">
+      <div><span class="text-slate-400">Business:</span> <span class="text-slate-600">{{ p.business_name or p.business_id }}</span></div>
+      <div><span class="text-slate-400">Industries:</span>
+        {% for ind in p.industries %}
+        <span class="inline-block bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded mr-1">{{ ind }}</span>
+        {% endfor %}
+      </div>
+      <div><span class="text-slate-400">Locations:</span>
+        {% for loc in p.locations %}
+        <span class="inline-block bg-purple-50 text-purple-600 text-xs px-2 py-0.5 rounded mr-1">{{ loc }}</span>
+        {% endfor %}
+      </div>
+      <div><span class="text-slate-400">Min Score:</span> <span class="font-medium text-slate-700">{{ p.min_ai_score }}/10</span></div>
+    </div>
+    <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+      <button onclick="editProfile('{{ p.id }}')" class="text-xs text-indigo-600 hover:text-indigo-800">Edit</button>
+      <button onclick="deleteProfile('{{ p.id }}')" class="text-xs text-red-500 hover:text-red-700">Delete</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+  <p class="text-slate-500">No target profiles yet.</p>
+  <button onclick="document.getElementById('profile-modal').classList.remove('hidden')" class="mt-3 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">Create your first profile</button>
+</div>
+{% endif %}
+
+<!-- Create/Edit Modal -->
+<div id="profile-modal" class="fixed inset-0 bg-black/50 z-50 hidden">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-slate-800" id="modal-title">New Target Profile</h2>
+        <button onclick="document.getElementById('profile-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">&times;</button>
+      </div>
+      <form id="profile-form" method="POST" action="/sales/target-profiles">
+        <input type="hidden" name="edit_id" id="edit-id" value="">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Profile Name</label>
+            <input type="text" name="name" id="p-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Default - Boleh AI">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Business</label>
+            <select name="business_id" id="p-business" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+              {% for b in businesses %}
+              <option value="{{ b.id }}">{{ b.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Industries</label>
+            <div class="grid grid-cols-2 gap-2">
+              {% set all_industries = ['Manufacturing','Food & Beverage','Retail','Logistics','Healthcare','Education','Technology','Professional Services','Wholesale','Construction','Insurance','Optical','Fintech','Ecommerce','Beauty','Automotive'] %}
+              {% for ind in all_industries %}
+              <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="industries" value="{{ ind }}" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                {{ ind }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Locations</label>
+            <div class="grid grid-cols-2 gap-2">
+              {% set all_locations = ['Kuala Lumpur','Selangor','Penang','Johor','Perak','Sabah','Sarawak','Negeri Sembilan','Melaka','Pahang','Kedah','Kelantan','Terengganu'] %}
+              {% for loc in all_locations %}
+              <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="locations" value="{{ loc }}" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                {{ loc }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Company Size</label>
+            <select name="company_size" id="p-size" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+              <option value="any">Any</option>
+              <option value="small">Small (1-50 emp)</option>
+              <option value="medium">Medium (51-200 emp)</option>
+              <option value="large">Large (200+ emp)</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Keywords (include)</label>
+              <input type="text" name="keywords_include" id="p-kw-include" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="factory, manufacturer, sdn bhd">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Keywords (exclude)</label>
+              <input type="text" name="keywords_exclude" id="p-kw-exclude" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="restaurant, cafe, retail">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Min AI Score: <span id="score-display">7</span>/10</label>
+            <input type="range" name="min_ai_score" min="1" max="10" value="7" oninput="document.getElementById('score-display').textContent=this.value" class="w-full">
+          </div>
+          <div class="flex gap-3 pt-2">
+            <button type="submit" class="flex-1 px-4 py-2.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors">Save Profile</button>
+            <button type="button" onclick="document.getElementById('profile-modal').classList.add('hidden')" class="px-4 py-2.5 border border-slate-300 text-slate-600 text-sm rounded-lg hover:bg-slate-50">Cancel</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function editProfile(id) {
+  fetch('/sales/target-profiles/' + id)
+    .then(r => r.json())
+    .then(p => {
+      document.getElementById('modal-title').textContent = 'Edit Profile';
+      document.getElementById('edit-id').value = p.id;
+      document.getElementById('p-name').value = p.name || '';
+      document.getElementById('p-business').value = p.business_id || '';
+      document.getElementById('p-size').value = p.company_size || 'any';
+      document.getElementById('p-kw-include').value = (p.keywords_include || []).join(', ');
+      document.getElementById('p-kw-exclude').value = (p.keywords_exclude || []).join(', ');
+      document.getElementById('score-display').textContent = p.min_ai_score || 7;
+      document.querySelector('input[name=min_ai_score]').value = p.min_ai_score || 7;
+      document.querySelectorAll('input[name=industries]').forEach(cb => cb.checked = (p.industries || []).includes(cb.value));
+      document.querySelectorAll('input[name=locations]').forEach(cb => cb.checked = (p.locations || []).includes(cb.value));
+      document.getElementById('profile-form').action = '/sales/target-profiles/' + p.id;
+      document.getElementById('profile-modal').classList.remove('hidden');
+    });
+}
+function deleteProfile(id) {
+  if (confirm('Delete this target profile?')) {
+    fetch('/sales/target-profiles/' + id, { method: 'DELETE' }).then(() => location.reload());
+  }
+}
+</script>
+
+{% endblock %}
