@@ -282,8 +282,8 @@ async def sales_dashboard(request: Request):
     # Recent activity feed (last 15)
     sorted_acts = sorted(activities, key=lambda a: a["created_at"], reverse=True)[:15]
 
-    # Escalation alerts: leads with score >= 8 and status in ("cold", "contacted")
-    escalations = [l for l in leads if l["score"] >= 8 and l["status"] in ("cold", "contacted")]
+    # Escalation alerts: leads needing attention (interested or with replies)
+    escalations = [l for l in leads if l["status"] in ("interested", "replied")]
 
     return _render(request, "sales/dashboard.html",
                    biz_stats=biz_stats,

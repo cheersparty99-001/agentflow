@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %} - Sales Dashboard{% endblock %}
+{% block title %} — Dashboard{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-8">
@@ -15,19 +15,18 @@
     <p class="text-sm text-slate-500">Total Leads</p>
     <p class="text-3xl font-bold text-slate-900 mt-1">{{ total_leads }}</p>
   </div>
-  {% for s in ['cold', 'contacted', 'replied', 'interested'] %}
   <div class="bg-white rounded-xl border border-slate-200 p-5">
-    <p class="text-sm text-slate-500 capitalize">{{ s }}</p>
-    <p class="text-3xl font-bold mt-1
-      {% if s == 'cold' %}text-blue-600
-      {% elif s == 'contacted' %}text-amber-600
-      {% elif s == 'replied' %}text-purple-600
-      {% elif s == 'interested' %}text-green-600
-      {% endif %}">
-      {{ leads_status_counts.get(s, 0) }}
-    </p>
+    <p class="text-sm text-slate-500">In Progress</p>
+    <p class="text-3xl font-bold text-amber-600 mt-1">{{ leads_status_counts.get('contacted', 0) + leads_status_counts.get('replied', 0) }}</p>
   </div>
-  {% endfor %}
+  <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <p class="text-sm text-slate-500">Interested</p>
+    <p class="text-3xl font-bold text-green-600 mt-1">{{ leads_status_counts.get('interested', 0) }}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <p class="text-sm text-slate-500">Closed Won</p>
+    <p class="text-3xl font-bold text-emerald-600 mt-1">{{ leads_status_counts.get('closed_won', 0) }}</p>
+  </div>
 </div>
 
 <!-- Stats per Business -->
@@ -42,7 +41,7 @@
       </div>
       <div>
         <p class="text-xs text-slate-400">Avg Score</p>
-        <p class="text-2xl font-bold text-indigo-600">{{ stats.avg_score }}</p>
+        <p class="text-2xl font-bold text-blue-600">{{ stats.avg_score }}</p>
       </div>
       <div>
         <p class="text-xs text-slate-400">Industries</p>
@@ -52,7 +51,7 @@
     <div class="space-y-1.5">
       {% for s in all_statuses %}
       <div class="flex items-center justify-between text-sm">
-        <span class="text-slate-600 capitalize">{{ s.replace('_', ' ') }}</span>
+        <span class="text-slate-600 capitalize">{{ s.replace('_', ' ')|title }}</span>
         <span class="font-semibold text-slate-800">{{ stats.by_status.get(s, 0) }}</span>
       </div>
       <div class="w-full bg-slate-100 rounded-full h-1.5">
@@ -105,13 +104,13 @@
     </div>
   </div>
 
-  <!-- Escalation Alerts -->
+  <!-- Needed Attention -->
   <div class="bg-white rounded-xl border border-slate-200 p-6">
     <h3 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
       <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
       </svg>
-      Escalation Alerts
+      Needs Attention
       {% if escalations %}
       <span class="ml-auto px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">{{ escalations|length }}</span>
       {% endif %}
@@ -128,7 +127,7 @@
             Score {{ lead.score }}
           </span>
         </div>
-        <p class="text-xs text-slate-500 capitalize">Status: {{ lead.status }} &middot; {{ lead.industry }}</p>
+        <p class="text-xs text-slate-500 capitalize">Status: {{ lead.status.replace('_', ' ')|title }} &middot; {{ lead.industry.replace('_', ' ') }}</p>
         <p class="text-xs text-slate-400 mt-1">{{ lead.notes }}</p>
       </a>
       {% endfor %}
@@ -138,8 +137,8 @@
       <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
-      <p class="text-sm">No escalation alerts</p>
-      <p class="text-xs mt-1">All high-scoring leads are being followed up.</p>
+      <p class="text-sm">No escalations at this time</p>
+      <p class="text-xs mt-1">All leads are being followed up.</p>
     </div>
     {% endif %}
   </div>
