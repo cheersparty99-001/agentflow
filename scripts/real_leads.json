@@ -1760,7 +1760,7 @@
       "website": "https://abanginsuran.com/",
       "phone": "+60 13-380 8048",
       "whatsapp": "60133808048",
-      "email": "",
+      "email": "ahmad@gmail.com",
       "address": "Trinity Aquata, Jalan 1/141 Off sbe, Sungai Besi Expy, Kampung Malaysia Tambahan, 57100 Kuala Lumpur, Federal Territory of Kuala Lumpur, Malaysia",
       "city": "",
       "state": "",
@@ -2331,7 +2331,7 @@
   "stats": {
     "total_scraped": 49,
     "qualified": 44,
-    "with_email": 12,
+    "with_email": 13,
     "phone_only": 32,
     "industries": {
       "Retail": 16,
