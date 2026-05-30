@@ -1,4 +1,6 @@
 import os
+import signal
+import sys
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -6,6 +8,13 @@ from starlette.middleware.sessions import SessionMiddleware
 import config as cfg
 
 app = FastAPI(title="AgentFlow", version="2.0.0")
+
+# Clean shutdown on SIGTERM/SIGINT
+def cleanup(signum, frame):
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, cleanup)
+signal.signal(signal.SIGINT, cleanup)
 
 app.add_middleware(SessionMiddleware, secret_key=cfg.SECRET_KEY)
 
