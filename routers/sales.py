@@ -1,4 +1,6 @@
+import os
 import uuid
+import json
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -116,7 +118,49 @@ def _save_leads_state(app_state, state):
 # ── Startup Seeder ─────────────────────────────────────────────────────────────
 
 def seed_demo_data(app_state):
-    """Call this on application startup to populate demo leads."""
+    """Call this on application startup to populate demo leads.
+    If scripts/real_leads.json exists, use real scraped leads instead."""
+    
+    real_leads_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "real_leads.json")
+    if os.path.exists(real_leads_path):
+        try:
+            with open(real_leads_path) as f:
+                data = json.load(f)
+            leads = data.get("qualified", data.get("all_leads", []))
+            # Transform lead fields for template compatibility
+            transformed = []
+            for i, ld in enumerate(leads):
+                transformed.append({
+                    "id": ld.get("id", f"lead-real-{i+1:03d}"),
+                    "name": ld.get("company_name", ld.get("name", f"Company {i+1}")),
+                    "company_name": ld.get("company_name", ld.get("name", f"Company {i+1}")),
+                    "industry": ld.get("industry", "Other"),
+                    "business": ld.get("business", "Boleh AI"),
+                    "score": ld.get("score", ld.get("ai_score", 5)),
+                    "status": ld.get("status", "cold"),
+                    "contact": ld.get("contact_name", ld.get("contact", "")),
+                    "phone": ld.get("phone", ""),
+                    "whatsapp": ld.get("whatsapp", ld.get("phone", "")),
+                    "email": ld.get("email", ""),
+                    "website": ld.get("website", ""),
+                    "location": ld.get("address", ld.get("city", ld.get("location", "")))[:50],
+                    "address": ld.get("address", ""),
+                    "rating": ld.get("rating", 0),
+                    "review_count": ld.get("review_count", ld.get("total_reviews", 0)),
+                    "notes": ld.get("notes", ld.get("source_query", "")),
+                    "source": ld.get("source", "google_maps"),
+                    "created_at": ld.get("created_at", datetime.utcnow().isoformat()),
+                    "updated_at": datetime.utcnow().isoformat(),
+                })
+            leads = transformed
+            activities = data.get("activities", [])
+            _save_leads_state(app_state, {"leads": leads, "activities": activities})
+            print(f"[Sales] Loaded {len(leads)} real leads from scripts/real_leads.json")
+            return
+        except Exception as e:
+            print(f"[Sales] Failed to load real_leads.json: {e}, falling back to demo")
+    
+    # Original demo seed fallback
     leads = []
     for ld in SEED_LEADS:
         lead = dict(ld)
@@ -619,6 +663,108 @@ async def sales_webhook_gmail(request: Request):
 
     _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, "matched": len(matched)})
+
+
+@router.post("/sales/outreach/check-replies")
+async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
+    """Check Gmail inbox for replies to our sent emails.
+    Routes found replies to reply_handler and notification."""
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    state = _get_leads_state(request.app.state)
+    results = {"checked": 0, "replies": [], "notifications": []}
+
+    if _is_demo():
+        # Demo: simulate a reply
+        from services.sales.reply_handler import handle_reply
+        from services.sales.notification import notify_edwin_reply
+
+        reply = {
+            "from_email": "ahmad@tamansari.my",
+            "from_name": "Ahmad bin Ismail",
+            "subject": "Re: Quick question about Restoran Taman Sari",
+            "body": "Hi! I'm interested. Can you tell me more about your AI solutions?",
+        }
+
+        lead = next((l for l in state["leads"] if "ahmad" in l.get("email", "").lower()), None)
+        if lead:
+            intent_result = handle_reply(reply["body"], reply["from_email"], reply["from_name"], reply["subject"], lead=lead)
+            sentiment = intent_result.get("sentiment", "neutral")
+
+            state["activities"].append({
+                "lead_id": lead["id"],
+                "type": "email",
+                "summary": f"Inbound reply: {reply['subject']} — Sentiment: {sentiment}",
+                "detail": f"From: {reply['from_name']} <{reply['from_email']}>\nSubject: {reply['subject']}\n\n{reply['body']}\n\nAI Analysis:\nSentiment: {sentiment}\nAuto-reply: {intent_result.get('auto_reply', '(none)')}",
+                "created_at": datetime.utcnow().isoformat(),
+            })
+            lead["updated_at"] = datetime.utcnow().isoformat()
+
+            if sentiment == "positive":
+                lead["status"] = "interested"
+                notify_edwin_reply(lead, reply["body"], sentiment, 0.9, intent_result.get("auto_reply", ""))
+                results["notifications"].append({"lead_id": lead["id"], "action": "escalate"})
+            elif sentiment in ("negative", "unsubscribe"):
+                lead["status"] = "closed_lost"
+
+            results["replies"].append({"from": reply["from_email"], "sentiment": sentiment, "lead_id": lead["id"]})
+
+        results["checked"] = 1
+        _save_leads_state(request.app.state, state)
+        print(f"[Sales/Outreach] Reply check (DEMO): Found {results['checked']} reply, sentiment={results['replies'][0]['sentiment'] if results['replies'] else 'N/A'}")
+        return JSONResponse({"ok": True, "demo": True, **results})
+
+    # Production: use Gmail API
+    from services.sales.gmail_client import GmailClient
+    from services.sales.reply_handler import handle_reply
+    from services.sales.notification import notify_edwin_reply
+
+    gmail = GmailClient()
+    if not gmail.is_authenticated:
+        gmail.authenticate()
+
+    replies = gmail.check_replies(since_minutes=since_minutes)
+    results["checked"] = len(replies)
+
+    for reply in replies:
+        # Match to lead by email
+        sender_email = reply["from_email"]
+        # Parse out email from "Name <email>" format
+        import re
+        match = re.search(r'<([^>]+)>', sender_email)
+        if match:
+            sender_email = match.group(1)
+
+        lead = next((l for l in state["leads"] if sender_email.lower() in l.get("email", "").lower()), None)
+        if not lead:
+            results["replies"].append({"from": sender_email, "matched": False})
+            continue
+
+        intent_result = handle_reply(reply["body"], sender_email, reply["from_name"], reply["subject"], lead=lead)
+        sentiment = intent_result.get("sentiment", "neutral")
+
+        state["activities"].append({
+            "lead_id": lead["id"],
+            "type": "email",
+            "summary": f"Inbound reply: {reply['subject']} — Sentiment: {sentiment}",
+            "detail": f"From: {reply['from_name']} <{sender_email}>\nSubject: {reply['subject']}\n\n{reply['body'][:500]}\n\nAI Analysis:\nSentiment: {sentiment}\nAuto-reply: {intent_result.get('auto_reply', '(none)')}",
+            "created_at": datetime.utcnow().isoformat(),
+        })
+        lead["updated_at"] = datetime.utcnow().isoformat()
+
+        if sentiment == "positive":
+            lead["status"] = "interested"
+            notify_edwin_reply(lead, reply["body"], sentiment, 0.9, intent_result.get("auto_reply", ""))
+            results["notifications"].append({"lead_id": lead["id"], "action": "escalate"})
+        elif sentiment in ("negative", "unsubscribe"):
+            lead["status"] = "closed_lost"
+
+        results["replies"].append({"from": sender_email, "sentiment": sentiment, "lead_id": lead["id"], "matched": True})
+
+    _save_leads_state(request.app.state, state)
+    return JSONResponse({"ok": True, **results})
 
 
 # ── Target Profiles ────────────────────────────────────────────────────────────
