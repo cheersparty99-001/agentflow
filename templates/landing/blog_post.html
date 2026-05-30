@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ post.title }} — AgentFlow Blog</title>
+<meta name="description" content="{{ post.excerpt }}">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+          mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          ink: '#0A0F1E',
+          brand: '#3B6EF6',
+          muted: '#64748B',
+          line: '#E2E8F0',
+          surface: '#F8FAFC',
+        },
+        boxShadow: {
+          soft: '0 1px 2px rgba(10,15,30,0.04), 0 4px 12px rgba(10,15,30,0.06)',
+          lift: '0 10px 30px -10px rgba(10,15,30,0.20), 0 4px 14px -4px rgba(10,15,30,0.10)',
+        },
+        typography: {
+          DEFAULT: {
+            css: {
+              h1: { fontWeight: '800', letterSpacing: '-0.02em', lineHeight: '1.15' },
+              h2: { fontWeight: '700', letterSpacing: '-0.015em', lineHeight: '1.2' },
+              h3: { fontWeight: '600' },
+              p: { lineHeight: '1.8', color: '#334155' },
+              'ul > li::before': { backgroundColor: '#3B6EF6' },
+              'ol > li::before': { color: '#3B6EF6' },
+              a: { color: '#3B6EF6', textDecoration: 'underline', textUnderlineOffset: '2px' },
+              'a:hover': { opacity: 0.8 },
+              code: { fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875em', background: '#F1F5F9', padding: '0.15em 0.4em', borderRadius: '4px', fontWeight: '500' },
+              'code::before': { content: 'none' },
+              'code::after': { content: 'none' },
+            },
+          },
+        },
+        animation: {
+          'fade-up': 'fadeUp 0.7s ease-out both',
+        },
+        keyframes: {
+          fadeUp: { '0%': { opacity: 0, transform: 'translateY(16px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+        },
+      },
+    },
+  }
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', sans-serif; color: #0A0F1E; background:#fff; -webkit-font-smoothing: antialiased; }
+  .gradient-text {
+    background: linear-gradient(135deg, #6366F1 0%, #3B6EF6 50%, #06B6D4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .gradient-bg {
+    background: linear-gradient(135deg, #6366F1 0%, #3B6EF6 50%, #06B6D4 100%);
+  }
+  .nav-link { position: relative; }
+  .nav-link::after {
+    content: ""; position: absolute; left: 0; bottom: -4px;
+    width: 0; height: 2px; background: #3B6EF6;
+    transition: width .25s ease;
+  }
+  .nav-link:hover::after { width: 100%; }
+  .nav-link.active { color: #0A0F1E; }
+  .nav-link.active::after { width: 100%; }
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .scroll-shadow { box-shadow: 0 1px 3px rgba(10,15,30,0.06); }
+
+  /* Article styles */
+  .article h2 { font-size: 1.75rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #0A0F1E; }
+  .article h3 { font-size: 1.25rem; margin-top: 2rem; margin-bottom: 0.75rem; color: #0A0F1E; }
+  .article p { font-size: 1.0625rem; line-height: 1.85; margin-bottom: 1.25rem; color: #334155; }
+  .article ul, .article ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+  .article li { margin-bottom: 0.5rem; font-size: 1.0625rem; line-height: 1.7; color: #475569; }
+  .article blockquote {
+    border-left: 3px solid #3B6EF6;
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+    background: #F8FAFC;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: #475569;
+  }
+  .article blockquote p { margin-bottom: 0; color: #475569; }
+  .article strong { color: #0A0F1E; font-weight: 600; }
+  .article a { color: #3B6EF6; text-decoration: underline; text-underline-offset: 2px; }
+  .article a:hover { opacity: 0.8; }
+  .article hr { margin: 2.5rem 0; border-color: #E2E8F0; }
+
+  .cover-gradient {
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(6,182,212,0.35), transparent 55%),
+      linear-gradient(135deg, #4F46E5 0%, #3B6EF6 50%, #06B6D4 100%);
+  }
+
+  .tag-sales { background: rgba(59,110,246,0.10); color: #2952C8; }
+  .tag-product { background: rgba(168,85,247,0.10); color: #7E22CE; }
+  .tag-malaysia { background: rgba(16,185,129,0.10); color: #047857; }
+  .tag-strategy { background: rgba(245,158,11,0.10); color: #92400E; }
+  .tag-playbook { background: rgba(139,92,246,0.10); color: #6D28D9; }
+
+  .post-card { transition: transform .3s ease, box-shadow .3s ease; }
+  .post-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px -10px rgba(10,15,30,0.20), 0 4px 14px -4px rgba(10,15,30,0.10); }
+
+  .related-cover-blue { background: linear-gradient(135deg, #4F46E5, #3B6EF6, #06B6D4); }
+  .related-cover-purple { background: linear-gradient(135deg, #7C3AED, #A855F7, #C084FC); }
+  .related-cover-green { background: linear-gradient(135deg, #047857, #10B981, #34D399); }
+</style>
+</head>
+<body class="font-sans text-ink bg-white">
+
+<!-- =================== NAVBAR =================== -->
+<header id="navbar" class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-line transition-shadow">
+  <nav class="max-w-7xl mx-auto px-5 sm:px-8 h-16 md:h-20 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="navLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366F1"/><stop offset="50%" stop-color="#3B6EF6"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient></defs>
+        <rect width="40" height="40" rx="10" fill="url(#navLogoGrad)"/>
+        <path d="M12 28 L20 12 L28 28 M15.5 22 H24.5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M27 16 L31 20 L27 24" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>
+      </svg>
+      <span class="text-xl font-bold tracking-tight"><span class="text-ink">Agent</span><span class="text-brand">Flow</span></span>
+    </a>
+    <div class="hidden md:flex items-center gap-9 text-sm font-medium text-ink/80">
+      <a href="/#features" class="nav-link hover:text-ink">Product</a>
+      <a href="/#how-it-works" class="nav-link hover:text-ink">Solutions</a>
+      <a href="/pricing" class="nav-link hover:text-ink">Pricing</a>
+      <a href="/blog" class="nav-link active">Blog</a>
+    </div>
+    <div class="hidden md:flex items-center gap-3">
+      <a href="/login" class="px-4 py-2 text-sm font-semibold text-ink rounded-lg border border-line hover:border-ink/30 hover:bg-surface transition">Login</a>
+      <a href="/login" class="px-4 py-2 text-sm font-semibold text-white rounded-lg bg-brand hover:bg-brand/90 shadow-soft transition">Get Started</a>
+    </div>
+    <button id="mobile-toggle" class="md:hidden p-2 -mr-2 text-ink" aria-label="Open menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-line bg-white">
+    <div class="px-5 py-4 space-y-3">
+      <a href="/#features" class="block py-2 text-ink/80 font-medium">Product</a>
+      <a href="/#how-it-works" class="block py-2 text-ink/80 font-medium">Solutions</a>
+      <a href="/pricing" class="block py-2 text-ink/80 font-medium">Pricing</a>
+      <a href="/blog" class="block py-2 text-ink font-semibold">Blog</a>
+      <div class="pt-3 flex gap-2 border-t border-line">
+        <a href="/login" class="flex-1 text-center px-4 py-2.5 text-sm font-semibold rounded-lg border border-line">Login</a>
+        <a href="/login" class="flex-1 text-center px-4 py-2.5 text-sm font-semibold rounded-lg bg-brand text-white">Get Started</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- =================== BREADCRUMB =================== -->
+<div class="max-w-3xl mx-auto px-5 sm:px-8 pt-8 pb-0">
+  <nav class="flex items-center gap-2 text-sm text-muted">
+    <a href="/" class="hover:text-ink transition">Home</a>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <a href="/blog" class="hover:text-ink transition">Blog</a>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="text-ink/60 truncate">{{ post.title[:40] }}...</span>
+  </nav>
+</div>
+
+<!-- =================== ARTICLE =================== -->
+<div class="max-w-7xl mx-auto px-5 sm:px-8 pt-8 pb-20 md:pb-28">
+  <div class="flex flex-col lg:flex-row gap-10 lg:gap-16">
+
+    <!-- Main content -->
+    <article class="flex-1 max-w-3xl">
+      <!-- Header -->
+      <header class="reveal visible">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tag-{{ post.tag|lower }}">{{ post.tag }}</span>
+        <h1 class="mt-5 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.08]">{{ post.title }}</h1>
+        <div class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-brand text-xs font-bold">{{ post.author[0] }}</div>
+            <div>
+              <span class="text-ink font-semibold">{{ post.author }}</span>
+              <span class="text-muted"> · {{ post.author_role }}</span>
+            </div>
+          </div>
+          <span class="w-1 h-1 rounded-full bg-muted/50"></span>
+          <span>{{ post.date }}</span>
+          <span class="w-1 h-1 rounded-full bg-muted/50"></span>
+          <span>{{ post.read_minutes }} min read</span>
+        </div>
+      </header>
+
+      <!-- Cover image -->
+      <div class="mt-8 relative overflow-hidden rounded-2xl aspect-[21/9] cover-gradient reveal visible">
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-6xl mb-3">{{ post.cover_emoji or '📝' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Article body -->
+      <div class="mt-10 article reveal visible">
+        {% for paragraph in post.body %}
+          <p>{{ paragraph }}</p>
+        {% endfor %}
+      </div>
+
+      <!-- Author bio -->
+      <div class="mt-12 p-6 bg-surface rounded-2xl border border-line reveal visible">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white text-sm font-bold shrink-0">{{ post.author[0] }}</div>
+          <div>
+            <p class="font-semibold text-ink">{{ post.author }}</p>
+            <p class="text-sm text-muted">{{ post.author_role }}</p>
+            <p class="mt-2 text-sm text-muted leading-relaxed">Building AgentFlow — your AI sales team, fully automated. Writing about B2B sales, AI automation, and building a SaaS in Malaysia.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="mt-8 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-muted font-medium uppercase tracking-wider">Tags:</span>
+        <span class="px-3 py-1 rounded-full text-xs font-semibold tag-{{ post.tag|lower }}">{{ post.tag }}</span>
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-surface text-ink/70 border border-line">B2B Sales</span>
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-surface text-ink/70 border border-line">Malaysia</span>
+      </div>
+
+      <!-- Share -->
+      <div class="mt-6 pt-6 border-t border-line flex items-center gap-3">
+        <span class="text-xs text-muted font-medium uppercase tracking-wider">Share:</span>
+        <a href="#" onclick="window.open('https://twitter.com/intent/tweet?text={{ post.title|urlencode }}&url='+encodeURIComponent(window.location.href),'_blank')" class="w-8 h-8 rounded-lg bg-surface border border-line hover:bg-brand/10 hover:border-brand/30 flex items-center justify-center text-muted hover:text-brand transition" aria-label="Share on Twitter">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22 5.8a8.5 8.5 0 0 1-2.4.7 4.2 4.2 0 0 0 1.8-2.3 8.4 8.4 0 0 1-2.6 1 4.2 4.2 0 0 0-7.1 3.8A11.9 11.9 0 0 1 3 4.8a4.2 4.2 0 0 0 1.3 5.6 4.1 4.1 0 0 1-1.9-.5v.1a4.2 4.2 0 0 0 3.4 4.1 4.2 4.2 0 0 1-1.9.1 4.2 4.2 0 0 0 3.9 2.9A8.4 8.4 0 0 1 2 18.7a11.9 11.9 0 0 0 6.4 1.9c7.7 0 12-6.4 12-11.9v-.5A8.5 8.5 0 0 0 22 5.8Z"/></svg>
+        </a>
+        <a href="#" onclick="window.open('https://www.linkedin.com/sharing/share-offsite/?url='+encodeURIComponent(window.location.href),'_blank')" class="w-8 h-8 rounded-lg bg-surface border border-line hover:bg-brand/10 hover:border-brand/30 flex items-center justify-center text-muted hover:text-brand transition" aria-label="Share on LinkedIn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0H5a5 5 0 0 0-5 5v14a5 5 0 0 0 5 5h14a5 5 0 0 0 5-5V5a5 5 0 0 0-5-5ZM8 19H5V8h3v11ZM6.5 6.7A1.7 1.7 0 1 1 6.5 3.3a1.7 1.7 0 0 1 0 3.4ZM20 19h-3v-5.6c0-1.4-.5-2.3-1.7-2.3-1 0-1.5.6-1.7 1.3-.1.2-.1.6-.1.9V19h-3V8h3v1.3a3 3 0 0 1 2.7-1.5c2 0 3.5 1.3 3.5 4.1V19Z"/></svg>
+        </a>
+      </div>
+    </article>
+
+    <!-- Sidebar -->
+    <aside class="lg:w-[320px] lg:shrink-0">
+      <div class="lg:sticky lg:top-28 space-y-8">
+
+        <!-- CTA Card -->
+        <div class="p-6 bg-gradient-to-br from-[#6366F1] via-[#3B6EF6] to-[#06B6D4] rounded-2xl text-white shadow-glow reveal visible">
+          <p class="text-lg font-bold tracking-tight">Try AgentFlow Free</p>
+          <p class="mt-2 text-sm text-white/80 leading-relaxed">Start your 3-day free trial. No credit card required.</p>
+          <a href="/login" class="mt-4 block w-full text-center px-4 py-3 rounded-xl bg-white text-ink font-semibold text-sm hover:opacity-90 transition shadow-soft">Get Started</a>
+        </div>
+
+        <!-- Table of Contents -->
+        <div class="p-5 bg-surface rounded-2xl border border-line reveal visible">
+          <p class="text-xs font-bold text-muted uppercase tracking-wider mb-4">In this article</p>
+          <ul class="space-y-2.5 text-sm" id="toc">
+            <li><button onclick="scrollToH2(this)" class="text-muted hover:text-brand transition text-left">Introduction</button></li>
+          </ul>
+        </div>
+
+        <!-- Recent Posts -->
+        <div class="p-5 bg-surface rounded-2xl border border-line reveal visible">
+          <p class="text-xs font-bold text-muted uppercase tracking-wider mb-4">Related Posts</p>
+          <div class="space-y-4">
+            {% for related_post in related %}
+            <a href="/blog/{{ related_post.slug }}" class="flex items-start gap-3 group">
+              <div class="w-12 h-12 shrink-0 rounded-lg related-cover-{{ 'blue' if related_post.tag == 'Sales' else 'purple' if related_post.tag == 'Product' else 'green' }} flex items-center justify-center">
+                <span class="text-white text-lg">{{ related_post.cover_emoji or '📄' }}</span>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-ink group-hover:text-brand transition line-clamp-2 leading-snug">{{ related_post.title }}</p>
+                <p class="mt-0.5 text-xs text-muted">{{ related_post.read_minutes }} min read</p>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- =================== FOOTER =================== -->
+<footer class="bg-ink text-white/70 border-t border-white/10">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8 py-16 grid sm:grid-cols-2 md:grid-cols-4 gap-10">
+    <div>
+      <div class="flex items-center gap-2">
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+          <defs><linearGradient id="footLogo" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366F1"/><stop offset="50%" stop-color="#3B6EF6"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient></defs>
+          <rect width="40" height="40" rx="10" fill="url(#footLogo)"/>
+          <path d="M12 28 L20 12 L28 28 M15.5 22 H24.5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M27 16 L31 20 L27 24" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>
+        </svg>
+        <span class="text-lg font-bold text-white">AgentFlow</span>
+      </div>
+      <p class="mt-4 text-sm leading-relaxed">Your AI sales team, fully automated. Built for SMEs in Malaysia & Southeast Asia.</p>
+      <div class="mt-5 flex gap-3">
+        <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Twitter"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22 5.8a8.5 8.5 0 0 1-2.4.7 4.2 4.2 0 0 0 1.8-2.3 8.4 8.4 0 0 1-2.6 1 4.2 4.2 0 0 0-7.1 3.8A11.9 11.9 0 0 1 3 4.8a4.2 4.2 0 0 0 1.3 5.6 4.1 4.1 0 0 1-1.9-.5v.1a4.2 4.2 0 0 0 3.4 4.1 4.2 4.2 0 0 1-1.9.1 4.2 4.2 0 0 0 3.9 2.9A8.4 8.4 0 0 1 2 18.7a11.9 11.9 0 0 0 6.4 1.9c7.7 0 12-6.4 12-11.9v-.5A8.5 8.5 0 0 0 22 5.8Z"/></svg></a>
+        <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="LinkedIn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0H5a5 5 0 0 0-5 5v14a5 5 0 0 0 5 5h14a5 5 0 0 0 5-5V5a5 5 0 0 0-5-5ZM8 19H5V8h3v11ZM6.5 6.7A1.7 1.7 0 1 1 6.5 3.3a1.7 1.7 0 0 1 0 3.4ZM20 19h-3v-5.6c0-1.4-.5-2.3-1.7-2.3-1 0-1.5.6-1.7 1.3-.1.2-.1.6-.1.9V19h-3V8h3v1.3a3 3 0 0 1 2.7-1.5c2 0 3.5 1.3 3.5 4.1V19Z"/></svg></a>
+      </div>
+    </div>
+    <div>
+      <h4 class="text-white font-semibold text-sm tracking-wide">PRODUCT</h4>
+      <ul class="mt-5 space-y-3 text-sm">
+        <li><a href="/#features" class="hover:text-white transition">Features</a></li>
+        <li><a href="/#how-it-works" class="hover:text-white transition">How it works</a></li>
+        <li><a href="/pricing" class="hover:text-white transition">Pricing</a></li>
+        <li><a href="/login" class="hover:text-white transition">Sign in</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="text-white font-semibold text-sm tracking-wide">COMPANY</h4>
+      <ul class="mt-5 space-y-3 text-sm">
+        <li><a href="/blog" class="hover:text-white transition">Blog</a></li>
+        <li><a href="#" class="hover:text-white transition">About</a></li>
+        <li><a href="#" class="hover:text-white transition">Customers</a></li>
+        <li><a href="mailto:hello@agentflow.my" class="hover:text-white transition">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="text-white font-semibold text-sm tracking-wide">LEGAL</h4>
+      <ul class="mt-5 space-y-3 text-sm">
+        <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+        <li><a href="#" class="hover:text-white transition">Terms of Service</a></li>
+        <li><a href="#" class="hover:text-white transition">PDPA Notice</a></li>
+        <li><a href="#" class="hover:text-white transition">Security</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-white/50">
+      <p>© 2026 AgentFlow Sdn. Bhd. All rights reserved.</p>
+      <p class="font-mono text-xs">Made with care in Kuala Lumpur 🇲🇾</p>
+    </div>
+  </div>
+</footer>
+
+<!-- =================== SCRIPTS =================== -->
+<script>
+  // Mobile menu toggle
+  const toggle = document.getElementById('mobile-toggle');
+  const menu = document.getElementById('mobile-menu');
+  toggle?.addEventListener('click', () => menu.classList.toggle('hidden'));
+  menu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.add('hidden')));
+
+  // Navbar shadow
+  const nav = document.getElementById('navbar');
+  const onScroll = () => {
+    if (window.scrollY > 8) nav.classList.add('scroll-shadow');
+    else nav.classList.remove('scroll-shadow');
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el => io.observe(el));
+
+  // Simple TOC: add scroll-to-H2 functionality
+  function scrollToH2(btn) {
+    const h2 = document.querySelector('h2');
+    if (h2) h2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+</script>
+
+</body>
+</html>

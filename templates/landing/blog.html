@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — AgentFlow B2B Sales Automation</title>
+<meta name="description" content="Sales automation tips, Malaysian B2B insights, and AgentFlow product updates. Weekly playbooks for SME sales teams in Southeast Asia.">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+          mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          ink: '#0A0F1E',
+          brand: '#3B6EF6',
+          muted: '#64748B',
+          line: '#E2E8F0',
+          surface: '#F8FAFC',
+        },
+        boxShadow: {
+          'soft': '0 1px 2px rgba(10,15,30,0.04), 0 4px 12px rgba(10,15,30,0.06)',
+          'lift': '0 10px 30px -10px rgba(10,15,30,0.20), 0 4px 14px -4px rgba(10,15,30,0.10)',
+          'glow': '0 30px 80px -20px rgba(59,110,246,0.45)',
+        },
+        animation: {
+          'fade-up': 'fadeUp 0.7s ease-out both',
+          'float': 'float 6s ease-in-out infinite',
+        },
+        keyframes: {
+          fadeUp: { '0%': { opacity: 0, transform: 'translateY(16px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+          float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', sans-serif; color: #0A0F1E; background:#fff; -webkit-font-smoothing: antialiased; }
+  .gradient-text {
+    background: linear-gradient(135deg, #6366F1 0%, #3B6EF6 50%, #06B6D4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .gradient-bg {
+    background: linear-gradient(135deg, #6366F1 0%, #3B6EF6 50%, #06B6D4 100%);
+  }
+  .nav-link { position: relative; }
+  .nav-link::after {
+    content: ""; position: absolute; left: 0; bottom: -4px;
+    width: 0; height: 2px; background: #3B6EF6;
+    transition: width .25s ease;
+  }
+  .nav-link:hover::after { width: 100%; }
+  .nav-link.active { color: #0A0F1E; }
+  .nav-link.active::after { width: 100%; }
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .scroll-shadow { box-shadow: 0 1px 3px rgba(10,15,30,0.06); }
+
+  /* Blog cards */
+  .post-card { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+  .post-card:hover { transform: translateY(-4px); }
+  .post-card:hover .cover { transform: scale(1.04); }
+  .post-card:hover .read-arrow { transform: translateX(4px); }
+  .cover { transition: transform .5s ease; }
+  .read-arrow { transition: transform .25s ease; }
+
+  /* Cover gradients */
+  .cover-blue {
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(6,182,212,0.45), transparent 55%),
+      linear-gradient(135deg, #4F46E5 0%, #3B6EF6 50%, #06B6D4 100%);
+  }
+  .cover-purple {
+    background:
+      radial-gradient(circle at 25% 25%, rgba(255,255,255,0.20), transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(236,72,153,0.40), transparent 55%),
+      linear-gradient(135deg, #7C3AED 0%, #A855F7 50%, #C084FC 100%);
+  }
+  .cover-green {
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.20), transparent 50%),
+      radial-gradient(circle at 80% 75%, rgba(16,185,129,0.45), transparent 55%),
+      linear-gradient(135deg, #047857 0%, #10B981 50%, #34D399 100%);
+  }
+
+  /* Category pills */
+  .tag-sales { background: rgba(59,110,246,0.10); color: #2952C8; }
+  .tag-product { background: rgba(168,85,247,0.10); color: #7E22CE; }
+  .tag-malaysia { background: rgba(16,185,129,0.10); color: #047857; }
+  .tag-on-cover { background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); }
+
+  /* Cover decorations */
+  .cover-deco {
+    position: absolute; inset: 0; opacity: 0.22; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(circle at 30% 30%, black, transparent 75%);
+  }
+</style>
+</head>
+<body class="font-sans text-ink bg-white">
+
+<!-- =================== NAVBAR =================== -->
+<header id="navbar" class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-line transition-shadow">
+  <nav class="max-w-7xl mx-auto px-5 sm:px-8 h-16 md:h-20 flex items-center justify-between">
+    <!-- Logo -->
+    <a href="/" class="flex items-center gap-2">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="navLogoGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#6366F1"/>
+            <stop offset="50%" stop-color="#3B6EF6"/>
+            <stop offset="100%" stop-color="#06B6D4"/>
+          </linearGradient>
+        </defs>
+        <rect width="40" height="40" rx="10" fill="url(#navLogoGrad)"/>
+        <path d="M12 28 L20 12 L28 28 M15.5 22 H24.5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M27 16 L31 20 L27 24" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>
+      </svg>
+      <span class="text-xl font-bold tracking-tight">
+        <span class="text-ink">Agent</span><span class="text-brand">Flow</span>
+      </span>
+    </a>
+
+    <!-- Desktop nav -->
+    <div class="hidden md:flex items-center gap-9 text-sm font-medium text-ink/80">
+      <a href="/#features" class="nav-link hover:text-ink">Product</a>
+      <a href="/#how-it-works" class="nav-link hover:text-ink">Solutions</a>
+      <a href="/pricing" class="nav-link hover:text-ink">Pricing</a>
+      <a href="/blog" class="nav-link active">Blog</a>
+    </div>
+
+    <!-- Right buttons -->
+    <div class="hidden md:flex items-center gap-3">
+      <a href="/login" class="px-4 py-2 text-sm font-semibold text-ink rounded-lg border border-line hover:border-ink/30 hover:bg-surface transition">Login</a>
+      <a href="/login" class="px-4 py-2 text-sm font-semibold text-white rounded-lg bg-brand hover:bg-brand/90 shadow-soft transition">Get Started</a>
+    </div>
+
+    <!-- Mobile hamburger -->
+    <button id="mobile-toggle" class="md:hidden p-2 -mr-2 text-ink" aria-label="Open menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="hidden md:hidden border-t border-line bg-white">
+    <div class="px-5 py-4 space-y-3">
+      <a href="/#features" class="block py-2 text-ink/80 font-medium">Product</a>
+      <a href="/#how-it-works" class="block py-2 text-ink/80 font-medium">Solutions</a>
+      <a href="/pricing" class="block py-2 text-ink/80 font-medium">Pricing</a>
+      <a href="/blog" class="block py-2 text-ink font-semibold">Blog</a>
+      <div class="pt-3 flex gap-2 border-t border-line">
+        <a href="/login" class="flex-1 text-center px-4 py-2.5 text-sm font-semibold rounded-lg border border-line">Login</a>
+        <a href="/login" class="flex-1 text-center px-4 py-2.5 text-sm font-semibold rounded-lg bg-brand text-white">Get Started</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- =================== HERO =================== -->
+<section class="relative overflow-hidden">
+  <div aria-hidden="true" class="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-25 blur-3xl"
+       style="background: radial-gradient(closest-side, #6366F1, transparent 70%);"></div>
+  <div aria-hidden="true" class="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full opacity-20 blur-3xl"
+       style="background: radial-gradient(closest-side, #06B6D4, transparent 70%);"></div>
+
+  <div class="relative max-w-4xl mx-auto px-5 sm:px-8 pt-16 pb-12 md:pt-24 md:pb-16 text-center">
+    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 text-brand text-xs font-semibold tracking-wide animate-fade-up">
+      <span class="w-1.5 h-1.5 rounded-full bg-brand"></span>
+      BLOG
+    </span>
+    <h1 class="mt-6 text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.05] animate-fade-up">
+      AgentFlow <span class="gradient-text">Blog</span>
+    </h1>
+    <p class="mt-5 text-lg md:text-xl text-muted max-w-2xl mx-auto animate-fade-up">
+      Sales automation tips, Malaysian B2B insights, and product updates.
+    </p>
+  </div>
+</section>
+
+<!-- =================== CATEGORY FILTER =================== -->
+<section class="pb-2">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8">
+    <div class="flex flex-wrap items-center justify-center gap-2 reveal">
+      <button data-filter="all" class="filter-btn px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white transition">All Posts</button>
+      <button data-filter="Sales" class="filter-btn px-4 py-2 rounded-full text-sm font-semibold bg-surface border border-line text-ink/80 hover:border-ink/30 transition">Sales</button>
+      <button data-filter="Product" class="filter-btn px-4 py-2 rounded-full text-sm font-semibold bg-surface border border-line text-ink/80 hover:border-ink/30 transition">Product</button>
+      <button data-filter="Malaysia" class="filter-btn px-4 py-2 rounded-full text-sm font-semibold bg-surface border border-line text-ink/80 hover:border-ink/30 transition">Malaysia</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== BLOG GRID =================== -->
+<section class="pt-10 pb-20 md:pb-28">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8">
+    <div id="post-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-7">
+      <!-- Cards injected here -->
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="hidden mt-12 text-center py-12 px-6 rounded-2xl bg-surface border border-line">
+      <p class="text-ink font-semibold">No posts in this category yet.</p>
+      <p class="mt-1 text-sm text-muted">Try another filter or check back soon.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =================== NEWSLETTER =================== -->
+<section class="pb-20 md:pb-28">
+  <div class="max-w-4xl mx-auto px-5 sm:px-8">
+    <div class="relative overflow-hidden rounded-3xl bg-ink text-white p-8 md:p-14 reveal">
+      <div aria-hidden="true" class="absolute -top-32 -right-20 w-[400px] h-[400px] rounded-full opacity-30 blur-3xl"
+           style="background: radial-gradient(closest-side, #6366F1, transparent 70%);"></div>
+      <div aria-hidden="true" class="absolute -bottom-32 -left-20 w-[400px] h-[400px] rounded-full opacity-20 blur-3xl"
+           style="background: radial-gradient(closest-side, #06B6D4, transparent 70%);"></div>
+
+      <div class="relative flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-10">
+        <div class="flex-1">
+          <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-cyan-200 text-xs font-semibold tracking-wide">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6l8 7 8-7M4 6v12h16V6M4 6h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            NEWSLETTER
+          </span>
+          <h2 class="mt-4 text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
+            Get weekly B2B sales tips for <span class="gradient-text">Malaysian businesses</span>
+          </h2>
+          <p class="mt-3 text-white/70 text-base md:text-lg">
+            One short email every Tuesday. Playbooks, case studies, and product updates. Unsubscribe anytime.
+          </p>
+        </div>
+
+        <form id="newsletter-form" class="w-full md:w-[420px] flex-shrink-0">
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input
+              type="email"
+              required
+              id="newsletter-email"
+              placeholder="you@company.com"
+              class="flex-1 px-4 py-3.5 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-300 focus:bg-white/15 transition"
+            >
+            <button type="submit" class="px-5 py-3.5 rounded-xl gradient-bg text-white font-semibold shadow-lift hover:opacity-90 transition whitespace-nowrap">
+              Subscribe
+            </button>
+          </div>
+          <p id="newsletter-msg" class="mt-3 text-sm text-white/50">
+            Free. No spam. 4,200+ readers.
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FOOTER =================== -->
+<footer class="bg-ink text-white/70 border-t border-white/10">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8 py-16 grid sm:grid-cols-2 md:grid-cols-4 gap-10">
+    <!-- Brand -->
+    <div>
+      <div class="flex items-center gap-2">
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+          <defs>
+            <linearGradient id="footLogo" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#6366F1"/>
+              <stop offset="50%" stop-color="#3B6EF6"/>
+              <stop offset="100%" stop-color="#06B6D4"/>
+            </linearGradient>
+          </defs>
+          <rect width="40" height="40" rx="10" fill="url(#footLogo)"/>
+          <path d="M12 28 L20 12 L28 28 M15.5 22 H24.5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M27 16 L31 20 L27 24" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>
+        </svg>
+        <span class="text-lg font-bold text-white">AgentFlow</span>
+      </div>
+      <p class="mt-4 text-sm leading-relaxed">Your AI sales team, fully automated. Built for SMEs in Malaysia & Southeast Asia.</p>
+      <div class="mt-5 flex gap-3">
+        <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="Twitter">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22 5.8a8.5 8.5 0 0 1-2.4.7 4.2 4.2 0 0 0 1.8-2.3 8.4 8.4 0 0 1-2.6 1 4.2 4.2 0 0 0-7.1 3.8A11.9 11.9 0 0 1 3 4.8a4.2 4.2 0 0 0 1.3 5.6 4.1 4.1 0 0 1-1.9-.5v.1a4.2 4.2 0 0 0 3.4 4.1 4.2 4.2 0 0 1-1.9.1 4.2 4.2 0 0 0 3.9 2.9A8.4 8.4 0 0 1 2 18.7a11.9 11.9 0 0 0 6.4 1.9c7.7 0 12-6.4 12-11.9v-.5A8.5 8.5 0 0 0 22 5.8Z"/></svg>
+        </a>
+        <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="LinkedIn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0H5a5 5 0 0 0-5 5v14a5 5 0 0 0 5 5h14a5 5 0 0 0 5-5V5a5 5 0 0 0-5-5ZM8 19H5V8h3v11ZM6.5 6.7A1.7 1.7 0 1 1 6.5 3.3a1.7 1.7 0 0 1 0 3.4ZM20 19h-3v-5.6c0-1.4-.5-2.3-1.7-2.3-1 0-1.5.6-1.7 1.3-.1.2-.1.6-.1.9V19h-3V8h3v1.3a3 3 0 0 1 2.7-1.5c2 0 3.5 1.3 3.5 4.1V19Z"/></svg>
+        </a>
+        <a href="#" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition" aria-label="GitHub">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.8.1-.8.1-.8 1.2.1 1.9 1.3 1.9 1.3 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.4 18.3 4.7 18.3 4.7c.7 1.7.3 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 0Z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Product -->
+    <div>
+      <h4 class="text-white font-semibold text-sm tracking-wide">PRODUCT</h4>
+      <ul class="mt-5 space-y-3 text-sm">
+        <li><a href="/#features" class="hover:text-white transition">Features</a></li>
+        <li><a href="/#how-it-works" class="hover:text-white transition">How it works</a></li>
+        <li><a href="/pricing" class="hover:text-white transition">Pricing</a></li>
+        <li><a href="/login" class="hover:text-white transition">Sign in</a></li>
+      </ul>
+    </div>
+
+    <!-- Company -->
+    <div>
+      <h4 class="text-white font-semibold text-sm tracking-wide">COMPANY</h4>
+      <ul class="mt-5 space-y-3 text-sm">
+        <li><a href="/blog" class="hover:text-white transition">Blog</a></li>
+        <li><a href="#" class="hover:text-white transition">About</a></li>
+        <li><a href="#" class="hover:text-white transition">Customers</a></li>
+        <li><a href="mailto:hello@agentflow.my" class="hover:text-white transition">Contact</a></li>
+      </ul>
+    </div>
+
+    <!-- Legal -->
+    <div>
+      <h4 class="text-white font-semibold text-sm tracking-wide">LEGAL</h4>
+      <ul class="mt-5 space-y-3 text-sm">
+        <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+        <li><a href="#" class="hover:text-white transition">Terms of Service</a></li>
+        <li><a href="#" class="hover:text-white transition">PDPA Notice</a></li>
+        <li><a href="#" class="hover:text-white transition">Security</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-white/50">
+      <p>© 2026 AgentFlow Sdn. Bhd. All rights reserved.</p>
+      <p class="font-mono text-xs">Made with care in Kuala Lumpur 🇲🇾</p>
+    </div>
+  </div>
+</footer>
+
+<!-- =================== SCRIPTS =================== -->
+<script>
+  // Mobile menu toggle
+  const toggle = document.getElementById('mobile-toggle');
+  const menu = document.getElementById('mobile-menu');
+  toggle?.addEventListener('click', () => menu.classList.toggle('hidden'));
+  menu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.add('hidden')));
+
+  // Navbar shadow on scroll
+  const nav = document.getElementById('navbar');
+  const onScroll = () => {
+    if (window.scrollY > 8) nav.classList.add('scroll-shadow');
+    else nav.classList.remove('scroll-shadow');
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  const observeReveals = () => document.querySelectorAll('.reveal:not(.visible)').forEach(el => io.observe(el));
+
+  // ============ BLOG POSTS ============
+  const posts = [
+    {
+      slug: 'why-whatsapp-beats-email',
+      title: 'Why WhatsApp Beats Email for B2B Sales in Malaysia',
+      category: 'Sales',
+      date: 'May 26, 2026',
+      readTime: '5 min read',
+      excerpt: "With 92% penetration in Malaysia, WhatsApp isn't just a messaging app — it's the most effective B2B outreach channel. Here's why your sales team should be using it.",
+      cover: 'blue',
+      icon: 'chat',
+    },
+    {
+      slug: 'find-100-qualified-leads',
+      title: 'How to Find 100 Qualified B2B Leads in Malaysia This Week',
+      category: 'Sales',
+      date: 'May 19, 2026',
+      readTime: '6 min read',
+      excerpt: "Stop cold calling random numbers. Here's a systematic approach to finding 100 qualified B2B leads in Malaysia using AI-powered tools.",
+      cover: 'blue',
+      icon: 'target',
+    },
+    {
+      slug: 'cost-of-salesperson-vs-ai',
+      title: 'The True Cost of Hiring a Salesperson vs AI Automation',
+      category: 'Sales',
+      date: 'April 28, 2026',
+      readTime: '7 min read',
+      excerpt: 'We break down the real numbers: what a Malaysian B2B salesperson costs vs what AI sales automation delivers.',
+      cover: 'blue',
+      icon: 'chart',
+    },
+    {
+      slug: 'google-maps-lead-discovery',
+      title: 'AgentFlow Product Update: Google Maps Lead Discovery',
+      category: 'Product',
+      date: 'April 15, 2026',
+      readTime: '3 min read',
+      excerpt: 'Our newest feature automatically finds qualified B2B leads from Google Maps across Malaysia.',
+      cover: 'purple',
+      icon: 'sparkle',
+    },
+    {
+      slug: 'b2b-sales-malaysia-2026',
+      title: 'B2B Sales in Malaysia: What Works in 2026',
+      category: 'Malaysia',
+      date: 'March 30, 2026',
+      readTime: '6 min read',
+      excerpt: "The B2B sales landscape in Malaysia has shifted dramatically. Here's what's working right now.",
+      cover: 'green',
+      icon: 'flag',
+    },
+    {
+      slug: 'cold-outreach-messages-that-work',
+      title: 'How to Write Cold Outreach Messages That Get Replies',
+      category: 'Sales',
+      date: 'March 15, 2026',
+      readTime: '5 min read',
+      excerpt: 'The difference between a cold message that gets ignored and one that gets a reply often comes down to three key principles.',
+      cover: 'blue',
+      icon: 'message',
+    },
+  ];
+
+  const tagClass = {
+    Sales: 'tag-sales',
+    Product: 'tag-product',
+    Malaysia: 'tag-malaysia',
+  };
+
+  const iconSvg = {
+    chat:    '<path d="M21 12a8 8 0 0 1-11.4 7.2L4 21l1.8-5.6A8 8 0 1 1 21 12Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+    target:  '<circle cx="12" cy="12" r="9" stroke="white" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="5" stroke="white" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="1.5" fill="white"/>',
+    chart:   '<path d="M4 20V8M10 20V4M16 20v-8M22 20H2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+    sparkle: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="2.5" fill="white"/>',
+    flag:    '<path d="M5 22V4M5 4h11l-2 4 2 4H5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+    message: '<path d="M3 6h18v12H7l-4 4V6Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 11h8M8 14h5" stroke="white" stroke-width="2" stroke-linecap="round"/>',
+  };
+
+  const renderCard = (post, i) => `
+    <a href="/blog/${post.slug}" class="post-card reveal block bg-white border border-line rounded-2xl overflow-hidden shadow-soft hover:shadow-lift hover:border-brand/30" style="transition-delay:${i * 40}ms">
+      <div class="relative aspect-[16/10] overflow-hidden cover-${post.cover} cover">
+        <div class="cover-deco"></div>
+        <div class="absolute inset-0 flex items-center justify-center opacity-90">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" aria-hidden="true">${iconSvg[post.icon]}</svg>
+        </div>
+        <span class="absolute top-4 left-4 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold tag-on-cover ${tagClass[post.category]}">
+          ${post.category}
+        </span>
+      </div>
+      <div class="p-6">
+        <h3 class="text-lg md:text-xl font-bold tracking-tight leading-snug text-ink group-hover:text-brand">
+          ${post.title}
+        </h3>
+        <p class="mt-3 text-sm text-muted leading-relaxed line-clamp-3">
+          ${post.excerpt}
+        </p>
+        <div class="mt-5 flex items-center justify-between">
+          <div class="flex items-center gap-2 text-xs text-muted font-medium">
+            <span>${post.date}</span>
+            <span class="w-1 h-1 rounded-full bg-muted/50"></span>
+            <span>${post.readTime}</span>
+          </div>
+          <span class="inline-flex items-center gap-1 text-sm font-semibold text-brand">
+            Read More
+            <svg class="read-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+      </div>
+    </a>
+  `;
+
+  const grid = document.getElementById('post-grid');
+  const emptyState = document.getElementById('empty-state');
+
+  const renderGrid = (filter) => {
+    const filtered = filter === 'all' ? posts : posts.filter(p => p.category === filter);
+    grid.innerHTML = filtered.map(renderCard).join('');
+    emptyState.classList.toggle('hidden', filtered.length > 0);
+    observeReveals();
+  };
+
+  // Initial render
+  renderGrid('all');
+
+  // Filter buttons
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => {
+        b.classList.remove('bg-ink', 'text-white');
+        b.classList.add('bg-surface', 'border', 'border-line', 'text-ink/80');
+      });
+      btn.classList.add('bg-ink', 'text-white');
+      btn.classList.remove('bg-surface', 'border', 'border-line', 'text-ink/80');
+      renderGrid(btn.dataset.filter);
+    });
+  });
+
+  // Newsletter form (visual-only; wire up to backend later)
+  const form = document.getElementById('newsletter-form');
+  const msg = document.getElementById('newsletter-msg');
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('newsletter-email').value;
+    if (!email) return;
+    msg.textContent = "✓ Subscribed! Check your inbox to confirm.";
+    msg.classList.remove('text-white/50');
+    msg.classList.add('text-cyan-300');
+    form.querySelector('input').value = '';
+  });
+</script>
+
+</body>
+</html>

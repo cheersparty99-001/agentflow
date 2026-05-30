@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#172033"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- App background -->
+  <rect width="800" height="500" rx="14" fill="url(#bgGrad)"/>
+  <rect x="0.5" y="0.5" width="799" height="499" rx="13.5" stroke="#1f2a44" stroke-width="1"/>
+
+  <!-- Window chrome -->
+  <rect x="0" y="0" width="800" height="34" rx="14" fill="#0a1020"/>
+  <rect x="0" y="22" width="800" height="12" fill="#0a1020"/>
+  <circle cx="18" cy="17" r="5" fill="#ef4444"/>
+  <circle cx="36" cy="17" r="5" fill="#f59e0b"/>
+  <circle cx="54" cy="17" r="5" fill="#10b981"/>
+  <rect x="280" y="9" width="240" height="17" rx="8" fill="#111a2e"/>
+  <text x="400" y="21" font-family="'Inter',sans-serif" font-size="10" fill="#64748b" text-anchor="middle">app.agentflow.io/sales/pipeline</text>
+
+  <!-- Sidebar -->
+  <rect x="0" y="34" width="170" height="466" fill="#0a1224"/>
+  <rect x="0" y="34" width="170" height="466" fill="#0a1224" stroke="#1f2a44" stroke-width="1"/>
+
+  <!-- Brand in sidebar -->
+  <g transform="translate(18,52)">
+    <path d="M2 22 L10 4 L18 22" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M5.5 16 L14.5 16" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+    <path d="M22 13 L30 13 L27 10 M30 13 L27 16" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <text x="42" y="17" font-family="'Inter',sans-serif" font-size="13" font-weight="700" fill="#ffffff">Agent<tspan fill="#60a5fa">Flow</tspan></text>
+  </g>
+
+  <!-- Sidebar nav items -->
+  <g font-family="'Inter',sans-serif" font-size="11" fill="#94a3b8">
+    <rect x="14" y="100" width="142" height="28" rx="6" fill="#172033"/>
+    <circle cx="28" cy="114" r="3" fill="#60a5fa"/>
+    <text x="40" y="118" fill="#e2e8f0">Dashboard</text>
+
+    <rect x="14" y="134" width="142" height="28" rx="6" fill="transparent"/>
+    <circle cx="28" cy="148" r="3" fill="#475569"/>
+    <text x="40" y="152">Leads</text>
+
+    <rect x="14" y="168" width="142" height="28" rx="6" fill="#1e293b"/>
+    <circle cx="28" cy="182" r="3" fill="#3b82f6"/>
+    <text x="40" y="186" fill="#ffffff" font-weight="600">Pipeline</text>
+
+    <text x="40" y="220">Outreach</text>
+    <circle cx="28" cy="216" r="3" fill="#475569"/>
+
+    <text x="40" y="254">Settings</text>
+    <circle cx="28" cy="250" r="3" fill="#475569"/>
+  </g>
+
+  <!-- User pill -->
+  <g transform="translate(14,448)">
+    <rect width="142" height="34" rx="8" fill="#111a2e"/>
+    <circle cx="18" cy="17" r="10" fill="#3b82f6"/>
+    <text x="18" y="21" font-family="'Inter',sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">E</text>
+    <text x="36" y="15" font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#e2e8f0">Edwin Phang</text>
+    <text x="36" y="26" font-family="'Inter',sans-serif" font-size="8" fill="#64748b">Admin</text>
+  </g>
+
+  <!-- Main content header -->
+  <g font-family="'Inter',sans-serif">
+    <text x="190" y="68" font-size="18" font-weight="700" fill="#ffffff">Sales Pipeline</text>
+    <text x="190" y="86" font-size="11" fill="#64748b">44 active leads · 12 with verified emails</text>
+
+    <!-- Search -->
+    <rect x="500" y="52" width="170" height="30" rx="8" fill="#111a2e" stroke="#1f2a44"/>
+    <circle cx="514" cy="67" r="4" stroke="#475569" stroke-width="1.4" fill="none"/>
+    <line x1="517" y1="70" x2="521" y2="74" stroke="#475569" stroke-width="1.4" stroke-linecap="round"/>
+    <text x="528" y="71" font-size="10" fill="#475569">Search leads…</text>
+
+    <!-- CTA -->
+    <rect x="682" y="52" width="100" height="30" rx="8" fill="#3b82f6"/>
+    <text x="732" y="71" font-size="11" font-weight="600" fill="#ffffff" text-anchor="middle">+ New Lead</text>
+  </g>
+
+  <!-- KPI strip -->
+  <g font-family="'Inter',sans-serif">
+    <rect x="190" y="100" width="140" height="56" rx="10" fill="url(#cardGrad)" stroke="#1f2a44"/>
+    <text x="204" y="120" font-size="10" fill="#64748b">Pipeline value</text>
+    <text x="204" y="142" font-size="18" font-weight="700" fill="#ffffff">RM 248K</text>
+    <text x="300" y="142" font-size="10" font-weight="600" fill="#10b981" text-anchor="end">+12%</text>
+
+    <rect x="338" y="100" width="140" height="56" rx="10" fill="url(#cardGrad)" stroke="#1f2a44"/>
+    <text x="352" y="120" font-size="10" fill="#64748b">Reply rate</text>
+    <text x="352" y="142" font-size="18" font-weight="700" fill="#ffffff">31.4%</text>
+    <text x="448" y="142" font-size="10" font-weight="600" fill="#10b981" text-anchor="end">+4.2%</text>
+
+    <rect x="486" y="100" width="140" height="56" rx="10" fill="url(#cardGrad)" stroke="#1f2a44"/>
+    <text x="500" y="120" font-size="10" fill="#64748b">Meetings booked</text>
+    <text x="500" y="142" font-size="18" font-weight="700" fill="#ffffff">18</text>
+    <text x="596" y="142" font-size="10" font-weight="600" fill="#10b981" text-anchor="end">+6</text>
+
+    <rect x="634" y="100" width="148" height="56" rx="10" fill="url(#cardGrad)" stroke="#1f2a44"/>
+    <text x="648" y="120" font-size="10" fill="#64748b">Closed won</text>
+    <text x="648" y="142" font-size="18" font-weight="700" fill="#ffffff">RM 42K</text>
+    <text x="776" y="142" font-size="10" font-weight="600" fill="#10b981" text-anchor="end">+18%</text>
+  </g>
+
+  <!-- Kanban columns -->
+  <g font-family="'Inter',sans-serif">
+    <!-- Column: Cold -->
+    <rect x="190" y="178" width="140" height="304" rx="10" fill="#0d1426" stroke="#1f2a44"/>
+    <circle cx="204" cy="196" r="4" fill="#64748b"/>
+    <text x="214" y="200" font-size="11" font-weight="600" fill="#cbd5e1">Cold</text>
+    <text x="318" y="200" font-size="10" fill="#64748b" text-anchor="end">14</text>
+
+    <!-- Cold card 1 -->
+    <g filter="url(#shadow)">
+      <rect x="200" y="212" width="120" height="68" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="210" y="228" font-size="10" font-weight="600" fill="#ffffff">Shah Alam Wholesale</text>
+    <text x="210" y="240" font-size="8" fill="#64748b">Wholesale · Shah Alam</text>
+    <rect x="210" y="246" width="36" height="14" rx="7" fill="#1e3a8a"/>
+    <text x="228" y="256" font-size="8" font-weight="600" fill="#93c5fd" text-anchor="middle">Score 9</text>
+    <circle cx="300" cy="253" r="8" fill="#7c3aed"/>
+    <text x="300" y="256" font-size="8" font-weight="700" fill="#ffffff" text-anchor="middle">RC</text>
+    <text x="210" y="272" font-size="8" fill="#94a3b8">RM 18K · 2d ago</text>
+
+    <!-- Cold card 2 -->
+    <g filter="url(#shadow)">
+      <rect x="200" y="288" width="120" height="62" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="210" y="304" font-size="10" font-weight="600" fill="#ffffff">Penang Logistics Sdn</text>
+    <text x="210" y="316" font-size="8" fill="#64748b">Logistics · Penang</text>
+    <rect x="210" y="322" width="36" height="14" rx="7" fill="#312e81"/>
+    <text x="228" y="332" font-size="8" font-weight="600" fill="#a5b4fc" text-anchor="middle">Score 7</text>
+    <text x="210" y="346" font-size="8" fill="#94a3b8">RM 9K · 5d ago</text>
+
+    <!-- Cold card 3 -->
+    <g filter="url(#shadow)">
+      <rect x="200" y="358" width="120" height="56" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="210" y="374" font-size="10" font-weight="600" fill="#ffffff">JB Tech Mart</text>
+    <text x="210" y="386" font-size="8" fill="#64748b">Retail · Johor</text>
+    <rect x="210" y="392" width="36" height="14" rx="7" fill="#312e81"/>
+    <text x="228" y="402" font-size="8" font-weight="600" fill="#a5b4fc" text-anchor="middle">Score 7</text>
+
+    <!-- Column: Contacted -->
+    <rect x="338" y="178" width="140" height="304" rx="10" fill="#0d1426" stroke="#1f2a44"/>
+    <circle cx="352" cy="196" r="4" fill="#f59e0b"/>
+    <text x="362" y="200" font-size="11" font-weight="600" fill="#cbd5e1">Contacted</text>
+    <text x="466" y="200" font-size="10" fill="#64748b" text-anchor="end">11</text>
+
+    <g filter="url(#shadow)">
+      <rect x="348" y="212" width="120" height="68" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="358" y="228" font-size="10" font-weight="600" fill="#ffffff">Restoran Taman Sari</text>
+    <text x="358" y="240" font-size="8" fill="#64748b">F&amp;B · KL</text>
+    <rect x="358" y="246" width="36" height="14" rx="7" fill="#1e3a8a"/>
+    <text x="376" y="256" font-size="8" font-weight="600" fill="#93c5fd" text-anchor="middle">Score 8</text>
+    <circle cx="448" cy="253" r="8" fill="#0891b2"/>
+    <text x="448" y="256" font-size="8" font-weight="700" fill="#ffffff" text-anchor="middle">AI</text>
+    <text x="358" y="272" font-size="8" fill="#fbbf24">📧 sent · awaiting reply</text>
+
+    <g filter="url(#shadow)">
+      <rect x="348" y="288" width="120" height="62" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="358" y="304" font-size="10" font-weight="600" fill="#ffffff">Marvelous Retail</text>
+    <text x="358" y="316" font-size="8" fill="#64748b">Retail · JB</text>
+    <rect x="358" y="322" width="36" height="14" rx="7" fill="#312e81"/>
+    <text x="376" y="332" font-size="8" font-weight="600" fill="#a5b4fc" text-anchor="middle">Score 7</text>
+    <text x="358" y="346" font-size="8" fill="#94a3b8">Follow-up scheduled</text>
+
+    <g filter="url(#shadow)">
+      <rect x="348" y="358" width="120" height="56" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="358" y="374" font-size="10" font-weight="600" fill="#ffffff">EduSmart Learning</text>
+    <text x="358" y="386" font-size="8" fill="#64748b">Education · Cyberjaya</text>
+    <rect x="358" y="392" width="36" height="14" rx="7" fill="#312e81"/>
+    <text x="376" y="402" font-size="8" font-weight="600" fill="#a5b4fc" text-anchor="middle">Score 7</text>
+
+    <!-- Column: Replied -->
+    <rect x="486" y="178" width="140" height="304" rx="10" fill="#0d1426" stroke="#1f2a44"/>
+    <circle cx="500" cy="196" r="4" fill="#a855f7"/>
+    <text x="510" y="200" font-size="11" font-weight="600" fill="#cbd5e1">Replied</text>
+    <text x="614" y="200" font-size="10" fill="#64748b" text-anchor="end">8</text>
+
+    <g filter="url(#shadow)">
+      <rect x="496" y="212" width="120" height="74" rx="8" fill="url(#cardGrad)" stroke="#3b3170"/>
+    </g>
+    <text x="506" y="228" font-size="10" font-weight="600" fill="#ffffff">Beauty Palace Ampang</text>
+    <text x="506" y="240" font-size="8" fill="#64748b">Beauty · Ampang KL</text>
+    <rect x="506" y="246" width="36" height="14" rx="7" fill="#1e3a8a"/>
+    <text x="524" y="256" font-size="8" font-weight="600" fill="#93c5fd" text-anchor="middle">Score 8</text>
+    <circle cx="596" cy="253" r="8" fill="#db2777"/>
+    <text x="596" y="256" font-size="8" font-weight="700" fill="#ffffff" text-anchor="middle">ML</text>
+    <text x="506" y="272" font-size="8" fill="#a855f7">💬 "Demo next Tuesday"</text>
+    <text x="506" y="282" font-size="8" fill="#94a3b8">RM 22K · today</text>
+
+    <g filter="url(#shadow)">
+      <rect x="496" y="294" width="120" height="62" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="506" y="310" font-size="10" font-weight="600" fill="#ffffff">MediTech Solutions</text>
+    <text x="506" y="322" font-size="8" fill="#64748b">Healthcare · Selangor</text>
+    <rect x="506" y="328" width="36" height="14" rx="7" fill="#1e3a8a"/>
+    <text x="524" y="338" font-size="8" font-weight="600" fill="#93c5fd" text-anchor="middle">Score 8</text>
+    <text x="506" y="352" font-size="8" fill="#a855f7">💬 "Send pricing"</text>
+
+    <g filter="url(#shadow)">
+      <rect x="496" y="364" width="120" height="50" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="506" y="380" font-size="10" font-weight="600" fill="#ffffff">PrestoPay Malaysia</text>
+    <text x="506" y="392" font-size="8" fill="#64748b">Fintech · KL</text>
+    <rect x="506" y="398" width="36" height="14" rx="7" fill="#14532d"/>
+    <text x="524" y="408" font-size="8" font-weight="600" fill="#86efac" text-anchor="middle">Score 9</text>
+
+    <!-- Column: Interested -->
+    <rect x="634" y="178" width="148" height="304" rx="10" fill="#0d1426" stroke="#1f2a44"/>
+    <circle cx="648" cy="196" r="4" fill="#10b981"/>
+    <text x="658" y="200" font-size="11" font-weight="600" fill="#cbd5e1">Interested</text>
+    <text x="770" y="200" font-size="10" fill="#64748b" text-anchor="end">7</text>
+
+    <g filter="url(#shadow)">
+      <rect x="644" y="212" width="128" height="80" rx="8" fill="url(#cardGrad)" stroke="#1f5a3a"/>
+    </g>
+    <text x="654" y="228" font-size="10" font-weight="600" fill="#ffffff">KB Insurance Agency</text>
+    <text x="654" y="240" font-size="8" fill="#64748b">Insurance · Penang</text>
+    <rect x="654" y="246" width="36" height="14" rx="7" fill="#14532d"/>
+    <text x="672" y="256" font-size="8" font-weight="600" fill="#86efac" text-anchor="middle">Score 9</text>
+    <circle cx="754" cy="253" r="8" fill="#059669"/>
+    <text x="754" y="256" font-size="8" font-weight="700" fill="#ffffff" text-anchor="middle">KB</text>
+    <text x="654" y="272" font-size="8" fill="#10b981">📅 Meeting Thu 2pm</text>
+    <text x="654" y="284" font-size="8" font-weight="600" fill="#ffffff">RM 48K · close 30d</text>
+
+    <g filter="url(#shadow)">
+      <rect x="644" y="300" width="128" height="56" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="654" y="316" font-size="10" font-weight="600" fill="#ffffff">PrestoPay (warm)</text>
+    <text x="654" y="328" font-size="8" fill="#64748b">Fintech · Series A</text>
+    <rect x="654" y="334" width="36" height="14" rx="7" fill="#14532d"/>
+    <text x="672" y="344" font-size="8" font-weight="600" fill="#86efac" text-anchor="middle">Score 9</text>
+
+    <g filter="url(#shadow)">
+      <rect x="644" y="364" width="128" height="50" rx="8" fill="url(#cardGrad)" stroke="#243049"/>
+    </g>
+    <text x="654" y="380" font-size="10" font-weight="600" fill="#ffffff">Cyber Cafe Chain</text>
+    <text x="654" y="392" font-size="8" fill="#64748b">Hospitality · KL</text>
+    <rect x="654" y="398" width="36" height="14" rx="7" fill="#1e3a8a"/>
+    <text x="672" y="408" font-size="8" font-weight="600" fill="#93c5fd" text-anchor="middle">Score 8</text>
+  </g>
+
+  <!-- Footer status bar -->
+  <g font-family="'Inter',sans-serif" font-size="9" fill="#64748b">
+    <circle cx="198" cy="492" r="3" fill="#10b981"/>
+    <text x="208" y="495">Live · Synced 2s ago</text>
+    <text x="782" y="495" text-anchor="end">v2.0.0 · Malaysia</text>
+  </g>
+</svg>

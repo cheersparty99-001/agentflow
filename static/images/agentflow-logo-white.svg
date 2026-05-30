@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
+  <g>
+    <!-- Icon: stylized 'A' with arrow/flow -->
+    <path d="M8 38 L20 10 L32 38" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M13.5 28 L26.5 28" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+    <!-- Flow arrow integrated -->
+    <path d="M36 24 L48 24 L44 20 M48 24 L44 28" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Subtle accent dot -->
+    <circle cx="20" cy="14.5" r="1.6" fill="#60a5fa"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="58" y="32" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="700" fill="#ffffff" letter-spacing="-0.5">Agent<tspan fill="#60a5fa">Flow</tspan></text>
+</svg>

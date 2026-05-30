@@ -3,7 +3,6 @@ import signal
 import sys
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 import config as cfg
 
@@ -21,17 +20,14 @@ app.add_middleware(SessionMiddleware, secret_key=cfg.SECRET_KEY)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/locales", StaticFiles(directory="locales"), name="locales")
 
-from routers import auth, dashboard, settings, admin, sales
+from routers import auth, dashboard, settings, admin, sales, landing
 
+app.include_router(landing.router)
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(settings.router)
 app.include_router(admin.router)
 app.include_router(sales.router)
-
-@app.get("/")
-async def root():
-    return RedirectResponse(url="/login")
 
 @app.on_event("startup")
 async def startup():
