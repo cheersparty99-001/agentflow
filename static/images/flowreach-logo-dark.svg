@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="64" viewBox="0 0 300 64" fill="none"><defs><linearGradient id="fr" x1="7" y1="40" x2="39" y2="9" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#3B6EF6"></stop><stop offset="1" stop-color="#7B5CF6"></stop>
+  </linearGradient></defs>
+  <g transform="translate(2 8)">
+  <path d="M39 9 L7 21.5 L20 26.5 Z" fill="url(#fr)" opacity="0.45"></path>
+  <path d="M39 9 L20 26.5 L24.5 40 Z" fill="url(#fr)"></path></g>
+  <text x="60" y="33" dominant-baseline="middle" font-family="Geist, -apple-system, system-ui, sans-serif" font-size="42" font-weight="600" letter-spacing="-1.5" fill="#0A1628">Flowreach</text>
+</svg>
