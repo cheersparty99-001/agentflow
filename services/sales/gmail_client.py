@@ -262,7 +262,98 @@ class GmailClient:
             return [{"id": "hist-001", "messages_added": ["msg-001"], "timestamp": datetime.utcnow().isoformat()}]
         return []
 
-    # ── Utility ──
+    # ── Reply Detection ──
+
+    def check_replies(self, since_minutes: int = 60) -> list[dict]:
+        """Check for replies to our sent emails in the last N minutes.
+        
+        In demo mode: returns simulated replies.
+        In production: queries Gmail API for recent inbox messages that are replies.
+        
+        Returns list of reply dicts with: from, subject, body, thread_id, message_id.
+        """
+        if _is_demo():
+            return [
+                {
+                    "from_email": "ahmad@tamansari.my",
+                    "from_name": "Ahmad bin Ismail",
+                    "subject": "Re: Quick question about Restoran Taman Sari",
+                    "body": "Hi! I'm interested. Can you tell me more about your AI solutions?",
+                    "thread_id": "thread-demo-001",
+                    "message_id": "msg-demo-reply-001",
+                    "received_at": datetime.utcnow().isoformat(),
+                }
+            ]
+
+        if not self._service:
+            return []
+
+        import re
+        from googleapiclient.errors import HttpError
+
+        replies = []
+        try:
+            # Search for replies in inbox (subject starts with Re:)
+            query = f"in:inbox subject:(Re:) newer_than:{since_minutes}m"
+            response = self._service.users().messages().list(
+                userId="me", q=query, maxResults=20
+            ).execute()
+
+            messages = response.get("messages", [])
+            for msg_summary in messages:
+                msg = self._service.users().messages().get(
+                    userId="me", id=msg_summary["id"], format="full"
+                ).execute()
+
+                headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
+                subject = headers.get("Subject", "")
+                from_email = headers.get("From", "")
+                to_email = headers.get("To", "")
+
+                # Extract body
+                body = ""
+                payload = msg.get("payload", {})
+                if "parts" in payload:
+                    for part in payload["parts"]:
+                        if part.get("mimeType") == "text/plain":
+                            data = part.get("body", {}).get("data", "")
+                            if data:
+                                body = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+                                break
+                elif "body" in payload:
+                    data = payload.get("body", {}).get("data", "")
+                    if data:
+                        body = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+
+                # Only keep actual replies (Re: prefix)
+                if subject.startswith("Re:") or subject.startswith("RE:"):
+                    # Extract sender name from "Name <email>" format
+                    from_name = from_email
+                    match = re.match(r'^"?([^"<]*)"?\s*<', from_email)
+                    if match:
+                        from_name = match.group(1).strip() or from_email
+
+                    replies.append({
+                        "from_email": from_email,
+                        "from_name": from_name,
+                        "subject": subject,
+                        "body": body[:1000],
+                        "thread_id": msg.get("threadId", ""),
+                        "message_id": msg["id"],
+                        "received_at": datetime.utcnow().isoformat(),
+                    })
+
+            if replies:
+                print(f"[Sales/GmailClient] Found {len(replies)} reply/replies in inbox")
+                for r in replies:
+                    print(f"  From: {r['from_name']} <{r['from_email']}> — Subject: {r['subject']}")
+            else:
+                print(f"[Sales/GmailClient] No replies found in last {since_minutes} minutes")
+
+        except HttpError as e:
+            print(f"[Sales/GmailClient] Reply check error: {e}")
+
+        return replies
 
     def get_unread_count(self) -> int:
         if _is_demo():

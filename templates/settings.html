@@ -1,282 +1,99 @@
 {% extends "base.html" %}
-{% block title %} - Settings{% endblock %}
-
+{% block title %} — Settings{% endblock %}
 {% block content %}
-<h2 class="text-2xl font-bold text-slate-900 mb-8" data-i18n="settings">Settings</h2>
 
-<!-- Tab Bar -->
-<div class="flex border-b border-slate-200 mb-6 overflow-x-auto">
-  <button onclick="switchTab('agency')" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600 whitespace-nowrap" data-tab="agency">Agency Info</button>
-  <button onclick="switchTab('whatsapp')" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="whatsapp">WhatsApp</button>
-  <button onclick="switchTab('reminder')" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="reminder">Reminder Settings</button>
-  <button onclick="switchTab('modules')" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="modules" data-i18n="agent_modules">AI Agent Modules</button>
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Settings</h1>
+      <p class="text-sm text-slate-500 mt-1">Manage your account</p>
+    </div>
+  </div>
+
+  <!-- General Settings -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <h2 class="font-semibold text-slate-800">General</h2>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Agency Name</label>
+        <input type="text" id="s-name" value="{{ agency_name }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+        <input type="text" id="s-phone" value="" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+        <input type="email" id="s-email" value="" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Language</label>
+        <select id="s-lang" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+          <option value="en">English</option>
+          <option value="bm">Bahasa Malaysia</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
+    </div>
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
+      <button onclick="saveSettings()" class="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+        Save Settings
+      </button>
+      <span id="save-status" class="ml-3 text-sm text-green-600 hidden">Saved!</span>
+    </div>
+  </div>
+
+  {% if demo_mode %}
+  <div class="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+    <p class="text-sm text-amber-700">
+      <strong>Demo Mode:</strong> Settings are not persisted to the database.
+      Changes work for the current session only.
+    </p>
+  </div>
+  {% endif %}
 </div>
 
-<form id="settings-form">
-  <!-- Tab 1: Agency Info -->
-  <div id="tab-agency" class="tab-content">
-    <div class="bg-white rounded-xl border border-slate-200 p-6">
-      <h3 class="text-base font-semibold text-slate-900 mb-4">Agency Information</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Agency Name</label>
-          <input type="text" name="agency_name" id="s-agency-name" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-          <input type="text" name="phone" id="s-phone" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-          <input type="email" name="email" id="s-email" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Business Hours</label>
-          <input type="text" name="business_hours" id="s-business-hours" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Language</label>
-          <select name="language" id="s-language" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-            <option value="en">English</option>
-            <option value="bm">Bahasa Malaysia</option>
-            <option value="zh">中文</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tab 2: WhatsApp -->
-  <div id="tab-whatsapp" class="tab-content hidden">
-    <div class="bg-white rounded-xl border border-slate-200 p-6">
-      <h3 class="text-base font-semibold text-slate-900 mb-4">WhatsApp Settings</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Twilio Account SID</label>
-          <input type="password" name="twilio_sid" id="s-twilio-sid" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Twilio Auth Token</label>
-          <input type="password" name="twilio_token" id="s-twilio-token" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">WhatsApp From Number</label>
-          <input type="text" name="whatsapp_from" id="s-whatsapp-from" placeholder="+141****8886" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-        </div>
-      </div>
-      <div class="mt-4">
-        <button type="button" onclick="testConnection()" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 border border-slate-300 transition-colors">
-          Test Connection
-        </button>
-        <span id="test-result" class="ml-3 text-sm"></span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tab 3: Reminder Settings -->
-  <div id="tab-reminder" class="tab-content hidden">
-    <div class="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
-      <div>
-        <h3 class="text-base font-semibold text-slate-900 mb-4">Reminder Schedule</h3>
-        <div class="flex flex-wrap gap-4">
-          <label class="flex items-center gap-2">
-            <input type="checkbox" name="reminder_days" value="30" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-            <span class="text-sm text-slate-700">30 days before expiry</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <input type="checkbox" name="reminder_days" value="14" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-            <span class="text-sm text-slate-700">14 days before expiry</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <input type="checkbox" name="reminder_days" value="7" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-            <span class="text-sm text-slate-700">7 days before expiry</span>
-          </label>
-        </div>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Send Time</label>
-        <input type="time" name="send_time" id="s-send-time" value="09:00" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-      </div>
-      <div>
-        <h3 class="text-base font-semibold text-slate-900 mb-3">Message Templates (30 Days)</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">English</label>
-            <textarea name="template_30_en" id="s-tmpl-30-en" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">Hi {customer_name}, this is {agency_name}. Your motor insurance for {car_plate} will expire on {expiry_date}. We will prepare your renewal quotation soon. Reply if any details have changed.</textarea>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Bahasa Malaysia</label>
-            <textarea name="template_30_bm" id="s-tmpl-30-bm" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">Hi {customer_name}, ini peringatan dari {agency_name}. Insurans motor {car_plate} anda akan tamat pada {expiry_date}. Kami akan sediakan sebutan harga pembaharuan tidak lama lagi.</textarea>
-          </div>
-        </div>
-      </div>
-      <div>
-        <h3 class="text-base font-semibold text-slate-900 mb-3">Message Templates (14 Days)</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">English</label>
-            <textarea name="template_14_en" id="s-tmpl-14-en" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">Hi {customer_name}, your motor insurance for {car_plate} expires in 14 days on {expiry_date}. Your renewal options are ready. Please contact us to confirm.</textarea>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Bahasa Malaysia</label>
-            <textarea name="template_14_bm" id="s-tmpl-14-bm" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">Hi {customer_name}, insurans motor {car_plate} anda tamat dalam 14 hari pada {expiry_date}. Sila hubungi kami untuk mengesahkan pembaharuan.</textarea>
-          </div>
-        </div>
-      </div>
-      <div>
-        <h3 class="text-base font-semibold text-slate-900 mb-3">Message Templates (7 Days)</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">English</label>
-            <textarea name="template_7_en" id="s-tmpl-7-en" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">Hi {customer_name}, URGENT — your motor insurance for {car_plate} expires in 7 days on {expiry_date}. Please renew immediately to avoid lapse in coverage.</textarea>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Bahasa Malaysia</label>
-            <textarea name="template_7_bm" id="s-tmpl-7-bm" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">Hi {customer_name}, SEGERA — insurans motor {car_plate} anda tamat dalam 7 hari pada {expiry_date}. Sila perbaharui segera.</textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tab 4: Modules -->
-  <div id="tab-modules" class="tab-content hidden">
-    <div class="bg-white rounded-xl border border-slate-200 p-6">
-      <h3 class="text-base font-semibold text-slate-900 mb-4" data-i18n="agent_modules">AI Agent Modules</h3>
-      <div class="space-y-4">
-        <label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-          <div>
-            <span class="text-sm font-medium text-slate-700">Renewal Reminder</span>
-            <p class="text-xs text-slate-400 mt-0.5">Send automated WhatsApp reminders for expiring policies</p>
-          </div>
-          <input type="checkbox" name="module_renewal_reminder" class="toggle-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-        </label>
-        <label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg opacity-60">
-          <div>
-            <span class="text-sm font-medium text-slate-700">Enquiry Handler</span>
-            <p class="text-xs text-slate-400 mt-0.5">Auto-respond to customer enquiries</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-amber-600 font-medium">Upgrade to enable</span>
-            <input type="checkbox" name="module_enquiry_handler" class="toggle-checkbox rounded border-slate-300" disabled>
-          </div>
-        </label>
-        <label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg opacity-60">
-          <div>
-            <span class="text-sm font-medium text-slate-700">Quotation Formatter</span>
-            <p class="text-xs text-slate-400 mt-0.5">Generate formatted insurance quotations</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-amber-600 font-medium">Upgrade to enable</span>
-            <input type="checkbox" name="module_quotation_formatter" class="toggle-checkbox rounded border-slate-300" disabled>
-          </div>
-        </label>
-        <label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg opacity-60">
-          <div>
-            <span class="text-sm font-medium text-slate-700">Claims Tracker</span>
-            <p class="text-xs text-slate-400 mt-0.5">Track and manage insurance claims</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-amber-600 font-medium">Upgrade to enable</span>
-            <input type="checkbox" name="module_claims_tracker" class="toggle-checkbox rounded border-slate-300" disabled>
-          </div>
-        </label>
-        <label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg opacity-60">
-          <div>
-            <span class="text-sm font-medium text-slate-700">Birthday Greeting</span>
-            <p class="text-xs text-slate-400 mt-0.5">Send automated birthday wishes to customers</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-amber-600 font-medium">Upgrade to enable</span>
-            <input type="checkbox" class="toggle-checkbox rounded border-slate-300" disabled>
-          </div>
-        </label>
-        <label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg opacity-60">
-          <div>
-            <span class="text-sm font-medium text-slate-700">Annual Report</span>
-            <p class="text-xs text-slate-400 mt-0.5">Generate annual portfolio reports</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-amber-600 font-medium">Upgrade to enable</span>
-            <input type="checkbox" class="toggle-checkbox rounded border-slate-300" disabled>
-          </div>
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <div class="flex justify-end mt-6">
-    <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors" data-i18n="save">
-      Save Settings
-    </button>
-  </div>
-</form>
-{% endblock %}
-
-{% block scripts %}
 <script>
-function switchTab(name) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-  document.getElementById('tab-' + name).classList.remove('hidden');
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('border-blue-600', 'text-blue-600');
-    btn.classList.add('border-transparent', 'text-slate-500');
-  });
-  const activeBtn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
-  if (activeBtn) {
-    activeBtn.classList.remove('border-transparent', 'text-slate-500');
-    activeBtn.classList.add('border-blue-600', 'text-blue-600');
-  }
-}
-
 async function loadSettings() {
   try {
-    const res = await fetch('/api/settings');
-    if (!res.ok) return;
-    const data = await res.json();
-    document.getElementById('s-agency-name').value = data.agency_name || '';
-    document.getElementById('s-phone').value = data.phone || '';
-    document.getElementById('s-email').value = data.email || '';
-    document.getElementById('s-business-hours').value = data.business_hours || '';
-    document.getElementById('s-language').value = data.language || 'en';
-    document.getElementById('s-twilio-sid').value = data.twilio_sid || '';
-    document.getElementById('s-twilio-token').value = data.twilio_token || '';
-    document.getElementById('s-whatsapp-from').value = data.whatsapp_from || '';
-
-    const reminderDays = data.reminder_days || [30, 14, 7];
-    document.querySelectorAll('input[name="reminder_days"]').forEach(cb => {
-      cb.checked = reminderDays.includes(parseInt(cb.value));
-    });
-  } catch (e) {}
+    const r = await fetch('/api/settings');
+    const d = await r.json();
+    document.getElementById('s-name').value = d.agency_name || '';
+    document.getElementById('s-phone').value = d.phone || '';
+    document.getElementById('s-email').value = d.email || '';
+    if (d.language) document.getElementById('s-lang').value = d.language;
+  } catch(e) {}
 }
-
-function testConnection() {
-  const result = document.getElementById('test-result');
-  result.textContent = 'Testing...';
-  result.className = 'ml-3 text-sm text-slate-500';
-  setTimeout(() => {
-    result.textContent = '✅ Connection successful (demo)';
-    result.className = 'ml-3 text-sm text-green-600';
-  }, 1000);
-}
-
-document.getElementById('settings-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const formData = new FormData(this);
-  try {
-    const res = await fetch('/api/settings', {
-      method: 'POST',
-      body: new URLSearchParams(formData),
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-    const data = await res.json();
-    if (data.success) alert('Settings saved successfully.');
-    else alert('Error: ' + (data.error || 'Failed to save'));
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
-});
-
 loadSettings();
+
+async function saveSettings() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const form = new FormData();
+  form.append('agency_name', document.getElementById('s-name').value);
+  form.append('phone', document.getElementById('s-phone').value);
+  form.append('email', document.getElementById('s-email').value);
+  form.append('language', document.getElementById('s-lang').value);
+
+  try {
+    const r = await fetch('/api/settings', { method: 'POST', body: form });
+    const d = await r.json();
+    if (d.success) {
+      const status = document.getElementById('save-status');
+      status.classList.remove('hidden');
+      setTimeout(() => status.classList.add('hidden'), 2000);
+    }
+  } catch(e) {
+    alert('Failed to save settings');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Save Settings';
+}
 </script>
+
 {% endblock %}

@@ -266,14 +266,13 @@ async def admin_export_logs(request: Request):
     import csv, io
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Time", "Module", "Action", "Customer", "Insurance Type", "Status", "Message"])
+    writer.writerow(["Time", "Module", "Action", "Customer", "Type", "Status", "Message"])
     for l in logs:
         writer.writerow([
             l.get("created_at", ""),
             l.get("module", ""),
             l.get("action", ""),
             l.get("customer", ""),
-            l.get("insurance_type", ""),
             l.get("status", ""),
             l.get("message", ""),
         ])
