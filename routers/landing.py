@@ -165,3 +165,19 @@ async def landing_blog_post(request: Request, slug: str):
         name="landing/blog_post.html",
         context={"post": post, "related": related},
     )
+
+
+@router.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="landing/privacy.html",
+    )
+
+
+@router.get("/terms", response_class=HTMLResponse)
+async def terms_of_service(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="landing/terms.html",
+    )
