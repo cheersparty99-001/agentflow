@@ -10,6 +10,9 @@ router = APIRouter()
 
 env = Environment(loader=FileSystemLoader("templates"))
 
+def _is_demo() -> bool:
+    return getattr(cfg, "DEMO_MODE", True)
+
 # ── Demo Data ──────────────────────────────────────────────────────────────────
 LEAD_STATUSES = ["cold", "contacted", "replied", "interested", "closed_lost", "closed_won"]
 BUSINESSES = ["Boleh AI", "Wise Solutions"]
@@ -422,27 +425,81 @@ async def sales_pipeline(request: Request):
 
 
 @router.post("/sales/outreach/trigger")
-async def sales_outreach_trigger(request: Request, campaign: str = Form(""), channel: str = Form("whatsapp")):
+async def sales_outreach_trigger(
+    request: Request,
+    campaign: str = Form(""),
+    channel: str = Form("whatsapp"),
+    lead_id: str = Form(""),
+    test_override_email: str = Form(""),
+):
     user = await require_user(request)
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
     state = _get_leads_state(request.app.state)
-    # Simulate outreach: pick leads with status "cold" or "contacted"
-    targets = [l for l in state["leads"] if l["status"] in ("cold", "contacted")]
+
+    # Target specific lead or batch
+    if lead_id:
+        targets = [l for l in state["leads"] if l["id"] == lead_id]
+    else:
+        targets = [l for l in state["leads"] if l["status"] in ("cold", "contacted")]
+
     sent_count = 0
-    for target in targets[:5]:  # limit to 5 per trigger
+    errors = []
+    for target in targets[:5]:
+        # Determine email recipient
+        to_email = test_override_email or target.get("email", "")
+
+        if channel == "email" and to_email and not _is_demo():
+            # Real Gmail send
+            from services.sales.gmail_client import GmailClient
+            gmail = GmailClient()
+            if not gmail.is_authenticated:
+                gmail.authenticate()
+
+            body = f"""Hi {target.get('contact', target.get('name', ''))},
+
+I came across {target.get('name', 'your company')} and wanted to reach out.
+
+{target.get('notes', 'We help Malaysian businesses automate with AI solutions.')}
+
+Would you be open to a quick chat?
+
+Best regards,
+Edwin
+Boleh AI"""
+
+            result = gmail.send_message(
+                to_email=to_email,
+                subject=f"Quick question about {target.get('name', 'your business')}",
+                body=body,
+            )
+
+            if result.get("status") == "sent":
+                sent_count += 1
+                detail = f"Email sent to {to_email} — ID: {result.get('id', result.get('message_id', 'unknown'))}"
+            else:
+                errors.append(result.get("error", "Send failed"))
+                detail = f"Email FAILED to {to_email}: {result.get('error', 'Unknown error')}"
+        else:
+            # Demo or WhatsApp mode
+            sent_count += 1
+            detail = f"Sent automated {channel} message to {target.get('contact', '')} at {target.get('name', '')}."
+            if test_override_email:
+                detail += f" (would send to {test_override_email})"
+            if cfg.DEMO_MODE:
+                detail += " [DEMO]"
+
         state["activities"].append({
             "lead_id": target["id"],
             "type": "message",
             "summary": f"Outreach via {channel}" + (f" — {campaign}" if campaign else ""),
-            "detail": f"Sent automated {channel} message to {target['contact']} at {target['name']}.",
+            "detail": detail,
             "created_at": datetime.utcnow().isoformat(),
         })
-        sent_count += 1
 
     _save_leads_state(request.app.state, state)
-    return JSONResponse({"ok": True, "sent": sent_count, "channel": channel, "campaign": campaign})
+    return JSONResponse({"ok": True, "sent": sent_count, "channel": channel, "campaign": campaign, "errors": errors})
 
 
 # (replaced below with expanded version including google_maps support)

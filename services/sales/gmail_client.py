@@ -1,31 +1,28 @@
-"""Gmail Client — simulated Gmail API wrapper for reading and sending emails.
+"""Gmail Client — real Gmail API wrapper with demo fallback.
 
-All methods work in DEMO_MODE without real Gmail API credentials.
-Simulates watch, history tracking, inbox reading, and sending.
+DEMO_MODE: uses in-memory simulation.
+Production: uses Gmail API with OAuth2 refresh token.
 """
 
 import base64
 import uuid
+import os
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Optional
 
 import config as cfg
 
-# ── Demo state ────────────────────────────────────────────────────
+# ── Demo state ──
 
-# Simulated inbox messages
 _demo_inbox: list[dict] = []
-
-# Simulated Gmail watch state
 _demo_watch_state: dict = {
     "history_id": "123456789",
     "is_active": False,
-    "email_address": "agent@agentflow.my",
+    "email_address": "",
     "last_sync": None,
 }
-
-# Demo OAuth tokens (simulated)
 _demo_tokens = {
     "access_token": "ya29.demo-access-token-xxxxx",
     "refresh_token": "1//demo-refresh-token-xxxxx",
@@ -33,350 +30,126 @@ _demo_tokens = {
 }
 
 
-# ── Helper: seed demo inbox ───────────────────────────────────────
-
-
 def _seed_demo_inbox():
-    """Seed the demo inbox with sample messages."""
     if _demo_inbox:
         return
     now = datetime.utcnow()
-    _demo_inbox.extend(
-        [
-            {
-                "id": "msg-001",
-                "thread_id": "thread-001",
-                "from_email": "rajesh@techvision.my",
-                "from_name": "Rajesh Kumar",
-                "to_email": "agent@agentflow.my",
-                "subject": "Re: Quick question about TechVision Solutions",
-                "body": "Hi Alex, thanks for reaching out. I'd be interested "
-                        "in learning more about your solutions. Could you send "
-                        "over some information? We're particularly interested "
-                        "in cyber insurance.",
-                "snippet": "I'd be interested in learning more about your solutions...",
-                "received_at": (now - timedelta(hours=2)).isoformat(),
-                "is_read": False,
-                "labels": ["INBOX", "UNREAD"],
-                "is_reply": True,
-            },
-            {
-                "id": "msg-002",
-                "thread_id": "thread-002",
-                "from_email": "ahmad@greenearth.my",
-                "from_name": "Ahmad Ismail",
-                "to_email": "agent@agentflow.my",
-                "subject": "Re: Ideas for logistics businesses",
-                "body": "Hi, thanks for the note. We're actually just about "
-                        "to review our fleet insurance. Happy to have a "
-                        "discussion. Can you call me at 60112223334?",
-                "snippet": "Happy to have a discussion. Can you call me?...",
-                "received_at": (now - timedelta(days=1)).isoformat(),
-                "is_read": True,
-                "labels": ["INBOX"],
-                "is_reply": True,
-            },
-            {
-                "id": "msg-003",
-                "thread_id": "thread-003",
-                "from_email": "noreply@somecompany.com",
-                "from_name": "Some Company",
-                "to_email": "agent@agentflow.my",
-                "subject": "Business Inquiry",
-                "body": "Hello, I'm looking for insurance for my new business. "
-                        "Please send me a quote for general liability coverage.",
-                "snippet": "Please send me a quote for general liability coverage...",
-                "received_at": (now - timedelta(hours=6)).isoformat(),
-                "is_read": False,
-                "labels": ["INBOX", "UNREAD"],
-                "is_reply": False,
-            },
-            {
-                "id": "msg-004",
-                "thread_id": "thread-004",
-                "from_email": "michelle@eliteretail.my",
-                "from_name": "Michelle Wong",
-                "to_email": "agent@agentflow.my",
-                "subject": "Unsubscribe",
-                "body": "Please unsubscribe me from your mailing list. "
-                        "I am not interested.",
-                "snippet": "Please unsubscribe me from your mailing list...",
-                "received_at": (now - timedelta(days=3)).isoformat(),
-                "is_read": False,
-                "labels": ["INBOX", "UNREAD"],
-                "is_reply": True,
-            },
-        ]
+    _demo_inbox.extend([
+        {"id": "msg-001", "thread_id": "thread-001", "from_email": "rajesh@techvision.my", "from_name": "Rajesh Kumar", "to_email": "agent@agentflow.my", "subject": "Re: Quick question", "body": "Hi, I'd be interested in learning more about your solutions.", "snippet": "I'd be interested...", "received_at": (now - timedelta(hours=2)).isoformat(), "is_read": False, "labels": ["INBOX", "UNREAD"], "is_reply": True},
+        {"id": "msg-002", "thread_id": "thread-002", "from_email": "ahmad@greenearth.my", "from_name": "Ahmad Ismail", "to_email": "agent@agentflow.my", "subject": "Re: Ideas for logistics", "body": "Happy to have a discussion. Can you call me?", "snippet": "Happy to have a discussion...", "received_at": (now - timedelta(days=1)).isoformat(), "is_read": True, "labels": ["INBOX"], "is_reply": True},
+        {"id": "msg-003", "thread_id": "thread-003", "from_email": "noreply@somecompany.com", "from_name": "Some Company", "to_email": "agent@agentflow.my", "subject": "Business Inquiry", "body": "Please send me a quote.", "snippet": "Please send me a quote...", "received_at": (now - timedelta(hours=6)).isoformat(), "is_read": False, "labels": ["INBOX", "UNREAD"], "is_reply": False},
+        {"id": "msg-004", "thread_id": "thread-004", "from_email": "michelle@eliteretail.my", "from_name": "Michelle Wong", "to_email": "agent@agentflow.my", "subject": "Unsubscribe", "body": "Please unsubscribe me.", "snippet": "Please unsubscribe me...", "received_at": (now - timedelta(days=3)).isoformat(), "is_read": False, "labels": ["INBOX", "UNREAD"], "is_reply": True},
+    ])
+
+
+def _is_demo() -> bool:
+    return getattr(cfg, "DEMO_MODE", True)
+
+
+def _get_gmail_creds():
+    """Get Google OAuth2 credentials from config.
+    Uses the scopes already encoded in the refresh token."""
+    from google.oauth2.credentials import Credentials
+    return Credentials(
+        None,
+        refresh_token=cfg.GMAIL_REFRESH_TOKEN,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=cfg.GMAIL_CLIENT_ID,
+        client_secret=cfg.GMAIL_CLIENT_SECRET,
     )
 
 
-# ── GmailClient class ─────────────────────────────────────────────
+def _create_message(to: str, subject: str, body: str, from_email: str) -> dict:
+    """Create a MIME message for Gmail API."""
+    msg = MIMEMultipart("alternative")
+    msg["To"] = to
+    msg["From"] = from_email
+    msg["Subject"] = subject
+
+    text_part = MIMEText(body, "plain", "utf-8")
+    html_part = MIMEText(
+        body.replace("\n", "<br>\n") + "<br><br><hr><small>Sent via AgentFlow Sales Automation</small>",
+        "html", "utf-8",
+    )
+    msg.attach(text_part)
+    msg.attach(html_part)
+
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    return {"raw": raw}
 
 
 class GmailClient:
-    """Simulated Gmail API client.
+    """Gmail API client with demo mode fallback."""
 
-    All methods work in DEMO_MODE without real Gmail credentials.
-    In production, this would use google-auth and google-api-python-client.
-    """
+    def __init__(self, email_address: str = ""):
+        self.email_address = email_address or getattr(cfg, "GMAIL_FROM", "")
+        self._authenticated = False
+        self._service = None
+        self._creds = None
 
-    def __init__(
-        self,
-        credentials_path: str = "",
-        token_path: str = "",
-        email_address: str = "agent@agentflow.my",
-    ):
-        """Initialize the Gmail client.
-
-        Args:
-            credentials_path: Path to OAuth client secrets JSON (prod only).
-            token_path: Path to stored token JSON (prod only).
-            email_address: The Gmail address to operate on.
-        """
-        self.email_address = email_address
-        self._credentials_path = credentials_path
-        self._token_path = token_path
-        self._authenticated = cfg.DEMO_MODE  # auto-authenticated in demo
-        self._service = None  # would be googleapiclient.discovery.build in prod
-
-        if cfg.DEMO_MODE:
+        if _is_demo():
             _seed_demo_inbox()
-            _demo_watch_state["email_address"] = email_address
-            print(f"[Sales/GmailClient] DEMO -- Initialized for {email_address}")
+            _demo_watch_state["email_address"] = self.email_address
+            print(f"[Sales/GmailClient] DEMO -- Initialized for {self.email_address}")
+        else:
+            self.authenticate()
 
-    # ── Authentication ────────────────────────────────────────────
+    # ── Auth ──
 
     def authenticate(self) -> bool:
-        """Simulate OAuth authentication flow.
-
-        Returns True if authenticated (always True in DEMO_MODE).
-        """
-        if cfg.DEMO_MODE:
+        if _is_demo():
             self._authenticated = True
             return True
 
-        # Real implementation would use:
-        #   from google.oauth2.credentials import Credentials
-        #   creds = Credentials.from_authorized_user_file(self._token_path)
-        #   self._service = build('gmail', 'v1', credentials=creds)
-        raise NotImplementedError("Production Gmail auth not implemented")
+        if not all([cfg.GMAIL_CLIENT_ID, cfg.GMAIL_CLIENT_SECRET, cfg.GMAIL_REFRESH_TOKEN]):
+            print("[Sales/GmailClient] ERROR: Missing Gmail credentials in config")
+            return False
+
+        try:
+            from googleapiclient.discovery import build
+            self._creds = _get_gmail_creds()
+            self._service = build("gmail", "v1", credentials=self._creds)
+            self._authenticated = True
+            print(f"[Sales/GmailClient] Authenticated as {self.email_address}")
+            return True
+        except Exception as e:
+            print(f"[Sales/GmailClient] Auth error: {e}")
+            return False
 
     @property
     def is_authenticated(self) -> bool:
         return self._authenticated
 
-    def get_token_info(self) -> dict:
-        """Return simulated OAuth token info."""
-        return dict(_demo_tokens)
+    # ── Sending ──
 
-    # ── Watch / Push notifications ────────────────────────────────
-
-    def start_watch(self) -> dict:
-        """Start watching the inbox for new messages (push notifications).
-
-        Returns the watch state.
-        """
-        _demo_watch_state["is_active"] = True
-        _demo_watch_state["history_id"] = str(uuid.uuid4())
-        _demo_watch_state["last_sync"] = datetime.utcnow().isoformat()
-
-        if cfg.DEMO_MODE:
-            print("[Sales/GmailClient] DEMO -- Watch started on inbox")
-
-        return dict(_demo_watch_state)
-
-    def stop_watch(self) -> bool:
-        """Stop watching the inbox."""
-        _demo_watch_state["is_active"] = False
-        _demo_watch_state["last_sync"] = datetime.utcnow().isoformat()
-        return True
-
-    def get_watch_state(self) -> dict:
-        """Get current watch state."""
-        return dict(_demo_watch_state)
-
-    def get_history(self, history_id: Optional[str] = None) -> list[dict]:
-        """Get history changes since a given history_id.
-
-        In DEMO_MODE, returns simulated history entries.
-        """
-        if cfg.DEMO_MODE:
-            return [
-                {
-                    "id": "hist-001",
-                    "messages_added": ["msg-001"],
-                    "timestamp": datetime.utcnow().isoformat(),
-                }
-            ]
-        return []
-
-    # ── Inbox reading ─────────────────────────────────────────────
-
-    def list_messages(
-        self,
-        max_results: int = 20,
-        query: str = "",
-        label_ids: Optional[list[str]] = None,
-    ) -> list[dict]:
-        """List messages in the inbox.
-
-        Args:
-            max_results: Maximum messages to return.
-            query: Gmail search query (simulated in demo mode).
-            label_ids: Filter by label IDs.
-
-        Returns:
-            List of message metadata dicts.
-        """
-        if not cfg.DEMO_MODE:
-            raise NotImplementedError("Production Gmail list not implemented")
-
-        results = list(_demo_inbox)
-
-        if query:
-            query_lower = query.lower()
-            results = [
-                m
-                for m in results
-                if query_lower in m.get("subject", "").lower()
-                or query_lower in m.get("from_email", "").lower()
-                or query_lower in m.get("body", "").lower()
-            ]
-
-        if label_ids:
-            results = [
-                m
-                for m in results
-                if any(label in (m.get("labels", []) or []) for label in label_ids)
-            ]
-
-        results.sort(key=lambda m: m.get("received_at", ""), reverse=True)
-        return results[:max_results]
-
-    def get_message(self, message_id: str) -> Optional[dict]:
-        """Get a single message by ID.
-
-        Args:
-            message_id: Gmail message ID.
-
-        Returns:
-            Full message dict or None if not found.
-        """
-        if not cfg.DEMO_MODE:
-            raise NotImplementedError("Production Gmail get_message not implemented")
-
-        for msg in _demo_inbox:
-            if msg["id"] == message_id:
-                return dict(msg)
-        return None
-
-    def mark_as_read(self, message_id: str) -> bool:
-        """Mark a message as read.
-
-        Args:
-            message_id: Gmail message ID.
-
-        Returns:
-            True on success.
-        """
-        for msg in _demo_inbox:
-            if msg["id"] == message_id:
-                msg["is_read"] = True
-                if "UNREAD" in (msg.get("labels") or []):
-                    msg["labels"].remove("UNREAD")
-                return True
-        return False
-
-    def mark_as_unread(self, message_id: str) -> bool:
-        """Mark a message as unread."""
-        for msg in _demo_inbox:
-            if msg["id"] == message_id:
-                msg["is_read"] = False
-                if "UNREAD" not in (msg.get("labels") or []):
-                    msg["labels"].append("UNREAD")
-                return True
-        return False
-
-    # ── Sending ───────────────────────────────────────────────────
-
-    def send_message(
-        self,
-        to_email: str,
-        subject: str,
-        body: str,
-        cc: Optional[str] = None,
-        bcc: Optional[str] = None,
-        in_reply_to: Optional[str] = None,
-    ) -> dict:
-        """Send an email via Gmail.
-
-        In DEMO_MODE, logs the message to the demo inbox as sent.
-
-        Args:
-            to_email: Recipient email address.
-            subject: Email subject.
-            body: Email body (plain text).
-            cc: Carbon copy recipients (comma-separated).
-            bcc: Blind carbon copy recipients (comma-separated).
-            in_reply_to: Message ID to reply to (for threading).
-
-        Returns:
-            Dict with message ID and status.
-        """
-        if cfg.DEMO_MODE:
+    def send_message(self, to_email: str, subject: str, body: str,
+                     cc: Optional[str] = None, bcc: Optional[str] = None,
+                     in_reply_to: Optional[str] = None) -> dict:
+        """Send an email. Demo mode: logs. Production: real Gmail API call."""
+        if _is_demo():
             msg_id = f"sent-{uuid.uuid4().hex[:12]}"
-            sent_record = {
-                "id": msg_id,
-                "thread_id": in_reply_to or f"thread-{uuid.uuid4().hex[:12]}",
-                "from_email": self.email_address,
-                "from_name": "Alex (AgentFlow)",
-                "to_email": to_email,
-                "subject": subject,
-                "body": body,
-                "snippet": body[:100],
-                "received_at": datetime.utcnow().isoformat(),
-                "is_read": True,
-                "labels": ["SENT"],
-                "is_reply": bool(in_reply_to),
-            }
-            # Don't add to demo_inbox (it's in SENT, not INBOX)
-            print(
-                f"[Sales/GmailClient] DEMO -- Sent email to {to_email}: "
-                f"'{subject[:50]}...'"
-            )
-            return {
-                "id": msg_id,
-                "status": "sent",
-                "to": to_email,
-                "subject": subject,
-            }
+            print(f"[Sales/GmailClient] DEMO -- Would send email to {to_email}: '{subject}'")
+            return {"id": msg_id, "status": "sent", "to": to_email, "subject": subject, "demo": True}
 
-        # Real implementation would use:
-        #   message = MIMEText(body)
-        #   message['to'] = to_email
-        #   message['subject'] = subject
-        #   raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-        #   self._service.users().messages().send(userId='me', body={'raw': raw}).execute()
-        raise NotImplementedError("Production Gmail send not implemented")
+        if not self._authenticated or not self._service:
+            return {"status": "error", "reason": "Not authenticated"}
 
-    def send_reply(
-        self,
-        original_message: dict,
-        reply_body: str,
-    ) -> dict:
-        """Send a reply to an existing message.
+        try:
+            from_email = self.email_address or cfg.GMAIL_FROM
+            message = _create_message(to_email, subject, body, from_email)
+            sent = self._service.users().messages().send(userId="me", body=message).execute()
+            msg_id = sent.get("id", "")
+            print(f"[Sales/GmailClient] Email sent successfully — ID: {msg_id}, To: {to_email}, Subject: {subject}")
+            return {"id": msg_id, "status": "sent", "to": to_email, "subject": subject, "message_id": msg_id}
+        except Exception as e:
+            error_msg = str(e)
+            print(f"[Sales/GmailClient] Send error: {error_msg}")
+            return {"status": "failed", "error": error_msg}
 
-        Args:
-            original_message: The message dict being replied to.
-            reply_body: Reply text.
-
-        Returns:
-            Dict with message ID and status.
-        """
+    def send_reply(self, original_message: dict, reply_body: str) -> dict:
         subject = original_message.get("subject", "")
         if not subject.startswith("Re:"):
             subject = f"Re: {subject}"
-
         return self.send_message(
             to_email=original_message.get("from_email", ""),
             subject=subject,
@@ -384,27 +157,130 @@ class GmailClient:
             in_reply_to=original_message.get("id"),
         )
 
-    # ── Utility ───────────────────────────────────────────────────
+    # ── Inbox reading ──
+
+    def list_messages(self, max_results: int = 20, query: str = "",
+                      label_ids: Optional[list[str]] = None) -> list[dict]:
+        if _is_demo():
+            results = list(_demo_inbox)
+            if query:
+                q = query.lower()
+                results = [m for m in results if q in m.get("subject", "").lower()
+                           or q in m.get("from_email", "").lower()
+                           or q in m.get("body", "").lower()]
+            if label_ids:
+                results = [m for m in results
+                           if any(l in (m.get("labels") or []) for l in label_ids)]
+            results.sort(key=lambda m: m.get("received_at", ""), reverse=True)
+            return results[:max_results]
+
+        if not self._service:
+            return []
+        try:
+            response = self._service.users().messages().list(
+                userId="me", maxResults=max_results, q=query,
+                labelIds=label_ids or [],
+            ).execute()
+            return response.get("messages", [])
+        except Exception as e:
+            print(f"[Sales/GmailClient] List error: {e}")
+            return []
+
+    def get_message(self, message_id: str) -> Optional[dict]:
+        if _is_demo():
+            for msg in _demo_inbox:
+                if msg["id"] == message_id:
+                    return dict(msg)
+            return None
+        if not self._service:
+            return None
+        try:
+            msg = self._service.users().messages().get(userId="me", id=message_id, format="full").execute()
+            return msg
+        except Exception as e:
+            print(f"[Sales/GmailClient] Get message error: {e}")
+            return None
+
+    def mark_as_read(self, message_id: str) -> bool:
+        if _is_demo():
+            for msg in _demo_inbox:
+                if msg["id"] == message_id:
+                    msg["is_read"] = True
+                    if "UNREAD" in (msg.get("labels") or []):
+                        msg["labels"].remove("UNREAD")
+                    return True
+            return False
+        if not self._service:
+            return False
+        try:
+            self._service.users().messages().modify(
+                userId="me", id=message_id, body={"removeLabelIds": ["UNREAD"]}
+            ).execute()
+            return True
+        except Exception:
+            return False
+
+    def mark_as_unread(self, message_id: str) -> bool:
+        if _is_demo():
+            for msg in _demo_inbox:
+                if msg["id"] == message_id:
+                    msg["is_read"] = False
+                    if "UNREAD" not in (msg.get("labels") or []):
+                        msg["labels"].append("UNREAD")
+                    return True
+            return False
+        if not self._service:
+            return False
+        try:
+            self._service.users().messages().modify(
+                userId="me", id=message_id, body={"addLabelIds": ["UNREAD"]}
+            ).execute()
+            return True
+        except Exception:
+            return False
+
+    # ── Watch / Push ──
+
+    def start_watch(self) -> dict:
+        _demo_watch_state["is_active"] = True
+        _demo_watch_state["history_id"] = str(uuid.uuid4())
+        _demo_watch_state["last_sync"] = datetime.utcnow().isoformat()
+        if _is_demo():
+            print("[Sales/GmailClient] DEMO -- Watch started")
+        return dict(_demo_watch_state)
+
+    def stop_watch(self) -> bool:
+        _demo_watch_state["is_active"] = False
+        _demo_watch_state["last_sync"] = datetime.utcnow().isoformat()
+        return True
+
+    def get_watch_state(self) -> dict:
+        return dict(_demo_watch_state)
+
+    def get_history(self, history_id: Optional[str] = None) -> list[dict]:
+        if _is_demo():
+            return [{"id": "hist-001", "messages_added": ["msg-001"], "timestamp": datetime.utcnow().isoformat()}]
+        return []
+
+    # ── Utility ──
 
     def get_unread_count(self) -> int:
-        """Get count of unread inbox messages."""
-        if not cfg.DEMO_MODE:
-            raise NotImplementedError("Production not implemented")
-        return len(
-            [m for m in _demo_inbox if "UNREAD" in (m.get("labels") or [])]
-        )
+        if _is_demo():
+            return len([m for m in _demo_inbox if "UNREAD" in (m.get("labels") or [])])
+        if not self._service:
+            return 0
+        try:
+            profile = self._service.users().getProfile(userId="me").execute()
+            return profile.get("messagesTotal", 0)
+        except Exception:
+            return 0
 
     def get_inbox_summary(self) -> dict:
-        """Get a summary of the inbox state."""
-        if not cfg.DEMO_MODE:
-            raise NotImplementedError("Production not implemented")
-        total = len(_demo_inbox)
-        unread = self.get_unread_count()
-        replies = len([m for m in _demo_inbox if m.get("is_reply")])
-        return {
-            "total_messages": total,
-            "unread": unread,
-            "replies": replies,
-            "watch_active": _demo_watch_state["is_active"],
-            "email_address": self.email_address,
-        }
+        if _is_demo():
+            total = len(_demo_inbox)
+            unread = self.get_unread_count()
+            replies = len([m for m in _demo_inbox if m.get("is_reply")])
+            return {"total_messages": total, "unread": unread, "replies": replies,
+                    "watch_active": _demo_watch_state["is_active"],
+                    "email_address": self.email_address}
+        return {"authenticated": self._authenticated, "email_address": self.email_address}
