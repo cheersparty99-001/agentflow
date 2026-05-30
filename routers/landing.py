@@ -128,16 +128,17 @@ BLOG_POSTS = {
 @router.get("/", response_class=HTMLResponse)
 async def landing_index(request: Request):
     return templates.TemplateResponse(
-        "landing/index.html",
-        {"request": request, "posts": list(BLOG_POSTS.values())[:3]},
+        request=request,
+        name="landing/index.html",
+        context={"posts": list(BLOG_POSTS.values())[:3]},
     )
 
 
 @router.get("/pricing", response_class=HTMLResponse)
 async def landing_pricing(request: Request):
     return templates.TemplateResponse(
-        "landing/pricing.html",
-        {"request": request},
+        request=request,
+        name="landing/pricing.html",
     )
 
 
@@ -147,8 +148,9 @@ async def landing_blog(request: Request):
         "May": 5, "April": 4, "March": 3, "February": 2, "January": 1
     }.get(p["date"].split()[0], 0) * 100 + int(p["date"].split()[1].rstrip(",")), reverse=True)
     return templates.TemplateResponse(
-        "landing/blog.html",
-        {"request": request, "posts": posts},
+        request=request,
+        name="landing/blog.html",
+        context={"posts": posts},
     )
 
 
@@ -159,6 +161,7 @@ async def landing_blog_post(request: Request, slug: str):
         raise HTTPException(status_code=404, detail="Post not found")
     related = [p for p in BLOG_POSTS.values() if p["slug"] != slug][:2]
     return templates.TemplateResponse(
-        "landing/blog_post.html",
-        {"request": request, "post": post, "related": related},
+        request=request,
+        name="landing/blog_post.html",
+        context={"post": post, "related": related},
     )
