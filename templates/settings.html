@@ -2,60 +2,151 @@
 {% block title %} — Settings{% endblock %}
 {% block content %}
 
-<div class="max-w-2xl mx-auto">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-2xl font-bold text-slate-800">Settings</h1>
-      <p class="text-sm text-slate-500 mt-1">Manage your account</p>
-    </div>
+<div class="max-w-4xl mx-auto">
+  <h1 class="text-2xl font-bold text-slate-900 mb-6">Settings</h1>
+
+  <!-- Tab Navigation -->
+  <div class="flex gap-1 mb-8 border-b border-slate-200">
+    <button class="tab-btn px-5 py-3 text-sm font-medium border-b-2 transition-colors" data-tab="profile" onclick="switchTab('profile')">Profile</button>
+    <button class="tab-btn px-5 py-3 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition-colors" data-tab="email" onclick="switchTab('email')">Email Connection</button>
+    <button class="tab-btn px-5 py-3 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition-colors" data-tab="target" onclick="switchTab('target')">Target Profile</button>
+    <button class="tab-btn px-5 py-3 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition-colors" data-tab="notifications" onclick="switchTab('notifications')">Notifications</button>
   </div>
 
-  <!-- General Settings -->
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100">
-      <h2 class="font-semibold text-slate-800">General</h2>
+  <!-- Tab 1: Profile -->
+  <div id="tab-profile" class="tab-content">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100">
+        <h2 class="font-semibold text-slate-800">General</h2>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Agency Name</label>
+          <input type="text" id="s-name" value="{{ agency_name }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+          <input type="text" id="s-phone" value="" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+          <input type="email" id="s-email" value="" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Language</label>
+          <select id="s-lang" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            <option value="en">English</option>
+            <option value="bm">Bahasa Malaysia</option>
+            <option value="zh">中文</option>
+          </select>
+        </div>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
+        <button onclick="saveSettings()" class="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">Save Settings</button>
+        <span id="save-status" class="ml-3 text-sm text-green-600 hidden">Saved!</span>
+      </div>
     </div>
-    <div class="p-6 space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Agency Name</label>
-        <input type="text" id="s-name" value="{{ agency_name }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-        <input type="text" id="s-phone" value="" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-        <input type="email" id="s-email" value="" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">Language</label>
-        <select id="s-lang" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-          <option value="en">English</option>
-          <option value="bm">Bahasa Malaysia</option>
-          <option value="zh">中文</option>
-        </select>
-      </div>
+    {% if demo_mode %}
+    <div class="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <p class="text-sm text-amber-700"><strong>Demo Mode:</strong> Settings are not persisted to the database. Changes work for the current session only.</p>
     </div>
-    <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
-      <button onclick="saveSettings()" class="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-        Save Settings
+    {% endif %}
+  </div>
+
+  <!-- Tab 2: Email Connection -->
+  <div id="tab-email" class="tab-content hidden">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <p class="text-sm text-slate-600 mb-6">Connect your Gmail account to send outreach emails directly from Flowreach.</p>
+      <button onclick="showEmailPlaceholder()" class="px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        Connect Gmail Account
       </button>
-      <span id="save-status" class="ml-3 text-sm text-green-600 hidden">Saved!</span>
+      <div id="email-placeholder" class="hidden mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+        <p class="text-sm text-slate-600">Gmail OAuth will be available soon. Contact <a href="mailto:hello@flowreach.app" class="text-blue-600 hover:underline">hello@flowreach.app</a> to set up your email connection.</p>
+      </div>
     </div>
   </div>
 
-  {% if demo_mode %}
-  <div class="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
-    <p class="text-sm text-amber-700">
-      <strong>Demo Mode:</strong> Settings are not persisted to the database.
-      Changes work for the current session only.
-    </p>
+  <!-- Tab 3: Target Profile -->
+  <div id="tab-target" class="tab-content hidden">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-slate-800">Target Profiles</h3>
+        <button onclick="showAddTargetProfile()" class="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">+ Add Profile</button>
+      </div>
+      {% if target_profiles %}
+      <div class="space-y-3">
+        {% for tp in target_profiles %}
+        <div class="p-4 border border-slate-200 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-semibold text-slate-800">{{ tp.name }}</p>
+              <p class="text-xs text-slate-500 mt-0.5">{{ tp.business_name }} · {{ tp.industries|join(', ') }}</p>
+            </div>
+            <span class="px-2 py-0.5 text-xs font-medium rounded-full {% if tp.is_active %}bg-green-100 text-green-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ 'Active' if tp.is_active else 'Inactive' }}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-sm text-slate-400">No target profiles configured yet.</p>
+      {% endif %}
+    </div>
   </div>
-  {% endif %}
+
+  <!-- Tab 4: Notifications -->
+  <div id="tab-notifications" class="tab-content hidden">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100">
+        <h2 class="font-semibold text-slate-800">Notification Settings</h2>
+      </div>
+      <div class="p-6 space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">WhatsApp Notification Number</label>
+          <input type="text" id="notif-wa" value="" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="e.g. +60 12-345 6789">
+        </div>
+        <div>
+          <p class="text-sm font-medium text-slate-700 mb-3">Notify me when...</p>
+          <label class="flex items-center gap-3 mb-2">
+            <input type="checkbox" class="rounded border-slate-300 text-blue-600" checked>
+            <span class="text-sm text-slate-600">A lead replies</span>
+          </label>
+          <label class="flex items-center gap-3 mb-2">
+            <input type="checkbox" class="rounded border-slate-300 text-blue-600" checked>
+            <span class="text-sm text-slate-600">A lead is interested</span>
+          </label>
+          <label class="flex items-center gap-3">
+            <input type="checkbox" class="rounded border-slate-300 text-blue-600">
+            <span class="text-sm text-slate-600">Daily summary</span>
+          </label>
+        </div>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
+        <button onclick="alert('Settings saved!')" class="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">Save</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.remove('text-slate-900', 'border-blue-600');
+    b.classList.add('text-slate-500', 'border-transparent');
+  });
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  const btn = document.querySelector('[data-tab="' + tab + '"]');
+  btn.classList.remove('text-slate-500', 'border-transparent');
+  btn.classList.add('text-slate-900', 'border-blue-600');
+}
+
+function showEmailPlaceholder() {
+  document.getElementById('email-placeholder').classList.toggle('hidden');
+}
+
 async function loadSettings() {
   try {
     const r = await fetch('/api/settings');
@@ -72,13 +163,11 @@ async function saveSettings() {
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = 'Saving...';
-
   const form = new FormData();
   form.append('agency_name', document.getElementById('s-name').value);
   form.append('phone', document.getElementById('s-phone').value);
   form.append('email', document.getElementById('s-email').value);
   form.append('language', document.getElementById('s-lang').value);
-
   try {
     const r = await fetch('/api/settings', { method: 'POST', body: form });
     const d = await r.json();
@@ -87,13 +176,9 @@ async function saveSettings() {
       status.classList.remove('hidden');
       setTimeout(() => status.classList.add('hidden'), 2000);
     }
-  } catch(e) {
-    alert('Failed to save settings');
-  }
-
+  } catch(e) { alert('Failed to save settings'); }
   btn.disabled = false;
   btn.textContent = 'Save Settings';
 }
 </script>
-
 {% endblock %}

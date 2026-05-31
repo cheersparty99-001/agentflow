@@ -30,6 +30,11 @@ async def settings_page(request: Request):
     account = safe_single(lambda: sb.table("accounts").select("agency_name").eq("id", account_id).single(), default={"agency_name": "My Agency"})
     agency_name = account.get("agency_name", "My Agency") if account else "My Agency"
 
+    # Load target profiles
+    target_profiles = getattr(request.app.state, 'sales_target_profiles', [])
+    if not target_profiles:
+        target_profiles = []
+
     template = env.get_template("settings.html")
     html = template.render(
         agency_name=agency_name,
@@ -37,6 +42,7 @@ async def settings_page(request: Request):
         current_path=request.url.path,
         is_admin=user.get("is_admin", False),
         user_email=user.get("email", ""),
+        target_profiles=target_profiles,
     )
     return HTMLResponse(html)
 

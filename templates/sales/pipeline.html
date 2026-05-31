@@ -12,7 +12,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
   {% for status_key in all_statuses %}
   {% set col = columns.get(status_key, []) %}
-  <div class="bg-slate-50 rounded-xl border border-slate-200 p-3 min-h-[300px]">
+  <div class="bg-slate-50 rounded-xl border border-slate-200 p-3 min-h-[300px]" data-status="{{ status_key }}" ondragover="onDragOver(event)" ondrop="onDrop(event)">
     <!-- Column Header -->
     <div class="flex items-center justify-between mb-3 px-2">
       <h3 class="text-sm font-semibold capitalize
@@ -30,7 +30,7 @@
     <!-- Cards -->
     <div class="space-y-2">
       {% for lead in col %}
-      <a href="/sales/leads/{{ lead.id }}" class="block bg-white rounded-lg border border-slate-200 p-3 hover:shadow-md transition-shadow">
+      <a href="/sales/leads/{{ lead.id }}" draggable="true" data-lead-id="{{ lead.id }}" data-status="{{ status_key }}" class="block bg-white rounded-lg border border-slate-200 p-3 hover:shadow-md transition-shadow" ondragstart="onDragStart(event)">
         <div class="flex items-start justify-between mb-2">
           <h4 class="text-sm font-semibold text-slate-900 leading-tight break-words max-w-[80%]">{{ lead.name }}</h4>
           <span class="shrink-0 ml-2 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
@@ -47,14 +47,48 @@
       </a>
       {% else %}
       <div class="flex flex-col items-center justify-center py-8 text-slate-400">
-        <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-        </svg>
-        <p class="text-xs">No leads</p>
+        <p class="text-xs">No leads here yet</p>
       </div>
       {% endfor %}
     </div>
   </div>
   {% endfor %}
 </div>
+{% block scripts %}
+<script>
+function onDragStart(e) {
+  e.dataTransfer.setData('text/plain', JSON.stringify({
+    leadId: e.target.dataset.leadId,
+    fromStatus: e.target.dataset.status
+  }));
+}
+function onDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('ring-2', 'ring-blue-400');
+}
+function onDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('ring-2', 'ring-blue-400');
+  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+  const toStatus = e.currentTarget.dataset.status;
+  if (data.fromStatus === toStatus) return;
+  fetch('/sales/leads/' + data.leadId + '/status', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'status=' + encodeURIComponent(toStatus)
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.ok) window.location.reload();
+    else alert('Failed to update status');
+  })
+  .catch(() => alert('Failed to update status'));
+}
+document.querySelectorAll('[data-status]').forEach(col => {
+  col.addEventListener('dragleave', function() {
+    this.classList.remove('ring-2', 'ring-blue-400');
+  });
+});
+</script>
+{% endblock %}
 {% endblock %}
