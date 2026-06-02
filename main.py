@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 import config as cfg
 
-app = FastAPI(title="AgentFlow", version="2.0.0")
+app = FastAPI(title="Flowreach", version="2.0.0")
 
 # Clean shutdown on SIGTERM/SIGINT
 def cleanup(signum, frame):
@@ -31,16 +31,14 @@ app.include_router(sales.router)
 
 @app.on_event("startup")
 async def startup():
-    app.state.demo_logs = []
-    app.state.demo_accounts = {}
-    # Seed Sales Automation demo data
-    from routers.sales import init_sales_demo_data
-    init_sales_demo_data(app.state)
+    # Seed Sales Automation demo data to Supabase
+    from routers.sales import seed_db_with_demo_data
+    seed_db_with_demo_data()
     missing = []
     required = ["SUPABASE_URL", "SUPABASE_KEY", "SUPABASE_SERVICE_KEY"]
     for var in required:
         if not getattr(cfg, var, None):
             missing.append(var)
     if missing:
-        print(f"[AgentFlow] WARNING: Missing env vars: {', '.join(missing)}")
-    print(f"[AgentFlow] Demo mode: {cfg.DEMO_MODE}")
+        print(f"[Flowreach] WARNING: Missing env vars: {', '.join(missing)}")
+    print(f"[Flowreach] Demo mode: {cfg.DEMO_MODE}")

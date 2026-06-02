@@ -15,7 +15,7 @@ def send_message(config_dict: dict, phone: str, message: str) -> bool:
     from_number = config_dict.get("whatsapp_from") or cfg.TWILIO_WHATSAPP_FROM
 
     if not sid or not token or not from_number:
-        print(f"[AgentFlow] WhatsApp: Missing Twilio credentials")
+        print(f"[Flowreach] WhatsApp: Missing Twilio credentials")
         return False
 
     try:
@@ -25,5 +25,5 @@ def send_message(config_dict: dict, phone: str, message: str) -> bool:
         client.messages.create(body=message, from_=from_whatsapp, to=to_number)
         return True
     except Exception as e:
-        print(f"[AgentFlow] WhatsApp send error: {e}")
+        print(f"[Flowreach] WhatsApp send error: {e}")
         return False

@@ -1,7 +1,7 @@
-# AgentFlow Simplification Plan
+# Flowreach Simplification Plan
 
 ## Current structure
-AgentFlow was built for insurance agencies but pivoted to B2B Sales Automation.
+Flowreach was built for insurance agencies but pivoted to B2B Sales Automation.
 
 ## Files to DELETE
 - /root/agentflow/routers/policies.py (entire file)
@@ -46,8 +46,7 @@ AgentFlow was built for insurance agencies but pivoted to B2B Sales Automation.
 
 ## Sidebar structure (after changes)
 ```
-AgentFlow
-B2B Sales Automation Platform
+Flowreach
 [DEMO MODE]
 EN BM 中文
 

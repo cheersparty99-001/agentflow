@@ -68,7 +68,7 @@ def _create_message(to: str, subject: str, body: str, from_email: str) -> dict:
 
     text_part = MIMEText(body, "plain", "utf-8")
     html_part = MIMEText(
-        body.replace("\n", "<br>\n") + "<br><br><hr><small>Sent via AgentFlow Sales Automation</small>",
+        body.replace("\n", "<br>\n") + "<br><br><hr><small>Sent via Flowreach Sales Automation</small>",
         "html", "utf-8",
     )
     msg.attach(text_part)

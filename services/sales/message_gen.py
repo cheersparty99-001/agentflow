@@ -107,7 +107,7 @@ def generate_message(
     message_type: str = "cold",
     agent_name: str = "Alex",
     agent_title: str = "Business Development",
-    company_name_override: str = "AgentFlow Insurance",
+    company_name_override: str = "Flowreach Insurance",
 ) -> dict:
     """Generate a personalised outreach message for a lead.
 

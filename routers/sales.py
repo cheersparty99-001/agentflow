@@ -8,94 +8,82 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from jinja2 import Environment, FileSystemLoader
 from routers.auth import get_current_user
 import config as cfg
+from data import leads as data_leads, profiles as data_profiles, usage as data_usage
 
 router = APIRouter()
 
 env = Environment(loader=FileSystemLoader("templates"))
 
-def _is_demo() -> bool:
-    return getattr(cfg, "DEMO_MODE", True)
-
 # ── Demo Data ──────────────────────────────────────────────────────────────────
 LEAD_STATUSES = ["cold", "contacted", "replied", "interested", "closed_lost", "closed_won"]
 BUSINESSES = ["Boleh AI", "Wise Solutions"]
 
-SEED_LEADS = [
-    {"id": "lead-001", "name": "Restoran Taman Sari", "industry": "food_beverage", "business": "Boleh AI", "score": 8, "status": "contacted", "contact": "Ahmad bin Ismail", "phone": "+60 12-345 6789", "email": "ahmad@tamansari.my", "location": "Kuala Lumpur", "notes": "Interested in AI menu system"},
-    {"id": "lead-002", "name": "KB Insurance Agency", "industry": "insurance", "business": "Boleh AI", "score": 9, "status": "interested", "contact": "Khalid Bashir", "phone": "+60 13-456 7890", "email": "khalid@kbinsurance.my", "location": "Penang", "notes": "Wants AI for claims processing"},
-    {"id": "lead-003", "name": "Marvelous Retail", "industry": "retail", "business": "Boleh AI", "score": 7, "status": "contacted", "contact": "Siti Nurhaliza", "phone": "+60 14-567 8901", "email": "siti@marvelous.my", "location": "Johor Bahru", "notes": "Chain of 5 stores"},
-    {"id": "lead-004", "name": "Beauty Palace Ampang", "industry": "beauty", "business": "Boleh AI", "score": 8, "status": "replied", "contact": "Mei Ling Wong", "phone": "+60 16-789 0123", "email": "meiling@beautypalace.my", "location": "Ampang, KL", "notes": "Demo scheduled for next week"},
-    {"id": "lead-005", "name": "Shah Alam Wholesale", "industry": "wholesale", "business": "Boleh AI", "score": 9, "status": "cold", "contact": "Ravi Chandran", "phone": "+60 17-890 1234", "email": "ravi@shahalamwholesale.my", "location": "Shah Alam", "notes": "Large distributor, high potential"},
-    {"id": "lead-006", "name": "PrestoPay Malaysia", "industry": "fintech", "business": "Wise Solutions", "score": 9, "status": "interested", "contact": "Tan Li Wei", "phone": "+60 11-2345 6789", "email": "liweitan@prestopay.my", "location": "Kuala Lumpur", "notes": "Series A startup, needs AI chatbot"},
-    {"id": "lead-007", "name": "MediTech Solutions", "industry": "healthcare", "business": "Wise Solutions", "score": 8, "status": "replied", "contact": "Dr. Sarah Lim", "phone": "+60 18-901 2345", "email": "sarah@meditech.my", "location": "Selangor", "notes": "Hospital chain, 3 locations"},
-    {"id": "lead-008", "name": "EduSmart Learning", "industry": "education", "business": "Wise Solutions", "score": 7, "status": "contacted", "contact": "Prof. Amir Hassan", "phone": "+60 19-012 3456", "email": "amir@edusmart.my", "location": "Cyberjaya", "notes": "EdTech platform with 50K students"},
-    {"id": "lead-009", "name": "ShopEase Malaysia", "industry": "ecommerce", "business": "Wise Solutions", "score": 8, "status": "replied", "contact": "Nadia Osman", "phone": "+60 10-1234 5678", "email": "nadia@shopease.my", "location": "Petaling Jaya", "notes": "Wants AI product recommendations"},
-    {"id": "lead-010", "name": "LogiSwift MY", "industry": "logistics", "business": "Wise Solutions", "score": 9, "status": "interested", "contact": "Ganesh Krishnan", "phone": "+60 15-678 9012", "email": "ganesh@logiswift.my", "location": "Port Klang", "notes": "Fleet of 200+ vehicles"},
-]
+# ── Normalization helpers ───────────────────────────────────────────────────────
 
-SEED_ACTIVITIES = [
-    # lead-001: Restoran Taman Sari
-    {"lead_id": "lead-001", "type": "call", "summary": "Initial outreach call", "detail": "Called Ahmad to introduce Boleh AI menu system. He was curious but busy. Will call back.", "created_at": (datetime.utcnow() - timedelta(days=14, hours=3)).isoformat()},
-    {"lead_id": "lead-001", "type": "email", "summary": "Sent introductory email", "detail": "Sent brochure and pricing via email. Included case studies for F&B industry.", "created_at": (datetime.utcnow() - timedelta(days=13)).isoformat()},
-    {"lead_id": "lead-001", "type": "message", "summary": "WhatsApp follow-up", "detail": "Ahmad: 'Can you show me how it works for a menu with 100+ items?' Agent: 'Sure! Let me schedule a demo.'", "created_at": (datetime.utcnow() - timedelta(days=10, hours=12)).isoformat()},
-    {"lead_id": "lead-001", "type": "note", "summary": "Demo scheduled", "detail": "Scheduled Zoom demo for next Thursday at 2pm. Ahmad will bring his head chef.", "created_at": (datetime.utcnow() - timedelta(days=8)).isoformat()},
+# Map business_id -> business name (also used in templates)
+_BUSINESS_NAME_MAP = {
+    "b1000000-0000-0000-0000-000000000001": "Boleh AI",
+    "b1000000-0000-0000-0000-000000000002": "Wise Solutions",
+}
 
-    # lead-002: KB Insurance Agency
-    {"lead_id": "lead-002", "type": "call", "summary": "Discovery call", "detail": "Khalid explained their claims process involves 12 steps. Looking for AI automation to reduce to 3-4 steps.", "created_at": (datetime.utcnow() - timedelta(days=10)).isoformat()},
-    {"lead_id": "lead-002", "type": "email", "summary": "Sent proposal", "detail": "Sent custom proposal for AI claims automation. Estimated ROI within 6 months.", "created_at": (datetime.utcnow() - timedelta(days=8)).isoformat()},
-    {"lead_id": "lead-002", "type": "message", "summary": "Khalid replied excitedly", "detail": "Khalid: 'This looks fantastic! Can we fast-track the implementation? I want to show this to my board.'", "created_at": (datetime.utcnow() - timedelta(days=5, hours=14)).isoformat()},
-    {"lead_id": "lead-002", "type": "note", "summary": "Board presentation prep", "detail": "Preparing board deck. Khalid wants a pilot with 50 claims first. Expected close: high.", "created_at": (datetime.utcnow() - timedelta(days=3)).isoformat()},
+def _normalize_lead(ld: dict) -> dict:
+    """Convert DB lead fields to template-compatible format."""
+    if ld is None:
+        return None
+    ld["name"] = ld.get("company_name") or ld.get("name") or ""
+    ld["contact"] = ld.get("contact_name") or ld.get("contact") or ""
+    ld["score"] = ld.get("ai_score") or ld.get("score") or 0
+    ld["location"] = ld.get("city") or ld.get("location") or ""
+    # Resolve business name
+    biz_id = ld.get("business_id", "")
+    biz_name = _BUSINESS_NAME_MAP.get(biz_id, "")
+    if not biz_name and ld.get("name"):
+        # Possible the lead was stored with a 'business' field directly
+        biz_name = ld.get("business", "")
+    ld["business"] = biz_name
+    return ld
 
-    # lead-003: Marvelous Retail
-    {"lead_id": "lead-003", "type": "call", "summary": "Cold call", "detail": "Spoke with Siti. She runs 5 retail stores and is interested in inventory management AI.", "created_at": (datetime.utcnow() - timedelta(days=7, hours=2)).isoformat()},
-    {"lead_id": "lead-003", "type": "email", "summary": "Sent retail case study", "detail": "Sent case study of AI implementation in similar retail chain with 8 stores.", "created_at": (datetime.utcnow() - timedelta(days=6)).isoformat()},
-    {"lead_id": "lead-003", "type": "message", "summary": "Siti asked about pricing", "detail": "Siti: 'What are the monthly costs for 5 stores?' Agent sent pricing breakdown.", "created_at": (datetime.utcnow() - timedelta(days=4, hours=10)).isoformat()},
 
-    # lead-004: Beauty Palace Ampang
-    {"lead_id": "lead-004", "type": "call", "summary": "Warm introduction", "detail": "Mei Ling was referred by a mutual contact. Very receptive to AI appointment scheduling.", "created_at": (datetime.utcnow() - timedelta(days=6, hours=5)).isoformat()},
-    {"lead_id": "lead-004", "type": "email", "summary": "Demo confirmation", "detail": "Confirmed demo for Friday 3pm. Will showcase appointment scheduling and customer CRM.", "created_at": (datetime.utcnow() - timedelta(days=4)).isoformat()},
-    {"lead_id": "lead-004", "type": "message", "summary": "Mei Ling confirmed demo", "detail": "Mei Ling: 'Looking forward to it! My team of 12 will join the call.'", "created_at": (datetime.utcnow() - timedelta(days=2, hours=16)).isoformat()},
+def _normalize_activities(acts: list) -> list:
+    """Convert DB activity fields to template-compatible format."""
+    result = []
+    for a in (acts or []):
+        result.append({
+            "lead_id": a.get("lead_id", ""),
+            "type": a.get("activity_type") or a.get("type") or "note",
+            "summary": a.get("description") or a.get("summary") or "",
+            "detail": a.get("detail") or "",
+            "created_at": a.get("created_at", ""),
+        })
+    return result
 
-    # lead-005: Shah Alam Wholesale
-    {"lead_id": "lead-005", "type": "call", "summary": "Initial call (no answer)", "detail": "Called Ravi but went to voicemail. Left a brief message.", "created_at": (datetime.utcnow() - timedelta(days=5)).isoformat()},
-    {"lead_id": "lead-005", "type": "email", "summary": "Sent intro email", "detail": "Cold email sent with intro about AI for wholesale distribution.", "created_at": (datetime.utcnow() - timedelta(days=4)).isoformat()},
-    {"lead_id": "lead-005", "type": "message", "summary": "LinkedIn connection request", "detail": "Sent LinkedIn request with note about AI solutions for wholesale.", "created_at": (datetime.utcnow() - timedelta(days=3)).isoformat()},
 
-    # lead-006: PrestoPay Malaysia
-    {"lead_id": "lead-006", "type": "call", "summary": "Intro call with founder", "detail": "Tan Li Wei is the CTO. They're building a fintech platform and need AI customer support chatbot.", "created_at": (datetime.utcnow() - timedelta(days=12, hours=4)).isoformat()},
-    {"lead_id": "lead-006", "type": "email", "summary": "Sent technical proposal", "detail": "Detailed technical proposal covering API integration, NLP model, and compliance for fintech.", "created_at": (datetime.utcnow() - timedelta(days=10)).isoformat()},
-    {"lead_id": "lead-006", "type": "message", "summary": "Li Wei wants POC", "detail": "Li Wei: 'Can you do a small proof-of-concept first? We need to validate with our investors.'", "created_at": (datetime.utcnow() - timedelta(days=7, hours=8)).isoformat()},
-    {"lead_id": "lead-006", "type": "note", "summary": "POC scope defined", "detail": "POC will cover chatbot for 3 common customer queries. Timeline: 2 weeks. Budget: RM 15K.", "created_at": (datetime.utcnow() - timedelta(days=5)).isoformat()},
+def _make_create_lead_data(name: str, contact: str, phone: str, email: str,
+                            industry: str, location: str, business: str,
+                            source: str, notes: str, score: int = 7,
+                            status: str = "cold") -> dict:
+    """Build a dict suitable for data_leads.create_lead()."""
+    biz_id = None
+    for bid, bname in _BUSINESS_NAME_MAP.items():
+        if bname == business:
+            biz_id = bid
+            break
+    return {
+        "company_name": name,
+        "contact_name": contact,
+        "phone": phone,
+        "email": email,
+        "industry": industry,
+        "city": location,
+        "location": location,
+        "business_id": biz_id or "",
+        "source": source,
+        "notes": notes,
+        "ai_score": score,
+        "score": score,
+        "status": status,
+    }
 
-    # lead-007: MediTech Solutions
-    {"lead_id": "lead-007", "type": "call", "summary": "Discovery call", "detail": "Dr. Sarah Lim is the IT director. They want AI for patient scheduling and follow-up automation.", "created_at": (datetime.utcnow() - timedelta(days=9, hours=3)).isoformat()},
-    {"lead_id": "lead-007", "type": "email", "summary": "Sent healthcare compliance docs", "detail": "Sent HIPAA compliance documentation and data security whitepaper.", "created_at": (datetime.utcnow() - timedelta(days=7)).isoformat()},
-    {"lead_id": "lead-007", "type": "message", "summary": "Sarah requested more info", "detail": "Sarah: 'Can you share how the AI handles patient data encryption?' Sent detailed response.", "created_at": (datetime.utcnow() - timedelta(days=4, hours=11)).isoformat()},
-
-    # lead-008: EduSmart Learning
-    {"lead_id": "lead-008", "type": "call", "summary": "Intro call", "detail": "Prof. Amir is the academic director. He wants AI for personalized learning paths for 50K students.", "created_at": (datetime.utcnow() - timedelta(days=11, hours=5)).isoformat()},
-    {"lead_id": "lead-008", "type": "email", "summary": "Sent education sector proposal", "detail": "Sent proposal covering adaptive learning, AI tutoring, and analytics dashboard.", "created_at": (datetime.utcnow() - timedelta(days=9)).isoformat()},
-    {"lead_id": "lead-008", "type": "message", "summary": "Amir has budget questions", "detail": "Amir: 'We're on a tight budget as an edtech. Any educational discounts?' Agent: 'Let me check our education pricing.'", "created_at": (datetime.utcnow() - timedelta(days=6, hours=14)).isoformat()},
-
-    # lead-009: ShopEase Malaysia
-    {"lead_id": "lead-009", "type": "call", "summary": "Product demo call", "detail": "Nadia is the head of product. Demoed AI recommendation engine. She was very impressed.", "created_at": (datetime.utcnow() - timedelta(days=8, hours=2)).isoformat()},
-    {"lead_id": "lead-009", "type": "email", "summary": "Sent technical specs", "detail": "Sent API documentation and integration guide for their existing platform.", "created_at": (datetime.utcnow() - timedelta(days=6)).isoformat()},
-    {"lead_id": "lead-009", "type": "message", "summary": "Nadia wants trial access", "detail": "Nadia: 'Can we get a 14-day sandbox trial? My dev team wants to test the API.' Agent set up sandbox access.", "created_at": (datetime.utcnow() - timedelta(days=3, hours=9)).isoformat()},
-    {"lead_id": "lead-009", "type": "note", "summary": "Trial activated", "detail": "Sandbox trial activated for ShopEase. Dev team started integration testing. Positive early feedback.", "created_at": (datetime.utcnow() - timedelta(days=1)).isoformat()},
-
-    # lead-010: LogiSwift MY
-    {"lead_id": "lead-010", "type": "call", "summary": "Executive meeting", "detail": "Met with Ganesh (COO) and his team. They need AI route optimization and fleet management.", "created_at": (datetime.utcnow() - timedelta(days=13, hours=6)).isoformat()},
-    {"lead_id": "lead-010", "type": "email", "summary": "Sent logistics solution deck", "detail": "Deck covering AI route optimization, predictive maintenance, and fuel savings analytics.", "created_at": (datetime.utcnow() - timedelta(days=11)).isoformat()},
-    {"lead_id": "lead-010", "type": "message", "summary": "Ganesh wants ROI calc", "detail": "Ganesh: 'Can you provide ROI projections based on our fleet size?' Sent detailed calculation.", "created_at": (datetime.utcnow() - timedelta(days=8, hours=15)).isoformat()},
-    {"lead_id": "lead-010", "type": "note", "summary": "Contract negotiation stage", "detail": "Ganesh is presenting to board next week. Estimated deal value: RM 120K/year. High confidence.", "created_at": (datetime.utcnow() - timedelta(days=4)).isoformat()},
-
-    # Additional cross-cutting activities
-    {"lead_id": "lead-001", "type": "message", "summary": "Ahmad sent menu PDF", "detail": "Ahmad shared their full menu PDF (124 items). Agent confirmed AI can handle it.", "created_at": (datetime.utcnow() - timedelta(days=6, hours=8)).isoformat()},
-    {"lead_id": "lead-003", "type": "note", "summary": "Follow-up call scheduled", "detail": "Siti requested to postpone discussion to next month. Set reminder for 3 weeks.", "created_at": (datetime.utcnow() - timedelta(days=2)).isoformat()},
-    {"lead_id": "lead-005", "type": "note", "summary": "Research completed", "detail": "Researched Shah Alam Wholesale — RM 50M annual revenue, 300+ employees. High priority target.", "created_at": (datetime.utcnow() - timedelta(days=2, hours=5)).isoformat()},
-    {"lead_id": "lead-007", "type": "message", "summary": "Follow-up scheduled", "detail": "Sarah: 'Let's meet next week with our compliance officer.' Scheduled for Wednesday.", "created_at": (datetime.utcnow() - timedelta(days=1, hours=10)).isoformat()},
-    {"lead_id": "lead-008", "type": "note", "summary": "Education discount approved", "detail": "Approved 30% education discount. Revised proposal sent to Prof. Amir.", "created_at": (datetime.utcnow() - timedelta(days=0, hours=6)).isoformat()},
-]
 
 # ── Utility ────────────────────────────────────────────────────────────────────
 
@@ -106,140 +94,33 @@ async def require_user(request: Request):
     return user
 
 
-def _get_leads_state(app_state):
-    if not hasattr(app_state, "sales_leads") or app_state.sales_leads is None:
-        return {"leads": [], "activities": []}
-    return app_state.sales_leads
+# ── DB Seeder ─────────────────────────────────────────────────────────────────
 
+def seed_db_with_demo_data():
+    """Seed Supabase with demo data if empty."""
+    existing = data_leads.get_all_leads()
+    if existing:
+        print(f"[Sales] DB already has {len(existing)} leads, skipping seed")
+        return
 
-def _save_leads_state(app_state, state):
-    app_state.sales_leads = state
+    seeds = [
+        {"company_name": "Poblano KL", "industry": "food_beverage", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 7, "status": "cold", "contact_name": "", "phone": "", "email": "", "location": "Kuala Lumpur", "notes": "Mexican restaurant in KL"},
+        {"company_name": "KB Insurance Agency", "industry": "insurance", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 9, "status": "interested", "contact_name": "Khalid Bashir", "phone": "+60 13-456 7890", "email": "khalid@kbinsurance.my", "location": "Penang", "notes": "Interested in AI for claims"},
+        {"company_name": "Beauty Palace Ampang", "industry": "beauty", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 8, "status": "replied", "contact_name": "Mei Ling Wong", "phone": "+60 16-789 0123", "email": "", "location": "Ampang", "notes": "Demo scheduled"},
+        {"company_name": "Shah Alam Wholesale", "industry": "wholesale", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 9, "status": "cold", "contact_name": "Ravi Chandran", "phone": "+60 17-890 1234", "email": "", "location": "Shah Alam", "notes": "Large distributor"},
+        {"company_name": "PrestoPay Malaysia", "industry": "fintech", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 9, "status": "interested", "contact_name": "Tan Li Wei", "phone": "+60 11-2345 6789", "email": "", "location": "Kuala Lumpur", "notes": "Series A startup"},
+        {"company_name": "MediTech Solutions", "industry": "healthcare", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 8, "status": "replied", "contact_name": "Dr. Sarah Lim", "phone": "+60 18-901 2345", "email": "", "location": "Selangor", "notes": "Hospital chain"},
+        {"company_name": "EduSmart Learning", "industry": "education", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 7, "status": "contacted", "contact_name": "Prof. Amir Hassan", "phone": "+60 19-012 3456", "email": "", "location": "Cyberjaya", "notes": "EdTech platform"},
+        {"company_name": "ShopEase Malaysia", "industry": "ecommerce", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 8, "status": "replied", "contact_name": "Nadia Osman", "phone": "+60 10-1234 5678", "email": "", "location": "Petaling Jaya", "notes": "Wants AI recommendations"},
+        {"company_name": "LogiSwift MY", "industry": "logistics", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 9, "status": "interested", "contact_name": "Ganesh Krishnan", "phone": "+60 15-678 9012", "email": "", "location": "Port Klang", "notes": "Fleet of 200 vehicles"},
+        {"company_name": "Marvelous Retail", "industry": "retail", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 7, "status": "cold", "contact_name": "Siti Nurhaliza", "phone": "+60 14-567 8901", "email": "", "location": "Johor Bahru", "notes": "Chain of stores"},
+    ]
 
+    for s in seeds:
+        lead = data_leads.create_lead(s)
+        data_leads.create_activity(lead["id"], "note", f"Seed lead: {s['company_name']}", {})
 
-# ── Startup Seeder ─────────────────────────────────────────────────────────────
-
-def seed_demo_data(app_state):
-    """Call this on application startup to populate demo leads.
-    If scripts/real_leads.json exists, use real scraped leads instead."""
-    
-    real_leads_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "real_leads.json")
-    if os.path.exists(real_leads_path):
-        try:
-            with open(real_leads_path) as f:
-                data = json.load(f)
-            leads = data.get("qualified", data.get("all_leads", []))
-            # Transform lead fields for template compatibility
-            transformed = []
-            for i, ld in enumerate(leads):
-                transformed.append({
-                    "id": ld.get("id", f"lead-real-{i+1:03d}"),
-                    "name": ld.get("company_name", ld.get("name", f"Company {i+1}")),
-                    "company_name": ld.get("company_name", ld.get("name", f"Company {i+1}")),
-                    "industry": ld.get("industry", "Other"),
-                    "business": ld.get("business", "Boleh AI"),
-                    "score": ld.get("score", ld.get("ai_score", 5)),
-                    "status": ld.get("status", "cold"),
-                    "contact": ld.get("contact_name", ld.get("contact", "")),
-                    "phone": ld.get("phone", ""),
-                    "whatsapp": ld.get("whatsapp", ld.get("phone", "")),
-                    "email": ld.get("email", ""),
-                    "website": ld.get("website", ""),
-                    "location": ld.get("address", ld.get("city", ld.get("location", "")))[:50],
-                    "address": ld.get("address", ""),
-                    "rating": ld.get("rating", 0),
-                    "review_count": ld.get("review_count", ld.get("total_reviews", 0)),
-                    "notes": ld.get("notes", ld.get("source_query", "")),
-                    "source": ld.get("source", "google_maps"),
-                    "created_at": ld.get("created_at", datetime.utcnow().isoformat()),
-                    "updated_at": datetime.utcnow().isoformat(),
-                })
-            leads = transformed
-            activities = data.get("activities", [])
-            _save_leads_state(app_state, {"leads": leads, "activities": activities})
-            print(f"[Sales] Loaded {len(leads)} real leads from scripts/real_leads.json")
-            return
-        except Exception as e:
-            print(f"[Sales] Failed to load real_leads.json: {e}, falling back to demo")
-    
-    # Original demo seed fallback
-    leads = []
-    for ld in SEED_LEADS:
-        lead = dict(ld)
-        lead["created_at"] = (datetime.utcnow() - timedelta(days=15, hours=int(ld["id"][-1]))).isoformat()
-        lead["updated_at"] = datetime.utcnow().isoformat()
-        leads.append(lead)
-
-    activities = []
-    for act in SEED_ACTIVITIES:
-        activities.append(dict(act))
-
-    _save_leads_state(app_state, {"leads": leads, "activities": activities})
-    print(f"[Sales] Seeded {len(leads)} demo leads with {len(activities)} activities")
-
-
-def init_sales_demo_data(app_state):
-    """Initialize all sales demo data (call from startup)."""
-    # Existing seed
-    seed_demo_data(app_state)
-
-    # Target profiles
-    if not hasattr(app_state, 'sales_target_profiles') or not app_state.sales_target_profiles:
-        app_state.sales_target_profiles = [
-            {
-                'id': 'tp-001',
-                'account_id': '00000000-0000-0000-0000-000000000001',
-                'business_id': 'b1000000-0000-0000-0000-000000000001',
-                'business_name': 'Boleh AI',
-                'name': 'Default - Boleh AI',
-                'industries': ['Food & Beverage','Retail','Healthcare','Insurance','Optical','Wholesale'],
-                'locations': ['Kuala Lumpur','Selangor','Penang','Johor'],
-                'company_size': 'any',
-                'keywords_include': ['sdn bhd','enterprise'],
-                'keywords_exclude': [],
-                'min_ai_score': 7,
-                'is_active': True,
-            },
-            {
-                'id': 'tp-002',
-                'account_id': '00000000-0000-0000-0000-000000000001',
-                'business_id': 'b1000000-0000-0000-0000-000000000002',
-                'business_name': 'Wise Solutions',
-                'name': 'Default - Wise Solutions',
-                'industries': ['Technology','Fintech','Healthcare','Education','Ecommerce'],
-                'locations': ['Kuala Lumpur','Selangor'],
-                'company_size': 'any',
-                'keywords_include': ['startup','funding','expansion'],
-                'keywords_exclude': [],
-                'min_ai_score': 7,
-                'is_active': True,
-            },
-        ]
-
-    # Onboarding state
-    if not hasattr(app_state, 'sales_onboarding'):
-        app_state.sales_onboarding = {
-            'status': 'pending',
-            'sampling_start_date': None,
-            'sampling_lead_count': 0,
-        }
-
-    # Businesses (for target profile form)
-    if not hasattr(app_state, 'sales_businesses'):
-        app_state.sales_businesses = [
-            {'id': 'b1000000-0000-0000-0000-000000000001', 'name': 'Boleh AI', 'type': 'boleh_ai'},
-            {'id': 'b1000000-0000-0000-0000-000000000002', 'name': 'Wise Solutions', 'type': 'wise_solutions'},
-        ]
-
-    # Usage & limits
-    if not hasattr(app_state, 'sales_usage'):
-        app_state.sales_usage = {
-            'total_leads_scraped': 0,
-            'total_outreach_sent': 0,
-            'total_samples': 0,
-            'sampling_limit': 30,
-            'monthly_outreach_limit': 500,
-            'daily_scrape_limit': 200,
-        }
+    print(f"[Sales] Seeded {len(seeds)} demo leads to Supabase")
 
 
 # ── Helper functions for template rendering ────────────────────────────────────
@@ -265,33 +146,26 @@ async def sales_dashboard(request: Request):
     if not user:
         return RedirectResponse(url="/login")
 
-    state = _get_leads_state(request.app.state)
-    leads = state["leads"]
-    activities = state["activities"]
+    # Use data layer for stats
+    leads = data_leads.get_all_leads()
+    activities = data_leads.list_activities(limit=50)
+    biz_stats = data_leads.get_biz_stats()
 
-    # Stats per business
-    biz_stats = {}
-    for b in BUSINESSES:
-        biz_leads = [l for l in leads if l["business"] == b]
-        biz_stats[b] = {
-            "total": len(biz_leads),
-            "by_status": {s: len([l for l in biz_leads if l["status"] == s]) for s in LEAD_STATUSES},
-            "avg_score": round(sum(l["score"] for l in biz_leads) / len(biz_leads), 1) if biz_leads else 0,
-            "industries": list(set(l["industry"] for l in biz_leads)),
-        }
+    # Normalize leads for template
+    normalized = [_normalize_lead(ld) for ld in leads]
 
     # Recent activity feed (last 15)
-    sorted_acts = sorted(activities, key=lambda a: a["created_at"], reverse=True)[:15]
+    acts_normalized = _normalize_activities(activities[:15])
 
     # Escalation alerts: leads needing attention (interested or with replies)
-    escalations = [l for l in leads if l["status"] in ("interested", "replied")]
+    escalations = [l for l in normalized if l["status"] in ("interested", "replied")]
 
     return _render(request, "sales/dashboard.html",
                    biz_stats=biz_stats,
-                   total_leads=len(leads),
-                   recent_activities=sorted_acts,
+                   total_leads=len(normalized),
+                   recent_activities=acts_normalized,
                    escalations=escalations,
-                   leads_status_counts={s: len([l for l in leads if l["status"] == s]) for s in LEAD_STATUSES},
+                   leads_status_counts={s: len([l for l in normalized if l["status"] == s]) for s in LEAD_STATUSES},
                    )
 
 
@@ -311,35 +185,26 @@ async def sales_leads(
 
     # Return JSON if format=json
     if format == "json":
-        state = _get_leads_state(request.app.state)
-        leads = state["leads"]
-        if status:
-            leads = [l for l in leads if l.get("status") == status]
-        return JSONResponse({"leads": leads})
+        leads_json, _ = data_leads.list_leads(status=status, page=1, per_page=1000)
+        return JSONResponse({"leads": leads_json})
 
-    state = _get_leads_state(request.app.state)
-    leads = state["leads"]
-
-    # Filter
-    if status:
-        leads = [l for l in leads if l["status"] == status]
-    if business:
-        leads = [l for l in leads if l["business"] == business]
-    if industry:
-        leads = [l for l in leads if l["industry"] == industry]
-    if search:
-        q = search.lower()
-        leads = [l for l in leads if q in l["name"].lower() or q in l["contact"].lower() or q in l.get("notes", "").lower()]
-
-    total = len(leads)
+    # Use data layer with filtering and pagination
+    # data_leads.list_leads uses different field names for filtering
+    page_leads_db, total = data_leads.list_leads(status=status, page=page, per_page=10)
+    
+    # Normalize for template
+    page_leads = [_normalize_lead(ld) for ld in page_leads_db]
+    
     per_page = 10
     total_pages = max(1, (total + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
-    start = (page - 1) * per_page
-    end = start + per_page
-    page_leads = leads[start:end]
 
-    all_industries = sorted(set(l["industry"] for l in state["leads"]))
+    # Get all leads for industry filter options
+    all_leads = data_leads.get_all_leads()
+    all_industries = sorted(set(
+        ld.get("industry", "") or ld.get("industry", "")
+        for ld in all_leads if ld.get("industry")
+    ))
 
     return _render(request, "sales/leads.html",
                    leads=page_leads,
@@ -370,35 +235,20 @@ async def add_lead(
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
     
-    state = _get_leads_state(request.app.state)
-    new_lead = {
-        "id": str(uuid.uuid4()),
-        "name": name,
-        "industry": industry,
-        "business": business,
-        "score": 7,
-        "status": "cold",
-        "contact": contact,
-        "phone": phone,
-        "email": email,
-        "location": location,
-        "source": source,
-        "notes": notes,
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat(),
-    }
-    state["leads"].insert(0, new_lead)
+    lead_data = _make_create_lead_data(
+        name=name, contact=contact, phone=phone, email=email,
+        industry=industry, location=location, business=business,
+        source=source, notes=notes,
+    )
+    new_lead = data_leads.create_lead(lead_data)
     
     # Log activity
-    state["activities"].insert(0, {
-        "lead_id": new_lead["id"],
-        "type": "note",
-        "summary": "Lead added manually",
-        "detail": f"Added by {user.get('email', 'user')}",
-        "created_at": datetime.utcnow().isoformat(),
-    })
+    data_leads.create_activity(
+        new_lead["id"], "note",
+        f"Lead added manually by {user.get('email', 'user')}",
+        {"added_by": user.get("email", "user")},
+    )
     
-    _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, "id": new_lead["id"]})
 
 
@@ -408,18 +258,18 @@ async def generate_email(request: Request, lead_id: str):
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
     
-    state = _get_leads_state(request.app.state)
-    lead = next((l for l in state["leads"] if l["id"] == lead_id), None)
+    lead = data_leads.get_lead(lead_id)
     if not lead:
         return JSONResponse({"ok": False, "error": "Lead not found"})
+    
+    # Normalize lead for template field access
+    lead = _normalize_lead(lead)
     
     business = lead.get("business", "Boleh AI")
     industry = lead.get("industry", "").replace("_", " ")
     name = lead.get("name", "your company")
     contact = lead.get("contact", "there")
     location = lead.get("location", "Malaysia")
-    
-    subject_prefix = business == "Wise Solutions" and "Press Release" or "AI Automation"
     
     subjects = {
         "food_beverage": f"Helping {name} save time with AI",
@@ -453,38 +303,31 @@ async def send_email(
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
     
-    state = _get_leads_state(request.app.state)
-    lead = next((l for l in state["leads"] if l["id"] == lead_id), None)
+    lead = data_leads.get_lead(lead_id)
     if not lead:
         return JSONResponse({"ok": False, "error": "Lead not found"})
     
-    is_demo = _is_demo()
-    
-    msg = f"Demo: Email would be sent to {lead.get('email', 'N/A')}" if is_demo else f"Email sent to {lead.get('email', 'N/A')}"
+    is_demo = cfg.DEMO_MODE
+    lead_email = lead.get("email", "N/A")
+    msg = f"Demo: Email would be sent to {lead_email}" if is_demo else f"Email sent to {lead_email}"
     summary_text = "Outreach email sent" if is_demo else "Email sent"
     
     # Log to activity
-    state["activities"].insert(0, {
-        "lead_id": lead_id,
-        "type": "email",
-        "summary": summary_text,
-        "detail": f"Subject: {subject}\nBody: {body[:200]}",
-        "created_at": datetime.utcnow().isoformat(),
-    })
+    data_leads.create_activity(
+        lead_id, "email",
+        summary_text,
+        {"subject": subject, "body_preview": body[:200]},
+    )
     
     # Update status to contacted if cold
-    if lead["status"] == "cold":
-        lead["status"] = "contacted"
-        state["activities"].insert(0, {
-            "lead_id": lead_id,
-            "type": "note",
-            "summary": "Status changed to Contacted",
-            "detail": "Auto-updated after email outreach",
-            "created_at": datetime.utcnow().isoformat(),
-        })
-    lead["updated_at"] = datetime.utcnow().isoformat()
+    if lead.get("status") == "cold":
+        data_leads.update_lead_status(lead_id, "contacted")
+        data_leads.create_activity(
+            lead_id, "note",
+            "Status changed to Contacted",
+            {"detail": "Auto-updated after email outreach"},
+        )
     
-    _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, "message": msg})
 
 
@@ -505,23 +348,18 @@ async def outreach_send(request: Request):
     if not lead_ids:
         return JSONResponse({"ok": False, "error": "No leads selected"})
     
-    state = _get_leads_state(request.app.state)
     sent = 0
     for lid in lead_ids:
-        lead = next((l for l in state["leads"] if l["id"] == lid), None)
-        if lead and lead["status"] == "cold":
-            lead["status"] = "contacted"
-            lead["updated_at"] = datetime.utcnow().isoformat()
-            state["activities"].insert(0, {
-                "lead_id": lid,
-                "type": "email",
-                "summary": f"Outreach sent ({business})",
-                "detail": f"Auto-generated outreach message for {lead.get('name', 'lead')}",
-                "created_at": datetime.utcnow().isoformat(),
-            })
+        lead = data_leads.get_lead(lid)
+        if lead and lead.get("status") == "cold":
+            data_leads.update_lead_status(lid, "contacted")
+            data_leads.create_activity(
+                lid, "email",
+                f"Outreach sent ({business})",
+                {"detail": f"Auto-generated outreach message for {lead.get('company_name', lead.get('name', 'lead'))}"},
+            )
             sent += 1
     
-    _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, "sent": sent})
 
 
@@ -531,16 +369,12 @@ async def sales_lead_detail(request: Request, lead_id: str):
     if not user:
         return RedirectResponse(url="/login")
 
-    state = _get_leads_state(request.app.state)
-    lead = next((l for l in state["leads"] if l["id"] == lead_id), None)
+    lead = data_leads.get_lead(lead_id)
     if not lead:
         return RedirectResponse(url="/sales/leads")
 
-    acts = sorted(
-        [a for a in state["activities"] if a["lead_id"] == lead_id],
-        key=lambda a: a["created_at"],
-        reverse=True,
-    )
+    lead = _normalize_lead(lead)
+    acts = _normalize_activities(data_leads.list_activities(lead_id=lead_id, limit=100))
 
     return _render(request, "sales/lead_detail.html", lead=lead, activities=acts)
 
@@ -551,22 +385,17 @@ async def sales_lead_update_status(request: Request, lead_id: str, status: str =
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    state = _get_leads_state(request.app.state)
-    for l in state["leads"]:
-        if l["id"] == lead_id:
-            l["status"] = status
-            l["updated_at"] = datetime.utcnow().isoformat()
-            state["activities"].append({
-                "lead_id": lead_id,
-                "type": "note",
-                "summary": f"Status changed to {status}",
-                "detail": f"Lead status updated from previous to '{status}' by agent.",
-                "created_at": datetime.utcnow().isoformat(),
-            })
-            _save_leads_state(request.app.state, state)
-            return JSONResponse({"ok": True, "status": status})
+    lead = data_leads.get_lead(lead_id)
+    if not lead:
+        return JSONResponse({"error": "Lead not found"}, status_code=404)
 
-    return JSONResponse({"error": "Lead not found"}, status_code=404)
+    data_leads.update_lead_status(lead_id, status)
+    data_leads.create_activity(
+        lead_id, "note",
+        f"Status changed to {status}",
+        {"detail": f"Lead status updated from previous to '{status}' by agent."},
+    )
+    return JSONResponse({"ok": True, "status": status})
 
 
 @router.post("/sales/leads/{lead_id}/note")
@@ -575,22 +404,13 @@ async def sales_lead_add_note(request: Request, lead_id: str, summary: str = For
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    state = _get_leads_state(request.app.state)
-    lead = next((l for l in state["leads"] if l["id"] == lead_id), None)
+    lead = data_leads.get_lead(lead_id)
     if not lead:
         return JSONResponse({"error": "Lead not found"}, status_code=404)
 
-    act = {
-        "lead_id": lead_id,
-        "type": "note",
-        "summary": summary,
-        "detail": detail,
-        "created_at": datetime.utcnow().isoformat(),
-    }
-    state["activities"].append(act)
-    lead["updated_at"] = datetime.utcnow().isoformat()
-    _save_leads_state(request.app.state, state)
-    return JSONResponse({"ok": True, "activity": act})
+    act = data_leads.create_activity(lead_id, "note", summary, {"detail": detail})
+    data_leads.update_lead(lead_id, {})
+    return JSONResponse({"ok": True, "activity": _normalize_activities([act])[0]})
 
 
 @router.post("/sales/leads/upload")
@@ -606,31 +426,26 @@ async def sales_leads_upload(request: Request, file: UploadFile = File(...)):
         text = content.decode("latin-1")
 
     lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
-    state = _get_leads_state(request.app.state)
     imported = 0
     for line in lines:
         parts = [p.strip() for p in line.split(",")]
         if len(parts) < 2:
             continue
-        lid = f"lead-import-{uuid.uuid4().hex[:8]}"
-        state["leads"].append({
-            "id": lid,
-            "name": parts[0],
-            "industry": parts[1] if len(parts) > 1 else "other",
-            "business": parts[2] if len(parts) > 2 else "Boleh AI",
-            "score": int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 5,
-            "status": "cold",
-            "contact": parts[4] if len(parts) > 4 else "",
-            "phone": parts[5] if len(parts) > 5 else "",
-            "email": parts[6] if len(parts) > 6 else "",
-            "location": parts[7] if len(parts) > 7 else "",
-            "notes": parts[8] if len(parts) > 8 else "",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-        })
+        lead_data = _make_create_lead_data(
+            name=parts[0],
+            contact=parts[4] if len(parts) > 4 else "",
+            phone=parts[5] if len(parts) > 5 else "",
+            email=parts[6] if len(parts) > 6 else "",
+            industry=parts[1] if len(parts) > 1 else "other",
+            location=parts[7] if len(parts) > 7 else "",
+            business=parts[2] if len(parts) > 2 else "Boleh AI",
+            source="import",
+            notes=parts[8] if len(parts) > 8 else "",
+            score=int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 5,
+        )
+        data_leads.create_lead(lead_data)
         imported += 1
 
-    _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, "imported": imported})
 
 
@@ -640,8 +455,7 @@ async def sales_pipeline(request: Request):
     if not user:
         return RedirectResponse(url="/login")
 
-    state = _get_leads_state(request.app.state)
-    leads = state["leads"]
+    leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
 
     columns = {}
     for s in LEAD_STATUSES:
@@ -662,13 +476,13 @@ async def sales_outreach_trigger(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    state = _get_leads_state(request.app.state)
-
     # Target specific lead or batch
     if lead_id:
-        targets = [l for l in state["leads"] if l["id"] == lead_id]
+        single = data_leads.get_lead(lead_id)
+        targets = [_normalize_lead(single)] if single else []
     else:
-        targets = [l for l in state["leads"] if l["status"] in ("cold", "contacted")]
+        all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
+        targets = [l for l in all_leads if l["status"] in ("cold", "contacted")]
 
     sent_count = 0
     errors = []
@@ -676,7 +490,7 @@ async def sales_outreach_trigger(
         # Determine email recipient
         to_email = test_override_email or target.get("email", "")
 
-        if channel == "email" and to_email and not _is_demo():
+        if channel == "email" and to_email and not cfg.DEMO_MODE:
             # Real Gmail send
             from services.sales.gmail_client import GmailClient
             gmail = GmailClient()
@@ -716,15 +530,12 @@ Boleh AI"""
             if cfg.DEMO_MODE:
                 detail += " [DEMO]"
 
-        state["activities"].append({
-            "lead_id": target["id"],
-            "type": "message",
-            "summary": f"Outreach via {channel}" + (f" — {campaign}" if campaign else ""),
-            "detail": detail,
-            "created_at": datetime.utcnow().isoformat(),
-        })
+        data_leads.create_activity(
+            target["id"], "message",
+            f"Outreach via {channel}" + (f" — {campaign}" if campaign else ""),
+            {"detail": detail},
+        )
 
-    _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, "sent": sent_count, "channel": channel, "campaign": campaign, "errors": errors})
 
 
@@ -742,16 +553,16 @@ async def sales_webhook_whatsapp(request: Request):
     message = body.get("message", "") or body.get("text", "") or ""
     name = body.get("name", "Unknown")
 
-    state = _get_leads_state(request.app.state)
+    all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
 
     # Accept lead_id directly, or match by phone/name
     lead = None
     if "lead_id" in body:
-        lead = next((l for l in state["leads"] if l["id"] == body["lead_id"]), None)
+        lead = next((l for l in all_leads if l["id"] == body["lead_id"]), None)
     if not lead:
-        matched = [l for l in state["leads"] if phone in l.get("phone", "")]
+        matched = [l for l in all_leads if phone in l.get("phone", "")]
         if not matched:
-            matched = [l for l in state["leads"] if name.lower() in l["name"].lower()]
+            matched = [l for l in all_leads if name.lower() in l["name"].lower()]
         lead = matched[0] if matched else None
 
     result = {"matched": 1 if lead else 0}
@@ -787,20 +598,19 @@ async def sales_webhook_whatsapp(request: Request):
         result["action"] = action
 
         # Log activity
-        state["activities"].append({
-            "lead_id": lead["id"],
-            "type": "message",
-            "summary": f"Inbound WhatsApp from {name} — Sentiment: {sentiment}",
-            "detail": f"Message: {message[:500]}\n\nAI Analysis:\nSentiment: {sentiment}\nAction: {action}\nAuto-reply: {intent_result.get('auto_reply', '(none)')[:200]}",
-            "created_at": datetime.utcnow().isoformat(),
-        })
+        data_leads.create_activity(
+            lead["id"], "message",
+            f"Inbound WhatsApp from {name} — Sentiment: {sentiment}",
+            {"detail": f"Message: {message[:500]}\n\nAI Analysis:\nSentiment: {sentiment}\nAction: {action}\nAuto-reply: {intent_result.get('auto_reply', '(none)')[:200]}"},
+        )
 
         # Update lead status based on sentiment
         if sentiment in ("negative", "unsubscribe"):
+            data_leads.update_lead_status(lead["id"], "closed_lost")
             lead["status"] = "closed_lost"
         elif sentiment == "positive":
+            data_leads.update_lead_status(lead["id"], "interested")
             lead["status"] = "interested"
-        lead["updated_at"] = datetime.utcnow().isoformat()
 
         # Build escalation notification for positive intent
         if sentiment == "positive":
@@ -815,7 +625,6 @@ async def sales_webhook_whatsapp(request: Request):
             )
             result["notification"] = notification
 
-    _save_leads_state(request.app.state, state)
     return JSONResponse(result)
 
 
@@ -830,20 +639,17 @@ async def sales_webhook_gmail(request: Request):
     subject = body.get("subject", "") or "(no subject)"
     snippet = body.get("snippet", "") or body.get("body", "") or ""
 
-    state = _get_leads_state(request.app.state)
-    matched = [l for l in state["leads"] if sender.lower() in l.get("email", "").lower()]
+    all_leads = data_leads.get_all_leads()
+    matched = [l for l in all_leads if sender.lower() in (l.get("email") or "").lower()]
 
     for lead in matched:
-        state["activities"].append({
-            "lead_id": lead["id"],
-            "type": "email",
-            "summary": f"Inbound email: {subject}",
-            "detail": f"From: {sender}\nSubject: {subject}\n\n{snippet[:500]}",
-            "created_at": datetime.utcnow().isoformat(),
-        })
-        lead["updated_at"] = datetime.utcnow().isoformat()
+        data_leads.create_activity(
+            lead["id"], "email",
+            f"Inbound email: {subject}",
+            {"detail": f"From: {sender}\nSubject: {subject}\n\n{snippet[:500]}"},
+        )
+        data_leads.update_lead(lead["id"], {})
 
-    _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, "matched": len(matched)})
 
 
@@ -855,10 +661,9 @@ async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    state = _get_leads_state(request.app.state)
     results = {"checked": 0, "replies": [], "notifications": []}
 
-    if _is_demo():
+    if cfg.DEMO_MODE:
         # Demo: simulate a reply
         from services.sales.reply_handler import handle_reply
         from services.sales.notification import notify_edwin_reply
@@ -870,31 +675,30 @@ async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
             "body": "Hi! I'm interested. Can you tell me more about your AI solutions?",
         }
 
-        lead = next((l for l in state["leads"] if "ahmad" in l.get("email", "").lower()), None)
+        all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
+        lead = next((l for l in all_leads if "ahmad" in (l.get("email") or "").lower()), None)
         if lead:
             intent_result = handle_reply(reply["body"], reply["from_email"], reply["from_name"], reply["subject"], lead=lead)
             sentiment = intent_result.get("sentiment", "neutral")
 
-            state["activities"].append({
-                "lead_id": lead["id"],
-                "type": "email",
-                "summary": f"Inbound reply: {reply['subject']} — Sentiment: {sentiment}",
-                "detail": f"From: {reply['from_name']} <{reply['from_email']}>\nSubject: {reply['subject']}\n\n{reply['body']}\n\nAI Analysis:\nSentiment: {sentiment}\nAuto-reply: {intent_result.get('auto_reply', '(none)')}",
-                "created_at": datetime.utcnow().isoformat(),
-            })
-            lead["updated_at"] = datetime.utcnow().isoformat()
+            data_leads.create_activity(
+                lead["id"], "email",
+                f"Inbound reply: {reply['subject']} — Sentiment: {sentiment}",
+                {"detail": f"From: {reply['from_name']} <{reply['from_email']}>\nSubject: {reply['subject']}\n\n{reply['body']}\n\nAI Analysis:\nSentiment: {sentiment}\nAuto-reply: {intent_result.get('auto_reply', '(none)')}"},
+            )
 
             if sentiment == "positive":
+                data_leads.update_lead_status(lead["id"], "interested")
                 lead["status"] = "interested"
                 notify_edwin_reply(lead, reply["body"], sentiment, 0.9, intent_result.get("auto_reply", ""))
                 results["notifications"].append({"lead_id": lead["id"], "action": "escalate"})
             elif sentiment in ("negative", "unsubscribe"):
+                data_leads.update_lead_status(lead["id"], "closed_lost")
                 lead["status"] = "closed_lost"
 
             results["replies"].append({"from": reply["from_email"], "sentiment": sentiment, "lead_id": lead["id"]})
 
         results["checked"] = 1
-        _save_leads_state(request.app.state, state)
         print(f"[Sales/Outreach] Reply check (DEMO): Found {results['checked']} reply, sentiment={results['replies'][0]['sentiment'] if results['replies'] else 'N/A'}")
         return JSONResponse({"ok": True, "demo": True, **results})
 
@@ -909,6 +713,7 @@ async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
 
     replies = gmail.check_replies(since_minutes=since_minutes)
     results["checked"] = len(replies)
+    all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
 
     for reply in replies:
         # Match to lead by email
@@ -919,7 +724,7 @@ async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
         if match:
             sender_email = match.group(1)
 
-        lead = next((l for l in state["leads"] if sender_email.lower() in l.get("email", "").lower()), None)
+        lead = next((l for l in all_leads if sender_email.lower() in (l.get("email") or "").lower()), None)
         if not lead:
             results["replies"].append({"from": sender_email, "matched": False})
             continue
@@ -927,25 +732,23 @@ async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
         intent_result = handle_reply(reply["body"], sender_email, reply["from_name"], reply["subject"], lead=lead)
         sentiment = intent_result.get("sentiment", "neutral")
 
-        state["activities"].append({
-            "lead_id": lead["id"],
-            "type": "email",
-            "summary": f"Inbound reply: {reply['subject']} — Sentiment: {sentiment}",
-            "detail": f"From: {reply['from_name']} <{sender_email}>\nSubject: {reply['subject']}\n\n{reply['body'][:500]}\n\nAI Analysis:\nSentiment: {sentiment}\nAuto-reply: {intent_result.get('auto_reply', '(none)')}",
-            "created_at": datetime.utcnow().isoformat(),
-        })
-        lead["updated_at"] = datetime.utcnow().isoformat()
+        data_leads.create_activity(
+            lead["id"], "email",
+            f"Inbound reply: {reply['subject']} — Sentiment: {sentiment}",
+            {"detail": f"From: {reply['from_name']} <{sender_email}>\nSubject: {reply['subject']}\n\n{reply['body'][:500]}\n\nAI Analysis:\nSentiment: {sentiment}\nAuto-reply: {intent_result.get('auto_reply', '(none)')}"},
+        )
 
         if sentiment == "positive":
+            data_leads.update_lead_status(lead["id"], "interested")
             lead["status"] = "interested"
             notify_edwin_reply(lead, reply["body"], sentiment, 0.9, intent_result.get("auto_reply", ""))
             results["notifications"].append({"lead_id": lead["id"], "action": "escalate"})
         elif sentiment in ("negative", "unsubscribe"):
+            data_leads.update_lead_status(lead["id"], "closed_lost")
             lead["status"] = "closed_lost"
 
         results["replies"].append({"from": sender_email, "sentiment": sentiment, "lead_id": lead["id"], "matched": True})
 
-    _save_leads_state(request.app.state, state)
     return JSONResponse({"ok": True, **results})
 
 
@@ -958,8 +761,8 @@ async def sales_target_profiles_list(request: Request):
     if not user:
         return RedirectResponse(url="/login")
 
-    profiles = getattr(request.app.state, "sales_target_profiles", [])
-    businesses = getattr(request.app.state, "sales_businesses", [])
+    profiles = data_profiles.list_profiles()
+    businesses = data_profiles.list_businesses()
     return _render(request, "sales/target_profile.html", profiles=profiles, businesses=businesses)
 
 
@@ -979,15 +782,10 @@ async def sales_target_profiles_create(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    if not hasattr(request.app.state, "sales_target_profiles"):
-        request.app.state.sales_target_profiles = []
-
-    businesses = getattr(request.app.state, "sales_businesses", [])
+    businesses = data_profiles.list_businesses()
     biz = next((b for b in businesses if b["id"] == business_id), None)
 
-    profile = {
-        "id": f"tp-{uuid.uuid4().hex[:8]}",
-        "account_id": user.get("account_id", "00000000-0000-0000-0000-000000000001"),
+    profile_data = {
         "business_id": business_id,
         "business_name": biz["name"] if biz else business_id,
         "name": name,
@@ -999,7 +797,7 @@ async def sales_target_profiles_create(
         "min_ai_score": min_ai_score,
         "is_active": True,
     }
-    request.app.state.sales_target_profiles.append(profile)
+    data_profiles.create_profile(profile_data)
     return RedirectResponse(url="/sales/target-profiles", status_code=303)
 
 
@@ -1009,8 +807,7 @@ async def sales_target_profiles_get(request: Request, profile_id: str):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    profiles = getattr(request.app.state, "sales_target_profiles", [])
-    profile = next((p for p in profiles if p["id"] == profile_id), None)
+    profile = data_profiles.get_profile(profile_id)
     if not profile:
         return JSONResponse({"error": "Not found"}, status_code=404)
     return JSONResponse(profile)
@@ -1033,24 +830,25 @@ async def sales_target_profiles_update(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    profiles = getattr(request.app.state, "sales_target_profiles", [])
-    businesses = getattr(request.app.state, "sales_businesses", [])
+    existing = data_profiles.get_profile(profile_id)
+    if not existing:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+
+    businesses = data_profiles.list_businesses()
     biz = next((b for b in businesses if b["id"] == business_id), None)
 
-    for p in profiles:
-        if p["id"] == profile_id:
-            p["name"] = name
-            p["business_id"] = business_id
-            p["business_name"] = biz["name"] if biz else business_id
-            p["industries"] = industries if isinstance(industries, list) else [industries]
-            p["locations"] = locations if isinstance(locations, list) else [locations]
-            p["company_size"] = company_size
-            p["keywords_include"] = [kw.strip() for kw in keywords_include.split(",") if kw.strip()]
-            p["keywords_exclude"] = [kw.strip() for kw in keywords_exclude.split(",") if kw.strip()]
-            p["min_ai_score"] = min_ai_score
-            return RedirectResponse(url="/sales/target-profiles", status_code=303)
-
-    return JSONResponse({"error": "Not found"}, status_code=404)
+    data_profiles.update_profile(profile_id, {
+        "name": name,
+        "business_id": business_id,
+        "business_name": biz["name"] if biz else business_id,
+        "industries": industries if isinstance(industries, list) else [industries],
+        "locations": locations if isinstance(locations, list) else [locations],
+        "company_size": company_size,
+        "keywords_include": [kw.strip() for kw in keywords_include.split(",") if kw.strip()],
+        "keywords_exclude": [kw.strip() for kw in keywords_exclude.split(",") if kw.strip()],
+        "min_ai_score": min_ai_score,
+    })
+    return RedirectResponse(url="/sales/target-profiles", status_code=303)
 
 
 @router.delete("/sales/target-profiles/{profile_id}")
@@ -1059,8 +857,7 @@ async def sales_target_profiles_delete(request: Request, profile_id: str):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    profiles = getattr(request.app.state, "sales_target_profiles", [])
-    request.app.state.sales_target_profiles = [p for p in profiles if p["id"] != profile_id]
+    data_profiles.delete_profile(profile_id)
     return JSONResponse({"ok": True})
 
 
@@ -1073,50 +870,39 @@ async def sales_onboarding_start_sampling(request: Request):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    onboarding = getattr(request.app.state, "sales_onboarding", {})
-    if not onboarding:
-        request.app.state.sales_onboarding = {
-            "status": "pending",
-            "sampling_start_date": None,
-            "sampling_lead_count": 0,
-        }
-        onboarding = request.app.state.sales_onboarding
+    # Get current onboarding state from accounts table
+    from services.supabase_client import get_supabase as sb
+    account = sb().table("accounts").select("sales_onboarding_status,sampling_start_date,sampling_lead_count").eq("id", "00000000-0000-0000-0000-000000000001").single().execute()
+    current_status = account.data.get("sales_onboarding_status", "pending") if account.data else "pending"
 
-    if onboarding.get("status") == "sampling":
+    if current_status == "sampling":
         return JSONResponse({"error": "Already sampling"}, status_code=400)
 
     # Create 30 sample leads
-    state = _get_leads_state(request.app.state)
     sample_count = 0
     for i in range(30):
-        lid = f"sample-{uuid.uuid4().hex[:8]}"
-        state["leads"].append({
-            "id": lid,
-            "name": f"Sample Lead #{i+1}",
-            "industry": ["Food & Beverage", "Retail", "Technology", "Healthcare", "Manufacturing"][i % 5],
-            "business": "Boleh AI",
-            "score": 5 + (i % 4),
-            "status": "cold",
-            "contact": f"contact{i}@sample.com",
-            "phone": f"+60 1{i:02d}-{i:07d}",
-            "email": f"sample{i}@leads.my",
-            "location": ["Kuala Lumpur", "Selangor", "Penang", "Johor"][i % 4],
-            "notes": "Sample lead for onboarding evaluation",
-            "is_sample": True,
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-        })
+        lead_data = _make_create_lead_data(
+            name=f"Sample Lead #{i+1}",
+            contact=f"contact{i}@sample.com",
+            phone=f"+60 1{i:02d}-{i:07d}",
+            email=f"sample{i}@leads.my",
+            industry=["Food & Beverage", "Retail", "Technology", "Healthcare", "Manufacturing"][i % 5],
+            location=["Kuala Lumpur", "Selangor", "Penang", "Johor"][i % 4],
+            business="Boleh AI",
+            source="sample",
+            notes="Sample lead for onboarding evaluation",
+            score=5 + (i % 4),
+        )
+        lead_data["is_sample"] = True
+        data_leads.create_lead(lead_data)
         sample_count += 1
 
-    _save_leads_state(request.app.state, state)
-
-    onboarding["status"] = "sampling"
-    onboarding["sampling_start_date"] = datetime.utcnow().isoformat()
-    onboarding["sampling_lead_count"] = sample_count
-
-    usage = getattr(request.app.state, "sales_usage", {})
-    usage["total_samples"] = (usage.get("total_samples", 0) or 0) + sample_count
-    usage["total_leads_scraped"] = (usage.get("total_leads_scraped", 0) or 0) + sample_count
+    # Update onboarding state in accounts table
+    sb().table("accounts").update({
+        "sales_onboarding_status": "sampling",
+        "sampling_start_date": datetime.utcnow().isoformat(),
+        "sampling_lead_count": sample_count,
+    }).eq("id", "00000000-0000-0000-0000-000000000001").execute()
 
     return JSONResponse({"ok": True, "samples_created": sample_count, "status": "sampling"})
 
@@ -1127,8 +913,8 @@ async def sales_onboarding_list_samples(request: Request):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    state = _get_leads_state(request.app.state)
-    samples = [l for l in state["leads"] if l.get("is_sample")]
+    all_leads = data_leads.get_all_leads()
+    samples = [l for l in all_leads if l.get("is_sample")]
     return JSONResponse({"samples": samples, "count": len(samples)})
 
 
@@ -1138,14 +924,17 @@ async def sales_onboarding_confirm(request: Request, quality_rating: int = Form(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    onboarding = getattr(request.app.state, "sales_onboarding", {})
-    if not onboarding or onboarding.get("status") != "sampling":
+    from services.supabase_client import get_supabase as sb
+    account = sb().table("accounts").select("sales_onboarding_status").eq("id", "00000000-0000-0000-0000-000000000001").single().execute()
+    status = account.data.get("sales_onboarding_status", "") if account.data else ""
+
+    if status != "sampling":
         return JSONResponse({"error": "Not in sampling phase"}, status_code=400)
 
-    onboarding["status"] = "confirmed"
-    onboarding["quality_rating"] = quality_rating
-    onboarding["confirmation_notes"] = notes
-    onboarding["confirmed_at"] = datetime.utcnow().isoformat()
+    sb().table("accounts").update({
+        "sales_onboarding_status": "confirmed",
+        "plan_notes": notes,
+    }).eq("id", "00000000-0000-0000-0000-000000000001").execute()
 
     return JSONResponse({"ok": True, "status": "confirmed", "quality_rating": quality_rating})
 
@@ -1159,12 +948,16 @@ async def sales_onboarding_activate(request: Request):
     if not user.get("is_admin", False):
         return JSONResponse({"error": "Admin only"}, status_code=403)
 
-    onboarding = getattr(request.app.state, "sales_onboarding", {})
-    if not onboarding or onboarding.get("status") != "confirmed":
+    from services.supabase_client import get_supabase as sb
+    account = sb().table("accounts").select("sales_onboarding_status").eq("id", "00000000-0000-0000-0000-000000000001").single().execute()
+    status = account.data.get("sales_onboarding_status", "") if account.data else ""
+
+    if status != "confirmed":
         return JSONResponse({"error": "Must confirm sampling first"}, status_code=400)
 
-    onboarding["status"] = "active"
-    onboarding["activated_at"] = datetime.utcnow().isoformat()
+    sb().table("accounts").update({
+        "sales_onboarding_status": "active",
+    }).eq("id", "00000000-0000-0000-0000-000000000001").execute()
 
     return JSONResponse({"ok": True, "status": "active", "message": "Real outreach enabled"})
 
@@ -1178,18 +971,15 @@ async def sales_usage_get(request: Request):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    usage = getattr(request.app.state, "sales_usage", {})
-    if not usage:
-        usage = {
-            "total_leads_scraped": 0,
-            "total_outreach_sent": 0,
-            "total_samples": 0,
-            "sampling_limit": 30,
-            "monthly_outreach_limit": 500,
-            "daily_scrape_limit": 200,
-        }
-        request.app.state.sales_usage = usage
-
+    limits = data_usage.get_limits() or {}
+    usage = {
+        "total_leads_scraped": data_usage.get_leads_count_this_month(),
+        "total_outreach_sent": data_usage.get_messages_count_this_month(),
+        "total_samples": 0,
+        "sampling_limit": limits.get("sampling_limit", 30),
+        "monthly_outreach_limit": limits.get("monthly_outreach_limit", 500),
+        "daily_scrape_limit": limits.get("daily_scrape_limit", 200),
+    }
     return JSONResponse(usage)
 
 
@@ -1204,16 +994,12 @@ async def sales_usage_set_limits(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    usage = getattr(request.app.state, "sales_usage", {})
-    if not usage:
-        usage = {}
-        request.app.state.sales_usage = usage
-
-    usage["sampling_limit"] = sampling_limit
-    usage["monthly_outreach_limit"] = monthly_outreach_limit
-    usage["daily_scrape_limit"] = daily_scrape_limit
-
-    return JSONResponse({"ok": True, "limits": usage})
+    limits = {
+        "sampling_limit": sampling_limit,
+        "monthly_outreach_limit": monthly_outreach_limit,
+        "daily_scrape_limit": daily_scrape_limit,
+    }
+    return JSONResponse({"ok": True, "limits": limits})
 
 
 # ── Updated Scraper (google_maps support) ──────────────────────────────────────
@@ -1230,44 +1016,32 @@ async def scraper_run(
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
     
-    state = _get_leads_state(request.app.state)
-    is_demo = _is_demo()
-    
+    is_demo = cfg.DEMO_MODE
+
     if is_demo:
         # Generate fake leads based on input
         count = min(max_results, 10)
-        new_leads = []
         for i in range(count):
-            new_lead = {
-                "id": str(uuid.uuid4()),
-                "name": f"{industry.title()} Company {i+1} ({location})",
-                "industry": industry.lower().replace(" ", "_"),
-                "business": "Boleh AI",
-                "score": random.randint(6, 9) if hasattr(random, 'randint') else 7,
-                "status": "cold",
-                "contact": "",
-                "phone": f"+60 1{i}-{random.randint(100,999) if hasattr(random, 'randint') else 123} {random.randint(1000,9999) if hasattr(random, 'randint') else 4567}",
-                "email": "",
-                "location": location,
-                "source": "demo_scraper",
-                "notes": f"Demo lead from {industry} scrape in {location}",
-                "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat(),
-            }
-            new_leads.append(new_lead)
-        
-        state["leads"] = new_leads + state["leads"]
-        for ld in new_leads:
-            state["activities"].insert(0, {
-                "lead_id": ld["id"],
-                "type": "note",
-                "summary": f"Lead found via Google Maps scrape ({industry}, {location})",
-                "detail": f"Found {count} leads in {location} for {industry} industry",
-                "created_at": datetime.utcnow().isoformat(),
-            })
-        _save_leads_state(request.app.state, state)
+            lead_data = _make_create_lead_data(
+                name=f"{industry.title()} Company {i+1} ({location})",
+                contact="",
+                phone=f"+60 1{i}-{random.randint(100,999)} {random.randint(1000,9999)}",
+                email="",
+                industry=industry.lower().replace(" ", "_"),
+                location=location,
+                business="Boleh AI",
+                source="demo_scraper",
+                notes=f"Demo lead from {industry} scrape in {location}",
+                score=random.randint(6, 9),
+            )
+            new_lead = data_leads.create_lead(lead_data)
+            data_leads.create_activity(
+                new_lead["id"], "note",
+                f"Lead found via Google Maps scrape ({industry}, {location})",
+                {"detail": f"Found {count} leads in {location} for {industry} industry"},
+            )
         return JSONResponse({"ok": True, "found": count})
-    
+
     # Real scraper logic... (keep existing fallback)
     return JSONResponse({"ok": True, "found": 0, "message": "Real scraper not implemented"})
 
@@ -1321,31 +1095,22 @@ async def sales_scraper_google_maps(
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
     # Import as leads
-    state = _get_leads_state(request.app.state)
     imported = 0
     for p in places:
-        lid = f"lead-gmaps-{uuid.uuid4().hex[:8]}"
-        state["leads"].append({
-            "id": lid,
-            "name": p["name"],
-            "industry": (p.get("types") or ["other"])[0] if p.get("types") else "other",
-            "business": "Boleh AI",
-            "score": min(10, int((p.get("rating") or 0) * 2)),
-            "status": "cold",
-            "contact": "",
-            "phone": "",
-            "email": "",
-            "location": p.get("address", ""),
-            "notes": f"Google Maps — place_id: {p['place_id']}, rating: {p.get('rating', 'N/A')}",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-        })
+        lead_data = _make_create_lead_data(
+            name=p["name"],
+            contact="",
+            phone="",
+            email="",
+            industry=(p.get("types") or ["other"])[0] if p.get("types") else "other",
+            location=p.get("address", ""),
+            business="Boleh AI",
+            source="google_maps",
+            notes=f"Google Maps — place_id: {p['place_id']}, rating: {p.get('rating', 'N/A')}",
+            score=min(10, int((p.get("rating") or 0) * 2)),
+        )
+        data_leads.create_lead(lead_data)
         imported += 1
-
-    _save_leads_state(request.app.state, state)
-    usage = getattr(request.app.state, "sales_usage", {})
-    if usage:
-        usage["total_leads_scraped"] = (usage.get("total_leads_scraped", 0) or 0) + imported
 
     return JSONResponse({"ok": True, "source": "google_maps", "places_found": len(places), "imported": imported})
 
@@ -1390,30 +1155,21 @@ async def sales_scraper_news(request: Request, query: str = Form(...), max_resul
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
     # Import as leads (from news mentions)
-    state = _get_leads_state(request.app.state)
     imported = 0
     for art in articles[:max_results]:
-        lid = f"lead-news-{uuid.uuid4().hex[:8]}"
-        state["leads"].append({
-            "id": lid,
-            "name": f"News: {art['title'][:60]}",
-            "industry": "other",
-            "business": "Boleh AI",
-            "score": 6,
-            "status": "cold",
-            "contact": "",
-            "phone": "",
-            "email": "",
-            "location": "",
-            "notes": f"Google News — {art['source']}: {art['title']} ({art['url']})",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-        })
+        lead_data = _make_create_lead_data(
+            name=f"News: {art['title'][:60]}",
+            contact="",
+            phone="",
+            email="",
+            industry="other",
+            location="",
+            business="Boleh AI",
+            source="news",
+            notes=f"Google News — {art['source']}: {art['title']} ({art['url']})",
+            score=6,
+        )
+        data_leads.create_lead(lead_data)
         imported += 1
-
-    _save_leads_state(request.app.state, state)
-    usage = getattr(request.app.state, "sales_usage", {})
-    if usage:
-        usage["total_leads_scraped"] = (usage.get("total_leads_scraped", 0) or 0) + imported
 
     return JSONResponse({"ok": True, "source": "news", "articles_found": len(articles), "imported": imported})

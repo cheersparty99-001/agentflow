@@ -1,4 +1,4 @@
--- AgentFlow Database Schema for Supabase
+-- Flowreach Database Schema for Supabase
 -- Simplified: only auth + account management
 
 CREATE TABLE accounts (

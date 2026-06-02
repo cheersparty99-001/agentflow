@@ -99,7 +99,7 @@ def _generate_auto_reply(
             "tailored proposal.\n\n"
             "In the meantime, feel free to let me know if you have any "
             "specific questions.\n\n"
-            "Best regards,\nAlex\nAgentFlow Insurance"
+            "Best regards,\nAlex\nFlowreach Sales"
         )
 
     if sentiment == "unsubscribe":

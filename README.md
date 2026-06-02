@@ -1,15 +1,16 @@
-# AgentFlow
+# Flowreach
 
-AI-powered SaaS platform for Malaysian insurance agencies. Manage policies, send automated WhatsApp renewal reminders, and track renewals — all from one dashboard.
+AI-powered B2B sales automation platform for Malaysian businesses. Find qualified leads, send personalised outreach via WhatsApp and email, and track your pipeline — all from one dashboard.
 
 ## Features
 
-- **Policy Management** — CRUD for motor insurance policies with smart expiry tracking
-- **Renewal Reminder Agent** — Automated AI agent that checks policies daily and sends WhatsApp reminders at 30, 14, and 7 days before expiry
-- **Dual Language** — English and Bahasa Malaysia reminder templates
-- **Dashboard** — Real-time stats on expiring policies and agent activity logs
+- **Lead Discovery** — Find qualified B2B prospects from Google Maps, enriched with AI scoring
+- **Outreach Automation** — Send personalised WhatsApp and email messages on autopilot
+- **Pipeline Tracking** — Manage leads through your sales pipeline with smart notifications
+- **Dual Language** — English and Bahasa Malaysia message templates
+- **Dashboard** — Real-time stats on outreach campaigns and lead engagement
 - **Supabase Backend** — PostgreSQL database with auth, hosted on Supabase
-- **Demo Mode** — Test everything without Twilio credentials
+- **Demo Mode** — Test everything without Twilio or email credentials
 
 ## Tech Stack
 
@@ -68,11 +69,11 @@ uvicorn main:app --reload
 
 Open http://localhost:8000 in your browser.
 
-Login with **demo@agentflow.my** (any password).
+Login with **demo@flowreach.my** (any password).
 
-### 5. Run the Renewal Reminder Agent
+### 5. Run Outreach Campaigns
 
-From the dashboard, click **Run Renewal Reminder Agent**. In demo mode, it logs simulated reminders to the `agent_logs` table.
+From the sales dashboard, create a campaign and select your leads. In demo mode, it logs simulated outreach without sending real messages.
 
 ## Directory Structure
 
@@ -88,9 +89,9 @@ agentflow/
 │   └── schema.sql           # Supabase tables + seed data
 ├── routers/
 │   ├── auth.py              # Login/logout + session management
-│   ├── dashboard.py         # Dashboard page with stats
-│   ├── policies.py          # Policy CRUD endpoints
-│   └── agents.py            # Agent run/status endpoints
+│   ├── dashboard.py         # Dashboard page with outreach stats
+│   ├── policies.py          # Policy CRUD (legacy)
+│   ├── agents.py            # Agent run/status (legacy)
 ├── services/
 │   ├── supabase_client.py   # Supabase client singleton
 │   ├── renewal_reminder.py  # Core agent logic
