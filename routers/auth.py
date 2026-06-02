@@ -41,7 +41,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     if cfg.DEMO_MODE:
         if not password or len(password) < 4:
             raise HTTPException(status_code=401, detail="Invalid demo credentials")
-        if email == "admin@agentflow.my":
+        if email == "admin@flowreach.app":
             session_data = {
                 "user_id": "admin-user",
                 "account_id": "00000000-0000-0000-0000-000000000001",
@@ -52,7 +52,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             response = RedirectResponse(url="/dashboard", status_code=302)
             response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
             return response
-        if email == "demo@agentflow.my":
+        if email == "demo@flowreach.app":
             session_data = {
                 "user_id": "demo-user",
                 "account_id": "00000000-0000-0000-0000-000000000001",
@@ -63,7 +63,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             response = RedirectResponse(url="/dashboard", status_code=302)
             response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
             return response
-        raise HTTPException(status_code=401, detail="Demo: use demo@agentflow.my")
+        raise HTTPException(status_code=401, detail="Demo: use demo@flowreach.app")
 
     sb = get_supabase()
     try:
