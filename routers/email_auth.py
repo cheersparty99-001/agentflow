@@ -33,6 +33,9 @@ async def email_connect_google(request: Request):
     raw = cfg.GMAIL_CLIENT_ID
     print(f"[DEBUG email_connect_google] GMAIL_CLIENT_ID len={len(raw)} first4={raw[:4]!r} last4={raw[-4:]!r}")
 
+    # DEBUG: confirm redirect_uri exactly as sent to Google
+    print(f"[DEBUG email_connect_google] redirect_uri={redirect_uri!r}")
+
     auth_url = google_oauth.get_auth_url(account_id, redirect_uri)
     return RedirectResponse(url=auth_url)
 
