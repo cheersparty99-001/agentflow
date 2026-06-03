@@ -36,14 +36,19 @@ async def settings_page(request: Request):
         target_profiles = []
 
     # Load email connection status
-    from services.sales.oauth import GoogleOAuth
-    email_conn = GoogleOAuth().get_connection(account_id)
-    email_status = {
-        "connected": email_conn is not None,
-        "provider": email_conn.get("provider") if email_conn else None,
-        "email": email_conn.get("email") if email_conn else None,
-        "connected_at": email_conn.get("connected_at") if email_conn else None,
-    } if email_conn else {"connected": False}
+    email_status = {"connected": False}
+    try:
+        from services.sales.oauth import GoogleOAuth
+        email_conn = GoogleOAuth().get_connection(account_id)
+        if email_conn:
+            email_status = {
+                "connected": True,
+                "provider": email_conn.get("provider"),
+                "email": email_conn.get("email"),
+                "connected_at": email_conn.get("connected_at"),
+            }
+    except Exception as e:
+        print(f"[Settings] Email status error: {e}")
 
     template = env.get_template("settings.html")
     html = template.render(
