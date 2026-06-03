@@ -18,17 +18,43 @@ def get_supabase():
 
 
 def safe_single(query_fn, default=None):
+    """Execute a single-row query safely.
+    
+    Auto-calls .execute() if query_fn returns a lazy builder,
+    and auto-unwraps .data so callers get a plain dict.
+    
+    Returns:
+        dict — the row data, or default on failure.
+    """
     try:
-        return query_fn()
+        result = query_fn()
+        # Auto-execute if the result is a lazy builder
+        if hasattr(result, 'execute'):
+            result = result.execute()
+        # Unwrap APIResponse.data so callers get a dict with .get()
+        if hasattr(result, 'data'):
+            result = result.data
+        return result
     except Exception:
         return default
 
 
 def safe_multi(query_fn, default=None):
-    """Execute a multi-row query safely. query_fn should return a query builder
-    that must call .execute() internally."""
+    """Execute a multi-row query safely.
+    
+    Auto-calls .execute() if query_fn returns a lazy builder,
+    and auto-unwraps .data so callers get a list of dicts.
+    
+    Returns:
+        list[dict] — the rows, or default on failure.
+    """
     try:
-        return query_fn()
+        result = query_fn()
+        if hasattr(result, 'execute'):
+            result = result.execute()
+        if hasattr(result, 'data'):
+            result = result.data
+        return result
     except Exception:
         return default
 

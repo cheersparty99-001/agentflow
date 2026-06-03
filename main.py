@@ -29,7 +29,7 @@ app.add_middleware(SessionMiddleware, secret_key=cfg.SECRET_KEY)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/locales", StaticFiles(directory="locales"), name="locales")
 
-from routers import auth, dashboard, settings, admin, sales, landing, email_auth
+from routers import auth, dashboard, settings, admin, sales, landing, email_auth, debug
 
 app.include_router(landing.router)
 app.include_router(auth.router)
@@ -38,6 +38,7 @@ app.include_router(settings.router)
 app.include_router(admin.router)
 app.include_router(sales.router)
 app.include_router(email_auth.router)
+app.include_router(debug.router)
 
 @app.on_event("startup")
 async def startup():
