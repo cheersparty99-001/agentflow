@@ -137,6 +137,41 @@ def _render(request, template_name, **extra):
     return HTMLResponse(html)
 
 
+# ── Shared email send helper ─────────────────────────────────────────────────────
+
+def _send_single_email(account_id: str, to_email: str, subject: str, body: str) -> dict:
+    """Send one email via the account's Gmail OAuth connection.
+    Returns dict with keys: ok (bool), message (str, on success), error (str, on failure).
+    """
+    from services.sales.gmail_client import GmailClient
+
+    gmail = GmailClient(account_id=account_id)
+    if not gmail.is_authenticated:
+        gmail.authenticate()
+    if not gmail.is_authenticated:
+        return {"ok": False, "error": "Email not connected — connect your email in Settings first"}
+
+    result = gmail.send_message(to_email=to_email, subject=subject, body=body)
+    if result.get("status") == "sent":
+        # Record usage for monthly counting
+        try:
+            from services.supabase_client import get_supabase
+            get_supabase().table("sales_messages").insert({
+                "id": str(uuid.uuid4()),
+                "account_id": account_id,
+                "lead_email": to_email,
+                "subject": subject,
+                "type": "email",
+                "sent_at": datetime.utcnow().isoformat(),
+            }).execute()
+        except Exception as e:
+            print(f"[Sales/SendEmail] Usage recording skipped: {e}")
+        return {"ok": True, "message": f"Email sent to {to_email}"}
+    else:
+        error = result.get("error", result.get("reason", "Send failed"))
+        return {"ok": False, "error": error}
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.get("/sales/dashboard", response_class=HTMLResponse)
@@ -301,22 +336,37 @@ async def send_email(
     user = await require_user(request)
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
-    
+
     lead = data_leads.get_lead(lead_id)
     if not lead:
         return JSONResponse({"ok": False, "error": "Lead not found"})
-    
-    lead_email = lead.get("email", "N/A")
-    msg = f"Email sent to {lead_email}"
-    summary_text = "Email sent"
-    
-    # Log to activity
+
+    to_email = lead.get("email", "")
+    if not to_email:
+        return JSONResponse({"ok": False, "error": "Lead has no email address"})
+
+    if not subject or not body:
+        return JSONResponse({"ok": False, "error": "Subject and body are required"})
+
+    account_id = user.get("account_id", "")
+    result = _send_single_email(account_id, to_email, subject, body)
+
+    if not result.get("ok"):
+        # Log failed attempt
+        data_leads.create_activity(
+            lead_id, "email",
+            f"Email FAILED: {result.get('error', 'Unknown error')}",
+            {"detail": f"To: {to_email}\nSubject: {subject}\nError: {result.get('error', '')}"},
+        )
+        return JSONResponse({"ok": False, "error": result.get("error", "Send failed")})
+
+    # Success — log activity
     data_leads.create_activity(
         lead_id, "email",
-        summary_text,
+        f"Email sent to {to_email}",
         {"subject": subject, "body_preview": body[:200]},
     )
-    
+
     # Update status to contacted if cold
     if lead.get("status") == "cold":
         data_leads.update_lead_status(lead_id, "contacted")
@@ -325,8 +375,8 @@ async def send_email(
             "Status changed to Contacted",
             {"detail": "Auto-updated after email outreach"},
         )
-    
-    return JSONResponse({"ok": True, "message": msg})
+
+    return JSONResponse({"ok": True, "message": f"Email sent to {to_email}"})
 
 
 @router.post("/sales/outreach/send")
