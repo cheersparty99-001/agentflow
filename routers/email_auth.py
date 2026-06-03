@@ -11,6 +11,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 
 from routers.auth import get_current_user
 from services.sales.oauth import GoogleOAuth
+import config as cfg
 
 router = APIRouter()
 google_oauth = GoogleOAuth()
@@ -27,6 +28,10 @@ async def email_connect_google(request: Request):
     # Determine redirect_uri based on host
     host = request.base_url
     redirect_uri = f"{host}email/callback/google"
+
+    # DEBUG: confirm runtime value of GMAIL_CLIENT_ID
+    raw = cfg.GMAIL_CLIENT_ID
+    print(f"[DEBUG email_connect_google] GMAIL_CLIENT_ID len={len(raw)} first4={raw[:4]!r} last4={raw[-4:]!r}")
 
     auth_url = google_oauth.get_auth_url(account_id, redirect_uri)
     return RedirectResponse(url=auth_url)
