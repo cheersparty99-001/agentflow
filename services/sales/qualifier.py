@@ -1,7 +1,6 @@
 """Qualifier — scores and qualifies sales leads based on business rules.
 
-In DEMO_MODE, uses heuristic scoring on the lead data without external
-enrichment. In production, would call Clearbit / Lusha / credit bureaus.
+Uses heuristic scoring on lead data.
 """
 
 import math
@@ -22,7 +21,7 @@ WEIGHTS = {
     "has_social_url": 0.05,
 }
 
-# Industry scoring — industries more likely to need insurance
+# Industry scoring
 INDUSTRY_SCORES = {
     "Technology": 8,
     "Healthcare": 7,
@@ -59,8 +58,8 @@ def qualify_lead(
 ) -> dict:
     """Score and qualify a single lead.
 
-    In DEMO_MODE, scoring uses available fields and returns immediate
-    results. In production, would enrich via external APIs first.
+    Uses available fields to compute a heuristic score.
+    In production, would enrich via external APIs first.
 
     Args:
         lead: Lead dict (must contain at minimum 'company_name').
@@ -151,11 +150,10 @@ def qualify_lead(
     result["qualification_factors"] = factors
     result["updated_at"] = datetime.utcnow().isoformat()
 
-    if cfg.DEMO_MODE:
-        print(
-            f"[Sales/Qualifier] DEMO -- Scored '{lead.get('company_name', 'Unknown')}' "
-            f"at {score}/100 → {status}"
-        )
+    print(
+        f"[Sales/Qualifier] Scored '{lead.get('company_name', 'Unknown')}' "
+        f"at {score}/100 → {status}"
+    )
 
     return result
 

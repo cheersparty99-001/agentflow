@@ -55,17 +55,153 @@
 
   <!-- Tab 2: Email Connection -->
   <div id="tab-email" class="tab-content hidden">
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <p class="text-sm text-slate-600 mb-6">Connect your Gmail account to send outreach emails directly from Flowreach.</p>
-      <button onclick="showEmailPlaceholder()" class="px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-        Connect Gmail Account
-      </button>
-      <div id="email-placeholder" class="hidden mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-        <p class="text-sm text-slate-600">Gmail OAuth will be available soon. Contact <a href="mailto:hello@flowreach.app" class="text-blue-600 hover:underline">hello@flowreach.app</a> to set up your email connection.</p>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100">
+        <h2 class="font-semibold text-slate-800">Email Connection</h2>
+      </div>
+
+      <!-- Connected state -->
+      <div id="email-connected-state" class="{% if email_status.connected %}block{% else %}hidden{% endif %}">
+        <div class="p-6">
+          <div class="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-green-800">Connected</p>
+              <p class="text-sm text-green-600" id="connected-email">{{ email_status.email }}</p>
+              <p class="text-xs text-green-500 mt-0.5">via Google (Gmail / Workspace)</p>
+            </div>
+            <button onclick="disconnectEmail()" class="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors">Disconnect</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disconnected state -->
+      <div id="email-disconnected-state" class="{% if email_status.connected %}hidden{% else %}block{% endif %}">
+        <div class="p-6">
+          <p class="text-sm text-slate-600 mb-6">Connect an email account to send outreach messages from Flowreach.</p>
+
+          <!-- Connect button that triggers modal -->
+          <button onclick="showEmailModal()" class="px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Connect Email
+          </button>
+
+          <p class="text-xs text-slate-400 mt-3">Flowreach will send outreach emails on your behalf using your connected account.</p>
+        </div>
       </div>
     </div>
   </div>
+
+
+<!-- Connect Email Modal Overlay -->
+<div id="email-modal" class="fixed inset-0 z-50 hidden bg-black/40 flex items-center justify-center" onclick="closeEmailModal(event)">
+  <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-lg font-semibold text-slate-900">Connect Email</h3>
+      <button onclick="closeEmailModal()" class="text-slate-400 hover:text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <p class="text-sm text-slate-500 mb-6">Choose how you want to send outreach emails from Flowreach.</p>
+
+    <div class="space-y-3">
+      <!-- Google (active) -->
+      <div onclick="connectGoogle()" class="flex items-center gap-4 p-4 border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all group">
+        <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-blue-200">
+          <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium text-slate-900">Google (Gmail / Workspace)</p>
+          <p class="text-xs text-slate-500">Connect any Gmail or Google Workspace account</p>
+        </div>
+        <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Available</span>
+      </div>
+
+      <!-- Outlook (coming soon) -->
+      <div class="flex items-center gap-4 p-4 border border-slate-100 rounded-xl bg-slate-50 opacity-60 cursor-not-allowed">
+        <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#0078D4" d="M21.952 5.416V18.56a.726.726 0 01-.744.736H8.496v-5.312l-.248.12-3.728 1.896a.395.395 0 01-.392-.016l-.008-.008L1.88 14.08a.382.382 0 01-.16-.36v-3.36a.381.381 0 01.16-.36l2.232-1.216a.396.396 0 01.4-.024l3.728 1.936.248.112V4.68h12.712a.726.726 0 01.744.736h.008z"/><path fill="#fff" d="M8.496 9.832v-5.12h13.456V6.68L8.496 9.832zm0 4.296v4.056H16.6c.296 0 .536-.208.536-.464V13.68l-2.568.456-5.6.744-.472.248z"/><path fill="#fff" d="M8.496 9.832v5.08l5.6-.744 3.168-.568V9.44l-3.168.568L8.496 9.832z"/></svg>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium text-slate-400">Outlook (Microsoft 365)</p>
+          <p class="text-xs text-slate-400">Connect your Microsoft work or school account</p>
+        </div>
+        <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Coming soon</span>
+      </div>
+
+      <!-- SMTP (coming soon) -->
+      <div class="flex items-center gap-4 p-4 border border-slate-100 rounded-xl bg-slate-50 opacity-60 cursor-not-allowed">
+        <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium text-slate-400">Custom SMTP</p>
+          <p class="text-xs text-slate-400">Use your own email server or third-party provider</p>
+        </div>
+        <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Coming soon</span>
+      </div>
+    </div>
+
+    <p class="text-xs text-slate-400 mt-6 text-center">Your credentials are stored securely and never shared.</p>
+  </div>
+</div>
+
+
+<script>
+function showEmailModal() {
+  document.getElementById('email-modal').classList.remove('hidden');
+}
+
+function closeEmailModal(e) {
+  document.getElementById('email-modal').classList.add('hidden');
+}
+
+function connectGoogle() {
+  window.location.href = '/email/connect/google';
+}
+
+async function disconnectEmail() {
+  if (!confirm('Disconnect your Google email from Flowreach?')) return;
+  try {
+    const r = await fetch('/email/disconnect', { method: 'POST' });
+    const d = await r.json();
+    if (d.disconnected) {
+      document.getElementById('email-connected-state').classList.add('hidden');
+      document.getElementById('email-connected-state').classList.remove('block');
+      document.getElementById('email-disconnected-state').classList.remove('hidden');
+      document.getElementById('email-disconnected-state').classList.add('block');
+    }
+  } catch(e) {
+    alert('Failed to disconnect. Please try again.');
+  }
+}
+
+// Handle success/error params from OAuth callback
+const params = new URLSearchParams(window.location.search);
+if (params.get('email_connected') === 'google') {
+  // Reload to show connected state
+  window.location.search = '';
+  location.reload();
+}
+if (params.get('email_error')) {
+  alert('Failed to connect email: ' + params.get('email_error'));
+}
+
+async function checkEmailStatus() {
+  try {
+    const r = await fetch('/email/status');
+    const d = await r.json();
+    if (d.connected && !document.getElementById('connected-email').textContent) {
+      location.reload();
+    }
+  } catch(e) {}
+}
+</script>
 
   <!-- Tab 3: Target Profile -->
   <div id="tab-target" class="tab-content hidden">
@@ -141,10 +277,6 @@ function switchTab(tab) {
   const btn = document.querySelector('[data-tab="' + tab + '"]');
   btn.classList.remove('text-slate-500', 'border-transparent');
   btn.classList.add('text-slate-900', 'border-blue-600');
-}
-
-function showEmailPlaceholder() {
-  document.getElementById('email-placeholder').classList.toggle('hidden');
 }
 
 async function loadSettings() {

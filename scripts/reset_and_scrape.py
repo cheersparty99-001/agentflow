@@ -19,9 +19,8 @@ DEMO_ACCOUNT = '00000000-0000-0000-0000-000000000001'
 INDUSTRY_MAP = {
     'restaurant': 'Hospitality', 'food': 'Hospitality', 'cafe': 'Hospitality',
     'retail': 'Retail', 'store': 'Retail', 'shop': 'Retail', 'clothing': 'Retail', 'supermarket': 'Retail',
-    'insurance': 'Finance', 'agent': 'Finance', 'financial': 'Finance',
+    'accounting': 'Professional Services', 'legal': 'Professional Services', 'law': 'Professional Services', 'training': 'Professional Services', 'consulting': 'Professional Services',
     'wholesale': 'Logistics', 'supplier': 'Manufacturing', 'distributor': 'Logistics',
-    'optical': 'Healthcare', 'clinic': 'Healthcare', 'medical': 'Healthcare', 'dental': 'Healthcare',
     'manufacturing': 'Manufacturing', 'factory': 'Manufacturing',
     'logistics': 'Logistics', 'transport': 'Logistics', 'warehouse': 'Logistics',
     'technology': 'Technology', 'software': 'Technology', 'it': 'Technology',
@@ -41,12 +40,14 @@ def map_industry(company_name, address, query):
     return 'Other'
 
 async def scrape_and_score():
+    # ── Boleh AI target: Malaysian SMEs that need AI/automation ──
+    # Removed insurance/optical (old insurance project leftovers)
     queries = [
         ("restaurant", "Kuala Lumpur", 10),
         ("retail shop", "Petaling Jaya", 10),
-        ("insurance agent", "Selangor", 10),
-        ("wholesale supplier", "Kuala Lumpur", 10),
-        ("optical shop", "Malaysia", 10),
+        ("cafe", "Kuala Lumpur", 10),
+        ("accounting firm", "Kuala Lumpur", 10),
+        ("training centre", "Petaling Jaya", 10),
     ]
     
     all_leads = []
@@ -117,21 +118,22 @@ async def scrape_and_score():
     for ind, count in industries.most_common():
         print(f'  {ind}: {count}')
     
-    # With/without email
+# With/without email
     with_email = [l for l in qualified if l.get('email')]
     without_email = [l for l in qualified if not l.get('email')]
     print(f'\n--- Contact Info ---')
     print(f'  With email: {len(with_email)}')
-    print(f'  Phone only: {len(without_email)}')
-    
+    print(f'  Phone only (需 WhatsApp): {len(without_email)}')
+
     # Full listing
     print(f'\n--- Qualified Leads List ---')
-    print(f'{"#":>3} {"Company":<30} {"Industry":<18} {"Score":>5} {"Email":<35} {"Phone":<20}')
-    print('-' * 115)
+    print(f'{"#":>3} {"Company":<30} {"Industry":<18} {"Score":>5} {"Email":<35} {"WA":>3} {"Phone":<20}')
+    print('-' * 120)
     for i, l in enumerate(qualified, 1):
         email = l.get('email', '')[:35] if l.get('email') else '(none)'
         phone = l.get('phone', '')[:20]
-        print(f'{i:>3} {l["company_name"][:29]:<30} {l.get("industry","Other")[:17]:<18} {l["score"]:>5} {email:<35} {phone:<20}')
+        needs_wa = 'X' if not l.get('email') else ''
+        print(f'{i:>3} {l["company_name"][:29]:<30} {l.get("industry","Other")[:17]:<18} {l["score"]:>5} {email:<35} {needs_wa:>3} {phone:<20}')
     
     # Save to JSON for later use
     output = {

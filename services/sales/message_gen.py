@@ -1,7 +1,7 @@
 """Message Generator — creates personalised outreach messages using templates.
 
 Supports multiple channels (email, LinkedIn, WhatsApp) and personalisation
-based on lead data. Demo mode returns simulated message content.
+based on lead data.
 """
 
 import random
@@ -111,9 +111,6 @@ def generate_message(
 ) -> dict:
     """Generate a personalised outreach message for a lead.
 
-    In DEMO_MODE, selects a random template and fills in the lead's details.
-    In production, would use LLM-driven personalisation.
-
     Args:
         lead: Lead dict with keys like 'contact_name', 'company_name',
               'industry', 'city', etc.
@@ -163,11 +160,10 @@ def generate_message(
         "generated_at": datetime.utcnow().isoformat(),
     }
 
-    if cfg.DEMO_MODE:
-        print(
-            f"[Sales/MessageGen] DEMO -- Generated {channel}/{message_type} "
-            f"message for {lead.get('company_name', 'Unknown')}"
-        )
+    print(
+        f"[Sales/MessageGen] Generated {channel} ({message_type}) for "
+        f"{lead.get('company_name', 'Unknown')}"
+    )
 
     return result
 

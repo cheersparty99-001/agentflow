@@ -1,7 +1,7 @@
 """Scraper — web scraper for collecting sales leads.
 
-DEMO_MODE: returns simulated leads (preserve existing demo data).
-Production: uses Google Maps Places API + website email extraction.
+Uses Google Maps Places API for lead discovery,
+news RSS for company intelligence, and CSV upload.
 """
 
 import json, re, uuid, time, asyncio
@@ -10,35 +10,55 @@ from typing import Optional
 import httpx
 import config as cfg
 
-# ── Demo data (preserve existing) ──
-DEMO_LEADS_BY_SOURCE = {
-    'google_maps': [
-        {'company_name': 'MediCare Clinic', 'website': 'https://medicare.com.my', 'phone': '60198765432', 'email': 'admin@medicare.com.my', 'address': '15 Jalan Burma, Penang', 'city': 'Penang', 'state': 'Penang', 'industry': 'Healthcare', 'employee_count': 15, 'contact_name': 'Dr. Sarah Tan', 'notes': 'Private clinic expanding.'},
-        {'company_name': 'AutoPro Workshop', 'website': '', 'phone': '60105556677', 'email': '', 'address': '42 Jalan SS2, Petaling Jaya', 'city': 'Petaling Jaya', 'state': 'Selangor', 'industry': 'Automotive', 'employee_count': 8, 'contact_name': 'Lee Meng', 'notes': 'Auto repair shop.'},
-        {'company_name': 'TechVision Solutions', 'website': 'https://techvision.my', 'phone': '60123456789', 'email': 'info@techvision.my', 'address': 'Level 12, Menara KL', 'city': 'Kuala Lumpur', 'state': 'WP Kuala Lumpur', 'industry': 'Technology', 'employee_count': 50, 'contact_name': 'Rajesh Kumar', 'notes': 'Growing SaaS company.'},
-        {'company_name': 'Elite Retail Group', 'website': 'https://eliteretail.my', 'phone': '60167778889', 'email': 'hello@eliteretail.my', 'address': '88 Jalan Meru, Johor Bahru', 'city': 'Johor Bahru', 'state': 'Johor', 'industry': 'Retail', 'employee_count': 200, 'contact_name': 'Michelle Wong', 'notes': 'Major retail chain.'},
-        {'company_name': 'Green Earth Logistics', 'website': 'https://greenearthlogistics.my', 'phone': '60112223334', 'email': 'contact@greenearth.my', 'address': 'Lot 5, Industrial Park, Shah Alam', 'city': 'Shah Alam', 'state': 'Selangor', 'industry': 'Logistics', 'employee_count': 120, 'contact_name': 'Ahmad Ismail', 'notes': 'Fleet of 50+ trucks.'},
-        {'company_name': 'SmartStart Academy', 'website': 'https://smartstart.edu.my', 'phone': '60134445556', 'email': 'info@smartstart.edu.my', 'address': '3 Jalan Tun Razak, Ipoh', 'city': 'Ipoh', 'state': 'Perak', 'industry': 'Education', 'employee_count': 30, 'contact_name': 'Prof. David Ng', 'notes': 'Private school.'},
-        {'company_name': 'Bakti Food Industries', 'website': 'https://baktifood.my', 'phone': '60175556688', 'email': '', 'address': 'Lot 3, Industrial Park, Shah Alam', 'city': 'Shah Alam', 'state': 'Selangor', 'industry': 'Food & Beverage', 'employee_count': 80, 'contact_name': 'Mr. Tan', 'notes': 'Food manufacturer.'},
-        {'company_name': 'Klinik Pergigian Ampang', 'website': '', 'phone': '60189990001', 'email': '', 'address': '22 Jalan Ampang, Kuala Lumpur', 'city': 'Ampang', 'state': 'WP Kuala Lumpur', 'industry': 'Healthcare', 'employee_count': 5, 'contact_name': 'Dr. Lim', 'notes': 'Dental clinic.'},
-        {'company_name': 'PJ Optical Centre', 'website': 'https://pjoptical.my', 'phone': '60176665544', 'email': 'info@pjoptical.my', 'address': '15 Jalan SS2/10, Petaling Jaya', 'city': 'Petaling Jaya', 'state': 'Selangor', 'industry': 'Optical', 'employee_count': 12, 'contact_name': 'John Ng', 'notes': 'Optical retailer.'},
-        {'company_name': 'Maju Wholesale Trading', 'website': '', 'phone': '60123334455', 'email': '', 'address': '88 Jalan Meru, Klang', 'city': 'Klang', 'state': 'Selangor', 'industry': 'Wholesale', 'employee_count': 35, 'contact_name': 'Ganesh', 'notes': 'Wholesale distributor.'},
-    ],
-}
-
 EMAIL_BLACKLIST = {'noreply@', 'no-reply@', 'donotreply@', 'do-not-reply@', 'noreply', 'no-reply'}
+
+# ── Company name cleaning ──
+
+def _clean_company_name(name: str) -> str:
+    """Strip taglines/descriptions after dash, comma, or pipe from company names.
+    E.g. 'Medindemnity - Medical Malpractice Solutions' -> 'Medindemnity'
+         'ABC Sdn Bhd, KL' -> 'ABC Sdn Bhd'
+    """
+    if not name:
+        return name
+    # Split on common separators used for taglines
+    for sep in [' -- ', ' - ', ' | ', ' / ', ' . ']:
+        parts = name.split(sep)
+        if len(parts) > 1:
+            name = parts[0].strip()
+    # Also handle comma-separated extras (but keep 'Sdn Bhd', 'Bhd', 'LLC')
+    # Only strip if the comma part is short (location/number, not a suffix)
+    if ',' in name:
+        parts = [p.strip() for p in name.split(',')]
+        if len(parts[0]) > 2:
+            suffix = parts[-1].strip()
+            if not any(suffix.lower().startswith(s) for s in ['sdn', 'bhd', 'llc', 'inc', 'ltd', 'pte', 'pty']):
+                if len(suffix) < 3 or suffix.isdigit():
+                    name = parts[0].strip()
+    return name.strip()
+
 
 # ── Async helpers ──
 
-def _is_demo() -> bool:
-    return getattr(cfg, 'DEMO_MODE', True)
-
 def _build_record(lead, source, account_id):
+    # Clean company name
+    raw_name = lead.get('company_name', '')
+    cleaned = _clean_company_name(raw_name)
+    if cleaned != raw_name:
+        print(f'  [Clean] \"{raw_name}\" → \"{cleaned}\"')
+
+    # Determine contact method
+    email = lead.get('email', '')
+    needs_wa = not email
+    notes = lead.get('notes', '')
+    if needs_wa:
+        notes = '[需 WhatsApp] ' + notes if notes else '[需 WhatsApp]'
+
     return {
         'id': str(uuid.uuid4()),
         'account_id': account_id,
         'source': source,
-        'company_name': lead['company_name'],
+        'company_name': cleaned,
         'website': lead.get('website', ''),
         'phone': lead.get('phone', ''),
         'whatsapp': lead.get('whatsapp', lead.get('phone', '')),
@@ -51,7 +71,7 @@ def _build_record(lead, source, account_id):
         'contact_name': lead.get('contact_name', ''),
         'rating': lead.get('rating', 0),
         'review_count': lead.get('review_count', lead.get('total_reviews', 0)),
-        'notes': lead.get('notes', ''),
+        'notes': notes,
         'status': 'new',
         'score': 0,
         'is_sample': lead.get('is_sample', False),
@@ -59,17 +79,15 @@ def _build_record(lead, source, account_id):
         'updated_at': datetime.utcnow().isoformat(),
     }
 
-# ── Google Maps API (Production) ──
+# ── Google Maps API ──
 
 async def scrape_google_maps(query: str, location: str, max_results: int = 50, account_id: str = '00000000-0000-0000-0000-000000000001') -> list[dict]:
     """Scrape leads from Google Maps Places API.
-    DEMO_MODE: returns simulated data (10 Malaysian businesses from demo pool)."""
-    
-    if _is_demo():
-        results = DEMO_LEADS_BY_SOURCE.get('google_maps', [])[:min(max_results, 10)]
-        return [_build_record(r, 'google_maps', account_id) for r in results]
 
-    # Production: Google Places API
+    Uses Google Places Text Search + Place Details API.
+    Fetches phone, website, address, rating for each place.
+    Filters out non-OPERATIONAL and < 3.0 rating.
+    """
     api_key = getattr(cfg, 'GOOGLE_MAPS_API_KEY', '')
     if not api_key:
         print('[Sales/Scraper] ERROR: GOOGLE_MAPS_API_KEY not configured')
@@ -167,20 +185,8 @@ async def _extract_email_from_website(url: str) -> str:
 # ── News RSS Scraper (no API key needed) ──
 
 async def scrape_news_leads(keywords: list, max_results: int = 20, account_id: str = '00000000-0000-0000-0000-000000000001') -> list[dict]:
-    """Scrape news for company leads using Google News RSS.
-    DEMO_MODE: returns simulated data."""
+    """Scrape news for company leads using Google News RSS."""
     
-    if _is_demo():
-        leads = [
-            {'company_name': 'PrestoPay Malaysia', 'industry': 'Fintech', 'notes': 'Raised RM5M in Series A'},
-            {'company_name': 'MediTech Solutions', 'industry': 'Healthcare', 'notes': 'Expanding across SE Asia'},
-            {'company_name': 'EduSmart Learning', 'industry': 'Education', 'notes': 'Secured RM2M for edtech platform'},
-            {'company_name': 'ShopEase Malaysia', 'industry': 'Ecommerce', 'notes': 'Launched new marketplace'},
-            {'company_name': 'LogiSwift MY', 'industry': 'Logistics', 'notes': 'Expanded fleet to 200 vehicles'},
-        ]
-        return [_build_record({'company_name': l['company_name'], 'industry': l['industry'], 'notes': l['notes'], 'source_url': 'https://news.google.com/rss/search?q=Malaysia+startup+funding&hl=en-MY&gl=MY&ceid=MY:en'}, 'news', account_id) for l in leads[:max_results]]
-
-    # Production: Google News RSS
     query_str = ' '.join(keywords)
     url = f'https://news.google.com/rss/search?q={query_str}&hl=en-MY&gl=MY&ceid=MY:en'
     
@@ -249,6 +255,4 @@ async def scrape_leads(source: str = 'google_maps', query: str = '', max_results
         return await scrape_google_maps(query, '', max_results, account_id)
     elif source == 'news':
         return await scrape_news_leads(query.split(), max_results, account_id)
-    elif source in DEMO_LEADS_BY_SOURCE and _is_demo():
-        return [_build_record(r, source, account_id) for r in DEMO_LEADS_BY_SOURCE[source][:max_results]]
     return []

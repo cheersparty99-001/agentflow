@@ -1,7 +1,6 @@
 import os
 import uuid
 import json
-import random
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -307,10 +306,9 @@ async def send_email(
     if not lead:
         return JSONResponse({"ok": False, "error": "Lead not found"})
     
-    is_demo = cfg.DEMO_MODE
     lead_email = lead.get("email", "N/A")
-    msg = f"Demo: Email would be sent to {lead_email}" if is_demo else f"Email sent to {lead_email}"
-    summary_text = "Outreach email sent" if is_demo else "Email sent"
+    msg = f"Email sent to {lead_email}"
+    summary_text = "Email sent"
     
     # Log to activity
     data_leads.create_activity(
@@ -490,10 +488,11 @@ async def sales_outreach_trigger(
         # Determine email recipient
         to_email = test_override_email or target.get("email", "")
 
-        if channel == "email" and to_email and not cfg.DEMO_MODE:
-            # Real Gmail send
+        if channel == "email" and to_email:
+            # Real Gmail send (per-account or config fallback)
             from services.sales.gmail_client import GmailClient
-            gmail = GmailClient()
+            account_id = user.get("account_id", "")
+            gmail = GmailClient(account_id=account_id)
             if not gmail.is_authenticated:
                 gmail.authenticate()
 
@@ -527,8 +526,6 @@ Boleh AI"""
             detail = f"Sent automated {channel} message to {target.get('contact', '')} at {target.get('name', '')}."
             if test_override_email:
                 detail += f" (would send to {test_override_email})"
-            if cfg.DEMO_MODE:
-                detail += " [DEMO]"
 
         data_leads.create_activity(
             target["id"], "message",
@@ -1015,38 +1012,47 @@ async def scraper_run(
     user = await require_user(request)
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
-    
-    is_demo = cfg.DEMO_MODE
 
-    if is_demo:
-        # Generate fake leads based on input
-        count = min(max_results, 10)
-        for i in range(count):
-            lead_data = _make_create_lead_data(
-                name=f"{industry.title()} Company {i+1} ({location})",
-                contact="",
-                phone=f"+60 1{i}-{random.randint(100,999)} {random.randint(1000,9999)}",
-                email="",
-                industry=industry.lower().replace(" ", "_"),
-                location=location,
-                business="Boleh AI",
-                source="demo_scraper",
-                notes=f"Demo lead from {industry} scrape in {location}",
-                score=random.randint(6, 9),
-            )
-            new_lead = data_leads.create_lead(lead_data)
-            data_leads.create_activity(
-                new_lead["id"], "note",
-                f"Lead found via Google Maps scrape ({industry}, {location})",
-                {"detail": f"Found {count} leads in {location} for {industry} industry"},
-            )
-        return JSONResponse({"ok": True, "found": count})
+    # Call real Google Maps scraper
+    from services.sales.scraper import scrape_google_maps
 
-    # Real scraper logic... (keep existing fallback)
-    return JSONResponse({"ok": True, "found": 0, "message": "Real scraper not implemented"})
+    # Build search query from industry + location
+    query = f"{industry} {location}" if location else industry
+
+    leads = await scrape_google_maps(query, "", max_results)
+    imported = 0
+    for ld in leads:
+        # Clean company name: remove common suffixes
+        name = ld.get("company_name", "")
+        for suffix in [" Sdn Bhd", " Sdn. Bhd.", " Bhd", " & Co", " Enterprise", " Trading"]:
+            if name.endswith(suffix):
+                name = name[: -len(suffix)]
+                break
+
+        lead_data = _make_create_lead_data(
+            name=name.strip(),
+            contact=ld.get("contact_name", ""),
+            phone=ld.get("phone", ""),
+            email=ld.get("email", ""),
+            industry=industry.lower().replace(" ", "_"),
+            location=ld.get("city", "") or location,
+            business="Boleh AI",
+            source="google_maps",
+            notes=ld.get("notes", f"Google Maps scrape — rating: {ld.get('rating', 'N/A')}"),
+            score=min(10, int(ld.get("rating", 0) * 2)),
+        )
+        new_lead = data_leads.create_lead(lead_data)
+        data_leads.create_activity(
+            new_lead["id"], "note",
+            f"Lead found via Google Maps scrape ({industry}, {location})",
+            {"detail": f"Found {len(leads)} leads in {location} for {industry} industry"},
+        )
+        imported += 1
+
+    return JSONResponse({"ok": True, "found": imported})
 
 
-# ── Real API Scraping (non-demo) ───────────────────────────────────────────────
+# ── Real API Scraping ───────────────────────────────────────────────────────────
 
 
 @router.post("/sales/scraper/google-maps")
@@ -1061,58 +1067,29 @@ async def sales_scraper_google_maps(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    # Demo mode: return simulated leads
-    if cfg.DEMO_MODE:
-        from services.sales.scraper import scrape_google_maps as demo_scrape
-        leads = await demo_scrape(query, location, max_results)
-        return JSONResponse({"ok": True, "source": "google_maps", "places_found": len(leads), "imported": len(leads), "demo": True})
+    # Google Maps Places API call via scraper module
+    from services.sales.scraper import scrape_google_maps as maps_scraper
+    leads = await maps_scraper(query, location, max_results)
 
-    # Real Google Maps Places API call
-    import httpx
-
-    places = []
-    try:
-        params = {
-            "query": f"{query} {location}" if location else query,
-            "key": api_key or getattr(cfg, "GOOGLE_MAPS_API_KEY", "") or "",
-        }
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(
-                "https://maps.googleapis.com/maps/api/place/textsearch/json",
-                params=params,
-            )
-            data = resp.json()
-            for result in data.get("results", [])[:max_results]:
-                places.append({
-                    "name": result.get("name", "Unknown"),
-                    "address": result.get("formatted_address", ""),
-                    "rating": result.get("rating"),
-                    "place_id": result.get("place_id", ""),
-                    "types": result.get("types", []),
-                    "location": result.get("geometry", {}).get("location", {}),
-                })
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-
-    # Import as leads
+    # Import as leads (scraper.py returns _build_record format)
     imported = 0
-    for p in places:
+    for ld in leads:
         lead_data = _make_create_lead_data(
-            name=p["name"],
-            contact="",
-            phone="",
-            email="",
-            industry=(p.get("types") or ["other"])[0] if p.get("types") else "other",
-            location=p.get("address", ""),
+            name=ld.get("company_name", ""),
+            contact=ld.get("contact_name", ""),
+            phone=ld.get("phone", ""),
+            email=ld.get("email", ""),
+            industry="other",
+            location=ld.get("city", "") or location,
             business="Boleh AI",
             source="google_maps",
-            notes=f"Google Maps — place_id: {p['place_id']}, rating: {p.get('rating', 'N/A')}",
-            score=min(10, int((p.get("rating") or 0) * 2)),
+            notes=f"Google Maps — rating: {ld.get('rating', 'N/A')}, reviews: {ld.get('review_count', 0)}",
+            score=min(10, int((ld.get("rating") or 0) * 2)),
         )
         data_leads.create_lead(lead_data)
         imported += 1
 
-    return JSONResponse({"ok": True, "source": "google_maps", "places_found": len(places), "imported": imported})
+    return JSONResponse({"ok": True, "source": "google_maps", "places_found": len(leads), "imported": imported})
 
 
 @router.post("/sales/scraper/news")
@@ -1121,55 +1098,26 @@ async def sales_scraper_news(request: Request, query: str = Form(...), max_resul
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    # Demo mode: return simulated news leads
-    if cfg.DEMO_MODE:
-        from services.sales.scraper import scrape_news_leads as demo_scrape
-        leads = await demo_scrape(query.split(), max_results)
-        return JSONResponse({"ok": True, "source": "news", "articles_found": len(leads), "imported": len(leads), "demo": True})
+    # News RSS via scraper module
+    from services.sales.scraper import scrape_news_leads as news_scraper
+    leads = await news_scraper(query.split(), max_results)
 
-    # Google News RSS feed
-    import httpx
-    import xml.etree.ElementTree as ET
-    from urllib.parse import quote
-
-    articles = []
-    try:
-        search_url = f"https://news.google.com/rss/search?q={quote(query)}&hl=en-MY&gl=MY&ceid=MY:en"
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-            resp = await client.get(search_url)
-            root = ET.fromstring(resp.text)
-            ns = {"atom": "http://www.w3.org/2005/Atom"}
-            for item in list(root.iter("item"))[:max_results]:
-                title = item.findtext("title", "")
-                link = item.findtext("link", "")
-                pub_date = item.findtext("pubDate", "")
-                source_el = item.find("source")
-                source_name = source_el.text if source_el is not None else ""
-                articles.append({
-                    "title": title,
-                    "url": link,
-                    "published": pub_date,
-                    "source": source_name,
-                })
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-
-    # Import as leads (from news mentions)
+    # Import as leads
     imported = 0
-    for art in articles[:max_results]:
+    for ld in leads:
         lead_data = _make_create_lead_data(
-            name=f"News: {art['title'][:60]}",
+            name=ld.get("company_name", ""),
             contact="",
             phone="",
             email="",
             industry="other",
             location="",
-            business="Boleh AI",
+            business="Wise Solutions",
             source="news",
-            notes=f"Google News — {art['source']}: {art['title']} ({art['url']})",
+            notes=ld.get("notes", f"Google News lead"),
             score=6,
         )
         data_leads.create_lead(lead_data)
         imported += 1
 
-    return JSONResponse({"ok": True, "source": "news", "articles_found": len(articles), "imported": imported})
+    return JSONResponse({"ok": True, "source": "news", "articles_found": len(leads), "imported": imported})

@@ -32,14 +32,14 @@ CREATE TABLE users (
 
 -- Seed demo account
 INSERT INTO accounts (id, agency_name, phone, email)
-VALUES ('00000000-0000-0000-0000-000000000001', 'Demo Agency', '0123456789', 'demo@agentflow.my');
+VALUES ('00000000-0000-0000-0000-000000000001', 'Demo Agency', '0123456789', 'demo@flowreach.app');
 
 -- Seed admin user
 INSERT INTO users (id, email, role, account_id, is_admin)
-VALUES ('00000000-0000-0000-0000-000000000002', 'admin@agentflow.my', 'admin', '00000000-0000-0000-0000-000000000001', true)
+VALUES ('00000000-0000-0000-0000-000000000002', 'admin@flowreach.app', 'admin', '00000000-0000-0000-0000-000000000001', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed demo user
 INSERT INTO users (id, email, role, account_id, is_admin)
-VALUES ('00000000-0000-0000-0000-000000000003', 'demo@agentflow.my', 'client', '00000000-0000-0000-0000-000000000001', false)
+VALUES ('00000000-0000-0000-0000-000000000003', 'demo@flowreach.app', 'client', '00000000-0000-0000-0000-000000000001', false)
 ON CONFLICT (id) DO NOTHING;

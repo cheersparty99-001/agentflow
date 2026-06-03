@@ -166,9 +166,24 @@ VALUES (
   '00000000-0000-0000-0000-000000000001',
   'b1000000-0000-0000-0000-000000000001',
   'Default - Boleh AI',
-  ARRAY['Food & Beverage','Retail','Healthcare','Professional Services','Insurance','Optical','Wholesale'],
+  ARRAY['Food & Beverage','Retail','Healthcare','Professional Services','Wholesale'],
   ARRAY['Kuala Lumpur','Selangor','Penang','Johor'],
   ARRAY['sdn bhd','enterprise','solutions'],
   7
 )
 ON CONFLICT DO NOTHING;
+
+-- Email connections for per-account OAuth (future migration)
+CREATE TABLE IF NOT EXISTS email_connections (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  account_id UUID REFERENCES accounts(id),
+  provider TEXT NOT NULL DEFAULT 'google',
+  email TEXT NOT NULL,
+  access_token TEXT,
+  refresh_token TEXT,
+  token_expiry TIMESTAMP,
+  scopes TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);

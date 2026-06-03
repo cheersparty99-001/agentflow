@@ -1,61 +1,60 @@
 """Outreach — orchestrates sending messages to qualified leads.
 
 Manages campaign execution, message dispatch via appropriate channels,
-and tracks delivery status. DEMO_MODE logs all actions without real sends.
+and tracks delivery status.
 """
 
 import uuid
 from datetime import datetime
 from typing import Optional
 
-import config as cfg
 from .message_gen import generate_message
+from .gmail_client import GmailClient
 
-# ── In-memory demo store ─────────────────────────────────────────
-
-# Simulates sales_outreach_log table
+# ── Outreach log (in-memory, used by reply_handler import) ──
 _demo_outreach_log: list[dict] = []
 
 
-# ── Channel dispatchers (all demo) ────────────────────────────────
+# ── Channel dispatchers ──
 
 
-def _send_email(message: dict, lead: dict) -> dict:
-    """Simulate sending an email via SMTP/API.
+def _send_email(message: dict, lead: dict, account_id: str = "") -> dict:
+    """Send an email via Gmail API."""
+    to_email = lead.get("email", "")
+    if not to_email:
+        return {"status": "failed", "delivery_detail": "No email address for lead"}
 
-    Returns delivery status.
-    """
-    if cfg.DEMO_MODE:
-        return {
-            "status": "sent",
-            "delivery_detail": "DEMO -- Email logged, no SMTP call made",
-            "sent_at": datetime.utcnow().isoformat(),
-        }
+    try:
+        gmail = GmailClient(account_id=account_id)
+        if not gmail.is_authenticated:
+            return {"status": "failed", "delivery_detail": "Gmail not authenticated"}
 
-    # Real implementation would go here
-    return {"status": "failed", "delivery_detail": "Production mode not implemented"}
+        result = gmail.send_message(
+            to_email=to_email,
+            subject=message.get("subject", ""),
+            body=message.get("body", ""),
+        )
+
+        if result.get("status") == "sent":
+            return {
+                "status": "sent",
+                "delivery_detail": f"Email sent to {to_email} — ID: {result.get('message_id', 'unknown')}",
+                "sent_at": datetime.utcnow().isoformat(),
+            }
+        else:
+            return {"status": "failed", "delivery_detail": result.get("error", "Send failed")}
+    except Exception as e:
+        return {"status": "failed", "delivery_detail": str(e)}
 
 
 def _send_linkedin(message: dict, lead: dict) -> dict:
-    """Simulate sending a LinkedIn message."""
-    if cfg.DEMO_MODE:
-        return {
-            "status": "sent",
-            "delivery_detail": "DEMO -- LinkedIn message logged, no API call made",
-            "sent_at": datetime.utcnow().isoformat(),
-        }
-    return {"status": "failed", "delivery_detail": "Production mode not implemented"}
+    """LinkedIn messaging not yet implemented."""
+    return {"status": "failed", "delivery_detail": "LinkedIn messaging not implemented"}
 
 
 def _send_whatsapp(message: dict, lead: dict) -> dict:
-    """Simulate sending a WhatsApp message."""
-    if cfg.DEMO_MODE:
-        return {
-            "status": "sent",
-            "delivery_detail": "DEMO -- WhatsApp message logged, no API call made",
-            "sent_at": datetime.utcnow().isoformat(),
-        }
-    return {"status": "failed", "delivery_detail": "Production mode not implemented"}
+    """WhatsApp messaging not yet implemented."""
+    return {"status": "failed", "delivery_detail": "WhatsApp messaging not implemented"}
 
 
 _CHANNEL_DISPATCHERS = {
@@ -65,7 +64,7 @@ _CHANNEL_DISPATCHERS = {
 }
 
 
-# ── Public API ────────────────────────────────────────────────────
+# ── Public API ──
 
 
 def send_outreach(
@@ -106,7 +105,7 @@ def send_outreach(
 
     # Dispatch
     dispatcher = _CHANNEL_DISPATCHERS.get(channel, _send_email)
-    delivery = dispatcher(message, lead)
+    delivery = dispatcher(message, lead, account_id=account_id)
 
     # Build outreach log record
     outreach_id = str(uuid.uuid4())
@@ -120,7 +119,7 @@ def send_outreach(
         "body": message["body"],
         "status": delivery["status"],
         "sent_at": delivery.get("sent_at", datetime.utcnow().isoformat()),
-        "delivered_at": delivery.get("sent_at"),  # same as sent in demo
+        "delivered_at": delivery.get("sent_at"),
         "error_message": delivery.get("delivery_detail", ""),
         "created_at": datetime.utcnow().isoformat(),
         "updated_at": datetime.utcnow().isoformat(),
@@ -131,11 +130,10 @@ def send_outreach(
 
     _demo_outreach_log.append(record)
 
-    if cfg.DEMO_MODE:
-        print(
-            f"[Sales/Outreach] DEMO -- Sent {channel} ({message_type}) to "
-            f"{lead.get('company_name', 'Unknown')} — status: {delivery['status']}"
-        )
+    print(
+        f"[Sales/Outreach] Sent {channel} ({message_type}) to "
+        f"{lead.get('company_name', 'Unknown')} — status: {delivery['status']}"
+    )
 
     return record
 
@@ -204,11 +202,10 @@ def run_campaign(
         "executed_at": datetime.utcnow().isoformat(),
     }
 
-    if cfg.DEMO_MODE:
-        print(
-            f"[Sales/Outreach] DEMO -- Campaign '{campaign_name}': "
-            f"{sent}/{total} sent, {failed} failed"
-        )
+    print(
+        f"[Sales/Outreach] Campaign '{campaign_name}': "
+        f"{sent}/{total} sent, {failed} failed"
+    )
 
     return summary
 
@@ -218,23 +215,12 @@ def get_outreach_log(
     status: Optional[str] = None,
     limit: int = 50,
 ) -> list[dict]:
-    """Retrieve outreach log entries.
-
-    Args:
-        campaign_id: Filter by campaign.
-        status: Filter by status ('sent', 'pending', 'failed', 'replied').
-        limit: Maximum entries to return.
-
-    Returns:
-        List of outreach log dicts.
-    """
+    """Retrieve outreach log entries."""
     results = list(_demo_outreach_log)
-
     if campaign_id:
         results = [r for r in results if r.get("campaign_id") == campaign_id]
     if status:
         results = [r for r in results if r.get("status") == status]
-
     results.sort(key=lambda r: r.get("sent_at", ""), reverse=True)
     return results[:limit]
 
