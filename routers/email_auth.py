@@ -25,9 +25,9 @@ async def email_connect_google(request: Request):
         return RedirectResponse(url="/login")
 
     account_id = user.get("account_id", "")
-    # Determine redirect_uri based on host
-    host = request.base_url
-    redirect_uri = f"{host}email/callback/google"
+    # Build redirect_uri from config (avoids http vs https bug behind reverse proxy)
+    host = cfg.BASE_URL.rstrip("/")
+    redirect_uri = f"{host}/email/callback/google"
 
     # DEBUG: confirm runtime value of GMAIL_CLIENT_ID
     raw = cfg.GMAIL_CLIENT_ID
@@ -52,7 +52,7 @@ async def email_callback_google(request: Request, code: str = "", state: str = "
         return RedirectResponse(url="/settings?email_error=" + error)
 
     account_id = state or user.get("account_id", "")
-    redirect_uri = f"{request.base_url}email/callback/google"
+    redirect_uri = f"{cfg.BASE_URL.rstrip('/')}/email/callback/google"
 
     try:
         conn = google_oauth.handle_callback(code, account_id, str(redirect_uri))
