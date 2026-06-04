@@ -139,7 +139,7 @@ def _render(request, template_name, **extra):
 
 # ── Shared email send helper ─────────────────────────────────────────────────────
 
-def _send_single_email(account_id: str, to_email: str, subject: str, body: str) -> dict:
+def _send_single_email(account_id: str, lead_id: str, to_email: str, subject: str, body: str) -> dict:
     """Send one email via the account's Gmail OAuth connection.
     Returns dict with keys: ok (bool), message (str, on success), error (str, on failure).
     """
@@ -159,9 +159,12 @@ def _send_single_email(account_id: str, to_email: str, subject: str, body: str) 
             get_supabase().table("sales_messages").insert({
                 "id": str(uuid.uuid4()),
                 "account_id": account_id,
-                "lead_email": to_email,
+                "lead_id": lead_id,
+                "direction": "outbound",
+                "channel": "email",
                 "subject": subject,
-                "type": "email",
+                "content": body,
+                "status": "sent",
                 "sent_at": datetime.utcnow().isoformat(),
             }).execute()
         except Exception as e:
@@ -349,7 +352,7 @@ async def send_email(
         return JSONResponse({"ok": False, "error": "Subject and body are required"})
 
     account_id = user.get("account_id", "")
-    result = _send_single_email(account_id, to_email, subject, body)
+    result = _send_single_email(account_id, lead_id, to_email, subject, body)
 
     if not result.get("ok"):
         # Log failed attempt
