@@ -15,14 +15,15 @@ env = Environment(loader=FileSystemLoader("templates"))
 
 # ── Demo Data ──────────────────────────────────────────────────────────────────
 LEAD_STATUSES = ["cold", "contacted", "replied", "interested", "closed_lost", "closed_won"]
-BUSINESSES = ["Boleh AI", "Wise Solutions"]
+BUSINESSES = ["Boleh AI", "Wise Solutions", "Flowreach"]
 
 # ── Normalization helpers ───────────────────────────────────────────────────────
 
 # Map business_id -> business name (also used in templates)
 _BUSINESS_NAME_MAP = {
     "b1000000-0000-0000-0000-000000000001": "Boleh AI",
-    "b1000000-0000-0000-0000-000000000002": "Wise Solutions",
+    "b2000000-0000-0000-0000-000000000002": "Wise Solutions",
+    "b3000000-0000-0000-0000-000000000003": "Flowreach",
 }
 
 def _normalize_lead(ld: dict) -> dict:
