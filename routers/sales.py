@@ -382,6 +382,47 @@ async def send_email(
     return JSONResponse({"ok": True, "message": f"Email sent to {to_email}"})
 
 
+@router.post("/api/leads/{lead_id}/score")
+async def score_lead(request: Request, lead_id: str):
+    """Score a single lead using AI. For testing/verification."""
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
+
+    account_id = user.get("account_id", "")
+    if not account_id:
+        return JSONResponse({"ok": False, "error": "No account_id in session"}, status_code=400)
+
+    lead = data_leads.get_lead(lead_id)
+    if not lead:
+        return JSONResponse({"ok": False, "error": "Lead not found"}, status_code=404)
+
+    from services.sales.qualifier import qualify_lead
+
+    try:
+        result = qualify_lead(lead, account_id=account_id)
+
+        # Persist score back to leads table
+        data_leads.update_lead(lead_id, {
+            "ai_score": result.get("ai_score"),
+            "ai_score_reason": result.get("ai_score_reason"),
+            "score": result.get("score"),
+            "status": result.get("status"),
+        })
+
+        return JSONResponse({
+            "ok": True,
+            "company_name": lead.get("company_name", ""),
+            "ai_score": result.get("ai_score"),
+            "ai_score_reason": result.get("ai_score_reason"),
+            "status": result.get("status"),
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 @router.post("/sales/outreach/send")
 async def outreach_send(request: Request):
     user = await require_user(request)
