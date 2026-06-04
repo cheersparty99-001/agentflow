@@ -1,6 +1,9 @@
 import os
+import uuid
+import json
 import traceback
-from fastapi import APIRouter, Request, Form
+from datetime import datetime
+from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from jinja2 import Environment, FileSystemLoader
 from services.supabase_client import get_supabase, safe_single, safe_update
@@ -19,6 +22,10 @@ async def require_user(request: Request):
     return user
 
 
+def _sb():
+    return get_supabase()
+
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
     user = await require_user(request)
@@ -26,14 +33,9 @@ async def settings_page(request: Request):
         return RedirectResponse(url="/login")
 
     account_id = user.get("account_id")
-    sb = get_supabase()
+    sb = _sb()
     account = safe_single(lambda: sb.table("accounts").select("agency_name").eq("id", account_id).single(), default={"agency_name": "My Agency"})
     agency_name = account.get("agency_name", "My Agency") if account else "My Agency"
-
-    # Load target profiles
-    target_profiles = getattr(request.app.state, 'sales_target_profiles', [])
-    if not target_profiles:
-        target_profiles = []
 
     # Load email connection status
     email_status = {"connected": False}
@@ -50,6 +52,14 @@ async def settings_page(request: Request):
     except Exception as e:
         print(f"[Settings] Email status error: {e}")
 
+    # Load businesses for the business selector
+    businesses = []
+    try:
+        biz_result = sb.table("sales_businesses").select("*").eq("account_id", account_id).execute()
+        businesses = biz_result.data or []
+    except Exception as e:
+        print(f"[Settings] Load businesses error: {e}")
+
     template = env.get_template("settings.html")
     html = template.render(
         agency_name=agency_name,
@@ -57,8 +67,8 @@ async def settings_page(request: Request):
         current_path=request.url.path,
         is_admin=user.get("is_admin", False),
         user_email=user.get("email", ""),
-        target_profiles=target_profiles,
         email_status=email_status,
+        businesses=businesses,
     )
     return HTMLResponse(html)
 
@@ -70,7 +80,7 @@ async def get_settings(request: Request):
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
     account_id = user.get("account_id")
-    sb = get_supabase()
+    sb = _sb()
     data = safe_single(lambda: sb.table("accounts").select("*").eq("id", account_id).single(), default=None)
     if not data:
         return JSONResponse({
@@ -101,7 +111,7 @@ async def save_settings(
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
     account_id = user.get("account_id")
-    sb = get_supabase()
+    sb = _sb()
 
     safe_update("accounts", {
         "agency_name": agency_name,
@@ -111,3 +121,175 @@ async def save_settings(
     }, "id", account_id)
 
     return JSONResponse({"success": True})
+
+
+# ── Target Profile API ─────────────────────────────────────────────────────
+
+
+def _load_profiles(account_id: str, sb):
+    """Load target profiles joined with business names."""
+    profiles = []
+    try:
+        result = sb.table("target_profiles").select("*").eq("account_id", account_id).order("created_at", desc=True).execute()
+        profiles = result.data or []
+    except Exception as e:
+        print(f"[Settings] Load profiles error: {e}")
+        return []
+
+    # Attach business names
+    biz_ids = list(set(p.get("business_id", "") for p in profiles if p.get("business_id")))
+    biz_map = {}
+    if biz_ids:
+        try:
+            biz_result = sb.table("sales_businesses").select("id, name, description, value_proposition").in_("id", biz_ids).execute()
+            biz_map = {b["id"]: b for b in (biz_result.data or [])}
+        except:
+            pass
+
+    for p in profiles:
+        biz = biz_map.get(p.get("business_id", ""), {})
+        p["business_name"] = biz.get("name", "Unknown")
+        p["business_description"] = biz.get("description", "")
+        p["business_value_proposition"] = biz.get("value_proposition", "")
+
+    return profiles
+
+
+@router.get("/api/target-profiles")
+async def api_list_profiles(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    sb = _sb()
+    profiles = _load_profiles(user["account_id"], sb)
+    return JSONResponse({"profiles": profiles})
+
+
+@router.post("/api/target-profiles")
+async def api_create_profile(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    account_id = user["account_id"]
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON body"}, status_code=400)
+
+    business_id = body.get("business_id", "")
+    name = body.get("name", "Untitled Profile")
+    industries = body.get("industries", [])
+    locations = body.get("locations", [])
+    company_size = body.get("company_size", "any")
+    keywords_include = body.get("keywords_include", [])
+    keywords_exclude = body.get("keywords_exclude", [])
+    min_ai_score = body.get("min_ai_score", 5)
+    is_active = body.get("is_active", True)
+
+    if not business_id:
+        return JSONResponse({"error": "business_id is required"}, status_code=400)
+
+    sb = _sb()
+    record = {
+        "id": str(uuid.uuid4()),
+        "account_id": account_id,
+        "business_id": business_id,
+        "name": name,
+        "industries": industries,
+        "locations": locations,
+        "company_size": company_size,
+        "keywords_include": keywords_include,
+        "keywords_exclude": keywords_exclude,
+        "min_ai_score": min_ai_score,
+        "is_active": is_active,
+        "created_at": datetime.utcnow().isoformat(),
+    }
+
+    try:
+        result = sb.table("target_profiles").insert(record).execute()
+        created = result.data[0] if result.data else record
+        return JSONResponse({"success": True, "profile": created})
+    except Exception as e:
+        print(f"[Settings] Create profile error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.put("/api/target-profiles/{profile_id}")
+async def api_update_profile(profile_id: str, request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON body"}, status_code=400)
+
+    # Only send fields that exist in the table
+    allowed_keys = {"name", "business_id", "industries", "locations", "company_size",
+                    "keywords_include", "keywords_exclude", "min_ai_score", "is_active"}
+    updates = {k: v for k, v in body.items() if k in allowed_keys}
+
+    sb = _sb()
+    try:
+        sb.table("target_profiles").update(updates).eq("id", profile_id).eq("account_id", user["account_id"]).execute()
+        return JSONResponse({"success": True})
+    except Exception as e:
+        print(f"[Settings] Update profile error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.delete("/api/target-profiles/{profile_id}")
+async def api_delete_profile(profile_id: str, request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    sb = _sb()
+    try:
+        sb.table("target_profiles").delete().eq("id", profile_id).eq("account_id", user["account_id"]).execute()
+        return JSONResponse({"success": True})
+    except Exception as e:
+        print(f"[Settings] Delete profile error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ── Business info API ──────────────────────────────────────────────────────
+
+
+@router.get("/api/businesses")
+async def api_list_businesses(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    sb = _sb()
+    try:
+        result = sb.table("sales_businesses").select("*").eq("account_id", user["account_id"]).execute()
+        return JSONResponse({"businesses": result.data or []})
+    except Exception as e:
+        print(f"[Settings] Load businesses error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.put("/api/businesses/{business_id}")
+async def api_update_business(business_id: str, request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON body"}, status_code=400)
+
+    allowed_keys = {"description", "value_proposition", "target_industries", "name"}
+    updates = {k: v for k, v in body.items() if k in allowed_keys}
+
+    sb = _sb()
+    try:
+        sb.table("sales_businesses").update(updates).eq("id", business_id).eq("account_id", user["account_id"]).execute()
+        return JSONResponse({"success": True})
+    except Exception as e:
+        print(f"[Settings] Update business error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)

@@ -84,7 +84,6 @@
         <div class="p-6">
           <p class="text-sm text-slate-600 mb-6">Connect an email account to send outreach messages from Flowreach.</p>
 
-          <!-- Connect button that triggers modal -->
           <button onclick="showEmailModal()" class="px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
             Connect Email
@@ -96,139 +95,137 @@
     </div>
   </div>
 
+  <!-- Connect Email Modal Overlay -->
+  <div id="email-modal" class="fixed inset-0 z-50 hidden bg-black/40 flex items-center justify-center" onclick="closeEmailModal(event)">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold text-slate-900">Connect Email</h3>
+        <button onclick="closeEmailModal()" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
 
-<!-- Connect Email Modal Overlay -->
-<div id="email-modal" class="fixed inset-0 z-50 hidden bg-black/40 flex items-center justify-center" onclick="closeEmailModal(event)">
-  <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6" onclick="event.stopPropagation()">
-    <div class="flex items-center justify-between mb-6">
-      <h3 class="text-lg font-semibold text-slate-900">Connect Email</h3>
-      <button onclick="closeEmailModal()" class="text-slate-400 hover:text-slate-600">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
+      <p class="text-sm text-slate-500 mb-6">Choose how you want to send outreach emails from Flowreach.</p>
+
+      <div class="space-y-3">
+        <div onclick="connectGoogle()" class="flex items-center gap-4 p-4 border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all group">
+          <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-blue-200">
+            <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          </div>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-slate-900">Google (Gmail / Workspace)</p>
+            <p class="text-xs text-slate-500">Connect any Gmail or Google Workspace account</p>
+          </div>
+          <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Available</span>
+        </div>
+        <div class="flex items-center gap-4 p-4 border border-slate-100 rounded-xl bg-slate-50 opacity-60 cursor-not-allowed">
+          <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0"><svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#0078D4" d="M21.952 5.416V18.56a.726.726 0 01-.744.736H8.496v-5.312l-.248.12-3.728 1.896a.395.395 0 01-.392-.016l-.008-.008L1.88 14.08a.382.382 0 01-.16-.36v-3.36a.381.381 0 01.16-.36l2.232-1.216a.396.396 0 01.4-.024l3.728 1.936.248.112V4.68h12.712a.726.726 0 01.744.736h.008z"/><path fill="#fff" d="M8.496 9.832v-5.12h13.456V6.68L8.496 9.832zm0 4.296v4.056H16.6c.296 0 .536-.208.536-.464V13.68l-2.568.456-5.6.744-.472.248z"/><path fill="#fff" d="M8.496 9.832v5.08l5.6-.744 3.168-.568V9.44l-3.168.568L8.496 9.832z"/></svg></div>
+          <div class="flex-1"><p class="text-sm font-medium text-slate-400">Outlook (Microsoft 365)</p><p class="text-xs text-slate-400">Connect your Microsoft work or school account</p></div>
+          <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Coming soon</span>
+        </div>
+        <div class="flex items-center gap-4 p-4 border border-slate-100 rounded-xl bg-slate-50 opacity-60 cursor-not-allowed">
+          <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0"><svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div>
+          <div class="flex-1"><p class="text-sm font-medium text-slate-400">Custom SMTP</p><p class="text-xs text-slate-400">Use your own email server or third-party provider</p></div>
+          <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Coming soon</span>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mt-6 text-center">Your credentials are stored securely and never shared.</p>
     </div>
-
-    <p class="text-sm text-slate-500 mb-6">Choose how you want to send outreach emails from Flowreach.</p>
-
-    <div class="space-y-3">
-      <!-- Google (active) -->
-      <div onclick="connectGoogle()" class="flex items-center gap-4 p-4 border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all group">
-        <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-blue-200">
-          <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-        </div>
-        <div class="flex-1">
-          <p class="text-sm font-medium text-slate-900">Google (Gmail / Workspace)</p>
-          <p class="text-xs text-slate-500">Connect any Gmail or Google Workspace account</p>
-        </div>
-        <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Available</span>
-      </div>
-
-      <!-- Outlook (coming soon) -->
-      <div class="flex items-center gap-4 p-4 border border-slate-100 rounded-xl bg-slate-50 opacity-60 cursor-not-allowed">
-        <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-          <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#0078D4" d="M21.952 5.416V18.56a.726.726 0 01-.744.736H8.496v-5.312l-.248.12-3.728 1.896a.395.395 0 01-.392-.016l-.008-.008L1.88 14.08a.382.382 0 01-.16-.36v-3.36a.381.381 0 01.16-.36l2.232-1.216a.396.396 0 01.4-.024l3.728 1.936.248.112V4.68h12.712a.726.726 0 01.744.736h.008z"/><path fill="#fff" d="M8.496 9.832v-5.12h13.456V6.68L8.496 9.832zm0 4.296v4.056H16.6c.296 0 .536-.208.536-.464V13.68l-2.568.456-5.6.744-.472.248z"/><path fill="#fff" d="M8.496 9.832v5.08l5.6-.744 3.168-.568V9.44l-3.168.568L8.496 9.832z"/></svg>
-        </div>
-        <div class="flex-1">
-          <p class="text-sm font-medium text-slate-400">Outlook (Microsoft 365)</p>
-          <p class="text-xs text-slate-400">Connect your Microsoft work or school account</p>
-        </div>
-        <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Coming soon</span>
-      </div>
-
-      <!-- SMTP (coming soon) -->
-      <div class="flex items-center gap-4 p-4 border border-slate-100 rounded-xl bg-slate-50 opacity-60 cursor-not-allowed">
-        <div class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-        </div>
-        <div class="flex-1">
-          <p class="text-sm font-medium text-slate-400">Custom SMTP</p>
-          <p class="text-xs text-slate-400">Use your own email server or third-party provider</p>
-        </div>
-        <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Coming soon</span>
-      </div>
-    </div>
-
-    <p class="text-xs text-slate-400 mt-6 text-center">Your credentials are stored securely and never shared.</p>
   </div>
-</div>
-
-
-<script>
-function showEmailModal() {
-  document.getElementById('email-modal').classList.remove('hidden');
-}
-
-function closeEmailModal(e) {
-  document.getElementById('email-modal').classList.add('hidden');
-}
-
-function connectGoogle() {
-  window.location.href = '/email/connect/google';
-}
-
-async function disconnectEmail() {
-  if (!confirm('Disconnect your Google email from Flowreach?')) return;
-  try {
-    const r = await fetch('/email/disconnect', { method: 'POST' });
-    const d = await r.json();
-    if (d.disconnected) {
-      document.getElementById('email-connected-state').classList.add('hidden');
-      document.getElementById('email-connected-state').classList.remove('block');
-      document.getElementById('email-disconnected-state').classList.remove('hidden');
-      document.getElementById('email-disconnected-state').classList.add('block');
-    }
-  } catch(e) {
-    alert('Failed to disconnect. Please try again.');
-  }
-}
-
-// Handle success/error params from OAuth callback
-const params = new URLSearchParams(window.location.search);
-if (params.get('email_connected') === 'google') {
-  // Reload to show connected state
-  window.location.search = '';
-  location.reload();
-}
-if (params.get('email_error')) {
-  alert('Failed to connect email: ' + params.get('email_error'));
-}
-
-async function checkEmailStatus() {
-  try {
-    const r = await fetch('/email/status');
-    const d = await r.json();
-    if (d.connected && !document.getElementById('connected-email').textContent) {
-      location.reload();
-    }
-  } catch(e) {}
-}
-</script>
 
   <!-- Tab 3: Target Profile -->
   <div id="tab-target" class="tab-content hidden">
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-semibold text-slate-800">Target Profiles</h3>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="font-semibold text-slate-800">Target Profiles</h2>
         <button onclick="showAddTargetProfile()" class="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">+ Add Profile</button>
       </div>
-      {% if target_profiles %}
-      <div class="space-y-3">
-        {% for tp in target_profiles %}
-        <div class="p-4 border border-slate-200 rounded-lg">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-semibold text-slate-800">{{ tp.name }}</p>
-              <p class="text-xs text-slate-500 mt-0.5">{{ tp.business_name }} · {{ tp.industries|join(', ') }}</p>
-            </div>
-            <span class="px-2 py-0.5 text-xs font-medium rounded-full {% if tp.is_active %}bg-green-100 text-green-700{% else %}bg-slate-100 text-slate-600{% endif %}">
-              {{ 'Active' if tp.is_active else 'Inactive' }}
-            </span>
+      <div id="target-profile-list" class="p-6">
+        <p class="text-sm text-slate-400">Loading profiles...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Target Profile Modal -->
+  <div id="profile-modal" class="fixed inset-0 z-50 hidden bg-black/40 flex items-center justify-center" onclick="closeProfileModal(event)">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-6 border-b border-slate-100">
+        <h3 class="text-lg font-semibold text-slate-900" id="profile-modal-title">Add Target Profile</h3>
+        <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <input type="hidden" id="pf-id" value="">
+
+      <div class="p-6 space-y-5">
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Business Line *</label>
+          <select id="pf-business" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            {% for b in businesses %}
+            <option value="{{ b.id }}">{{ b.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Profile Name *</label>
+          <input type="text" id="pf-name" placeholder="e.g. Boleh AI - Accounting Firm Target" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">What does your company do?</label>
+          <textarea id="pf-description" rows="3" placeholder="Describe your company's products/services, what you offer..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Value Proposition</label>
+          <textarea id="pf-value-prop" rows="2" placeholder="What value do you deliver to customers?" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Target Industries (comma-separated)</label>
+          <input type="text" id="pf-industries" placeholder="e.g. Accounting, Audit, Tax, Professional Services" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Target Locations (comma-separated)</label>
+          <input type="text" id="pf-locations" placeholder="e.g. Kuala Lumpur, Selangor, Penang" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+
+        <div class="flex gap-6">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Company Size</label>
+            <select id="pf-size" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+              <option value="any">Any size</option>
+              <option value="small">Small (1-10)</option>
+              <option value="medium">Medium (11-50)</option>
+              <option value="large">Large (51+)</option>
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Min AI Score</label>
+            <input type="number" id="pf-min-score" value="5" min="1" max="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+          </div>
+          <div class="flex items-end">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="pf-active" checked class="rounded border-slate-300 text-blue-600">
+              <span class="text-sm text-slate-700">Active</span>
+            </label>
           </div>
         </div>
-        {% endfor %}
+
       </div>
-      {% else %}
-      <p class="text-sm text-slate-400">No target profiles configured yet.</p>
-      {% endif %}
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <button id="pf-delete-btn" onclick="deleteProfile()" class="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors hidden">Delete</button>
+        <div class="flex items-center gap-3 ml-auto">
+          <button onclick="closeProfileModal()" class="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
+          <button onclick="saveProfile()" class="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">Save Profile</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -277,6 +274,7 @@ function switchTab(tab) {
   const btn = document.querySelector('[data-tab="' + tab + '"]');
   btn.classList.remove('text-slate-500', 'border-transparent');
   btn.classList.add('text-slate-900', 'border-blue-600');
+  if (tab === 'target') loadTargetProfiles();
 }
 
 async function loadSettings() {
@@ -311,6 +309,240 @@ async function saveSettings() {
   } catch(e) { alert('Failed to save settings'); }
   btn.disabled = false;
   btn.textContent = 'Save Settings';
+}
+
+// ── Email Connection ──
+
+function showEmailModal() {
+  document.getElementById('email-modal').classList.remove('hidden');
+}
+function closeEmailModal(e) {
+  document.getElementById('email-modal').classList.add('hidden');
+}
+function connectGoogle() {
+  window.location.href = '/email/connect/google';
+}
+async function disconnectEmail() {
+  if (!confirm('Disconnect your Google email from Flowreach?')) return;
+  try {
+    const r = await fetch('/email/disconnect', { method: 'POST' });
+    const d = await r.json();
+    if (d.disconnected) {
+      document.getElementById('email-connected-state').classList.add('hidden');
+      document.getElementById('email-connected-state').classList.remove('block');
+      document.getElementById('email-disconnected-state').classList.remove('hidden');
+      document.getElementById('email-disconnected-state').classList.add('block');
+    }
+  } catch(e) { alert('Failed to disconnect. Please try again.'); }
+}
+
+const params = new URLSearchParams(window.location.search);
+if (params.get('email_connected') === 'google') {
+  window.location.search = '';
+  location.reload();
+}
+if (params.get('email_error')) {
+  alert('Failed to connect email: ' + params.get('email_error'));
+}
+
+async function checkEmailStatus() {
+  try {
+    const r = await fetch('/email/status');
+    const d = await r.json();
+    if (d.connected && !document.getElementById('connected-email').textContent) {
+      location.reload();
+    }
+  } catch(e) {}
+}
+
+// ── Target Profiles ──
+
+var currentProfiles = [];
+
+function renderProfileCards(profiles) {
+  const container = document.getElementById('target-profile-list');
+  if (!profiles || profiles.length === 0) {
+    container.innerHTML = '<p class="text-sm text-slate-400">No target profiles configured yet. Click "+ Add Profile" to create one.</p>';
+    return;
+  }
+  let html = '<div class="space-y-3">';
+  for (const p of profiles) {
+    const industries = (p.industries || []).join(', ') || 'All industries';
+    const locations = (p.locations || []).join(', ') || 'All locations';
+    const desc = p.business_description || '';
+    const vp = p.business_value_proposition || '';
+    html += '<div class="p-4 border border-slate-200 rounded-lg hover:border-blue-200 transition-colors">';
+    html += '<div class="flex items-start justify-between">';
+    html += '<div class="flex-1">';
+    html += '<div class="flex items-center gap-2 mb-1">';
+    html += '<p class="text-sm font-semibold text-slate-800">' + escapeHtml(p.name || 'Untitled') + '</p>';
+    if (p.business_name) {
+      html += '<span class="px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">' + escapeHtml(p.business_name) + '</span>';
+    }
+    html += '<span class="px-2 py-0.5 text-xs font-medium rounded-full ' + (p.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600') + '">' + (p.is_active ? 'Active' : 'Inactive') + '</span>';
+    html += '</div>';
+    if (desc) html += '<p class="text-xs text-slate-600 mt-1">' + escapeHtml(desc.length > 120 ? desc.slice(0,120) + '...' : desc) + '</p>';
+    html += '<p class="text-xs text-slate-400 mt-1.5">Industries: ' + escapeHtml(industries) + ' &middot; Locations: ' + escapeHtml(locations) + ' &middot; Size: ' + escapeHtml(p.company_size || 'any') + '</p>';
+    html += '</div>';
+    html += '<div class="flex items-center gap-2 ml-3 flex-shrink-0">';
+    html += '<button onclick="editProfile(\'' + p.id + '\')" class="px-2.5 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">Edit</button>';
+    html += '<button onclick="confirmDeleteProfile(\'' + p.id + '\',\'' + escapeHtml(p.name || '') + '\')" class="px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">Delete</button>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+async function loadTargetProfiles() {
+  try {
+    const r = await fetch('/api/target-profiles');
+    const d = await r.json();
+    currentProfiles = d.profiles || [];
+    renderProfileCards(currentProfiles);
+  } catch(e) {
+    document.getElementById('target-profile-list').innerHTML = '<p class="text-sm text-red-500">Failed to load profiles.</p>';
+  }
+}
+
+function showAddTargetProfile() {
+  document.getElementById('profile-modal-title').textContent = 'Add Target Profile';
+  document.getElementById('pf-id').value = '';
+  document.getElementById('pf-name').value = '';
+  document.getElementById('pf-description').value = '';
+  document.getElementById('pf-value-prop').value = '';
+  document.getElementById('pf-industries').value = '';
+  document.getElementById('pf-locations').value = '';
+  document.getElementById('pf-size').value = 'any';
+  document.getElementById('pf-min-score').value = '5';
+  document.getElementById('pf-active').checked = true;
+  document.getElementById('pf-delete-btn').classList.add('hidden');
+  document.getElementById('profile-modal').classList.remove('hidden');
+}
+
+function closeProfileModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('profile-modal').classList.add('hidden');
+}
+
+async function editProfile(profileId) {
+  const p = currentProfiles.find(x => x.id === profileId);
+  if (!p) return;
+
+  document.getElementById('profile-modal-title').textContent = 'Edit Target Profile';
+  document.getElementById('pf-id').value = p.id;
+  document.getElementById('pf-business').value = p.business_id || '';
+  document.getElementById('pf-name').value = p.name || '';
+  document.getElementById('pf-description').value = p.business_description || '';
+  document.getElementById('pf-value-prop').value = p.business_value_proposition || '';
+  document.getElementById('pf-industries').value = (p.industries || []).join(', ');
+  document.getElementById('pf-locations').value = (p.locations || []).join(', ');
+  document.getElementById('pf-size').value = p.company_size || 'any';
+  document.getElementById('pf-min-score').value = p.min_ai_score || 5;
+  document.getElementById('pf-active').checked = p.is_active !== false;
+  document.getElementById('pf-delete-btn').classList.remove('hidden');
+  document.getElementById('profile-modal').classList.remove('hidden');
+}
+
+async function saveProfile() {
+  const profileId = document.getElementById('pf-id').value;
+  const businessId = document.getElementById('pf-business').value;
+  const name = document.getElementById('pf-name').value.trim();
+  const description = document.getElementById('pf-description').value.trim();
+  const valueProp = document.getElementById('pf-value-prop').value.trim();
+  const industries = document.getElementById('pf-industries').value.split(',').map(s => s.trim()).filter(Boolean);
+  const locations = document.getElementById('pf-locations').value.split(',').map(s => s.trim()).filter(Boolean);
+  const companySize = document.getElementById('pf-size').value;
+  const minScore = parseInt(document.getElementById('pf-min-score').value) || 5;
+  const isActive = document.getElementById('pf-active').checked;
+
+  if (!businessId) { alert('Please select a business line.'); return; }
+  if (!name) { alert('Please enter a profile name.'); return; }
+
+  const isNew = !profileId;
+
+  try {
+    // Save business info (description, value proposition)
+    await fetch('/api/businesses/' + businessId, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ description: description, value_proposition: valueProp })
+    });
+
+    // Save target profile
+    const profilePayload = {
+      business_id: businessId,
+      name: name,
+      industries: industries,
+      locations: locations,
+      company_size: companySize,
+      min_ai_score: minScore,
+      is_active: isActive,
+      keywords_include: [],
+      keywords_exclude: []
+    };
+
+    let r;
+    if (isNew) {
+      r = await fetch('/api/target-profiles', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(profilePayload)
+      });
+    } else {
+      r = await fetch('/api/target-profiles/' + profileId, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(profilePayload)
+      });
+    }
+
+    const result = await r.json();
+    if (result.success || result.profile) {
+      closeProfileModal();
+      await loadTargetProfiles();
+    } else {
+      alert('Save failed: ' + (result.error || 'Unknown error'));
+    }
+  } catch(e) {
+    alert('Error saving profile: ' + e.message);
+  }
+}
+
+function confirmDeleteProfile(profileId, name) {
+  if (!confirm('Delete profile "' + name + '"? This cannot be undone.')) return;
+  deleteProfileById(profileId);
+}
+
+async function deleteProfileById(profileId) {
+  try {
+    const r = await fetch('/api/target-profiles/' + profileId, { method: 'DELETE' });
+    const d = await r.json();
+    if (d.success) {
+      closeProfileModal();
+      await loadTargetProfiles();
+    } else {
+      alert('Delete failed: ' + (d.error || 'Unknown error'));
+    }
+  } catch(e) {
+    alert('Error deleting profile: ' + e.message);
+  }
+}
+
+function deleteProfile() {
+  const profileId = document.getElementById('pf-id').value;
+  if (!profileId) return;
+  const name = document.getElementById('pf-name').value || 'this profile';
+  if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
+  deleteProfileById(profileId);
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 </script>
 {% endblock %}
