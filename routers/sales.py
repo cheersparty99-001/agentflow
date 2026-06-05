@@ -1,6 +1,8 @@
 import os
 import uuid
 import json
+import random
+import time
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -174,6 +176,25 @@ def _send_single_email(account_id: str, lead_id: str, to_email: str, subject: st
     else:
         error = result.get("error", result.get("reason", "Send failed"))
         return {"ok": False, "error": error}
+
+
+# ── Business hours check ─────────────────────────────────────────────────────────
+
+def _is_business_hours() -> tuple[bool, str]:
+    """Check if current time is within Malaysian business hours (Mon-Fri, 9am-6pm MYT / UTC+8).
+    Returns (True, "") if within hours, or (False, reason_msg) if outside.
+    """
+    now_utc = datetime.utcnow()
+    myt_offset = timedelta(hours=8)
+    now_myt = now_utc + myt_offset
+    weekday = now_myt.weekday()  # 0=Mon, 6=Sun
+    hour = now_myt.hour
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    if weekday >= 5:
+        return False, f"Outside business hours — today is {day_names[weekday]} (MYT). Sends only run Mon-Fri, 9am-6pm MYT."
+    if hour < 9 or hour >= 18:
+        return False, f"Outside business hours — current time is {now_myt.strftime('%H:%M')} MYT. Sends only run 9am-6pm MYT."
+    return True, ""
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
@@ -426,31 +447,197 @@ async def outreach_send(request: Request):
     user = await require_user(request)
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
-    
+
     try:
         body = await request.json()
     except:
         return JSONResponse({"ok": False, "error": "Invalid JSON"})
-    
+
     lead_ids = body.get("lead_ids", [])
-    business = body.get("business", "Boleh AI")
-    
+    business = body.get("business", "")
+    message_type = body.get("message_type", "cold")
+    channel = body.get("channel", "email")
+
     if not lead_ids:
         return JSONResponse({"ok": False, "error": "No leads selected"})
-    
+
+    account_id = user.get("account_id", "")
+    agent_name = user.get("name", "The Flowreach Team")
+    agent_title = user.get("title", "B2B Sales Automation")
+
+    # ── 1. Business hours check ──
+    ok, msg = _is_business_hours()
+    if not ok:
+        return JSONResponse({"ok": False, "error": msg})
+
+    # ── 2. Cap at 20 leads per batch ──
+    total = len(lead_ids)
+    queued = 0
+    if total > 20:
+        queued = total - 20
+        lead_ids = lead_ids[:20]
+
+    # ── 3. Process each lead ──
+    from services.sales.message_gen import generate_message
+    from services.sales import usage as sales_usage
+
     sent = 0
-    for lid in lead_ids:
+    results = []
+    stopped_early = False
+
+    for i, lid in enumerate(lead_ids):
         lead = data_leads.get_lead(lid)
-        if lead and lead.get("status") == "cold":
-            data_leads.update_lead_status(lid, "contacted")
+        if not lead:
+            results.append({"lead_id": lid, "company_name": "?", "status": "skipped", "error": "Lead not found"})
+            continue
+
+        company_name = lead.get("company_name", lead.get("name", "Unknown"))
+        to_email = lead.get("email", "")
+
+        if not to_email:
+            results.append({"lead_id": lid, "company_name": company_name, "status": "skipped", "error": "No email address"})
+            continue
+
+        # Check monthly/daily usage limits
+        limit_check = sales_usage.check_limits(account_id, "message")
+        if not limit_check.get("allowed"):
+            stopped_early = True
+            results.append({
+                "lead_id": lid, "company_name": company_name,
+                "status": "skipped", "error": limit_check.get("reason", "Usage limit reached"),
+            })
+            break
+
+        # Generate AI copy
+        try:
+            message = generate_message(
+                lead=lead,
+                channel=channel,
+                message_type=message_type,
+                agent_name=agent_name,
+                agent_title=agent_title,
+                account_id=account_id,
+                company_name_override=business,
+            )
+        except Exception as e:
+            err_msg = f"Message generation failed: {str(e)}"
+            print(f"[Sales/Outreach] {err_msg}")
+            results.append({"lead_id": lid, "company_name": company_name, "status": "failed", "error": err_msg})
+            continue
+
+        subject = message.get("subject", "")
+        body_text = message.get("body", "")
+
+        # Send the email via Gmail API
+        send_result = _send_single_email(account_id, lid, to_email, subject, body_text)
+
+        if send_result.get("ok"):
+            # ── Success ──
+            if lead.get("status") == "cold":
+                data_leads.update_lead_status(lid, "contacted")
             data_leads.create_activity(
                 lid, "email",
-                f"Outreach sent ({business})",
-                {"detail": f"Auto-generated outreach message for {lead.get('company_name', lead.get('name', 'lead'))}"},
+                f"Outreach sent to {to_email}",
+                {"subject": subject, "detail": f"Auto-generated outreach message for {company_name}"},
             )
             sent += 1
-    
-    return JSONResponse({"ok": True, "sent": sent})
+            results.append({"lead_id": lid, "company_name": company_name, "status": "sent"})
+            print(f"[Sales/Outreach] Sent to {company_name}: success")
+        else:
+            # ── Failure — log and continue ──
+            error = send_result.get("error", "Send failed")
+            data_leads.create_activity(
+                lid, "email",
+                f"Email FAILED: {error}",
+                {"detail": f"To: {to_email}, Subject: {subject}, Error: {error}"},
+            )
+            results.append({"lead_id": lid, "company_name": company_name, "status": "failed", "error": error})
+            print(f"[Sales/Outreach] Sent to {company_name}: fail — {error}")
+
+        # Random delay between sends (30-60 seconds)
+        if i < len(lead_ids) - 1:
+            delay = random.uniform(30, 60)
+            print(f"[Sales/Outreach] Waiting {delay:.0f}s before next send...")
+            time.sleep(delay)
+
+    # ── Build response ──
+    resp = {
+        "ok": True,
+        "total": total,
+        "sent": sent,
+        "failed": len([r for r in results if r["status"] == "failed"]),
+        "skipped": len([r for r in results if r["status"] == "skipped"]),
+        "results": results,
+    }
+    if queued:
+        resp["queued"] = queued
+        resp["message"] = (
+            f"Processed first 20 leads. {queued} lead(s) remaining — "
+            f"submit a new request with their lead_ids to process the rest."
+        )
+    if stopped_early:
+        resp["stopped_early"] = True
+
+    return JSONResponse(resp)
+
+
+@router.get("/sales/outreach/preview")
+async def outreach_preview(request: Request):
+    """Preview leads ready for outreach (score >= 7, status=cold) with AI-generated copy.
+    Returns the generated email subject/body so the admin can review before sending.
+    """
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"ok": False, "error": "Not authenticated"})
+
+    account_id = user.get("account_id", "")
+    agent_name = user.get("name", "The Flowreach Team")
+    agent_title = user.get("title", "B2B Sales Automation")
+
+    # Find leads with score >= 7 AND status == "cold"
+    all_leads = data_leads.get_all_leads()
+    candidates = [
+        l for l in all_leads
+        if (l.get("ai_score") or l.get("score") or 0) >= 7 and l.get("status") == "cold"
+    ]
+
+    leads_with_email = [l for l in candidates if l.get("email")]
+    leads_without_email = [l for l in candidates if not l.get("email")]
+
+    from services.sales.message_gen import generate_message
+
+    previews = []
+    for lead in leads_with_email:
+        try:
+            message = generate_message(
+                lead=lead,
+                channel="email",
+                message_type="cold",
+                agent_name=agent_name,
+                agent_title=agent_title,
+                account_id=account_id,
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            message = {"subject": "(generation failed)", "body": f"Error: {str(e)}"}
+
+        previews.append({
+            "lead_id": lead.get("id", ""),
+            "company_name": lead.get("company_name", ""),
+            "contact_name": lead.get("contact_name", ""),
+            "email": lead.get("email", ""),
+            "subject": message.get("subject", ""),
+            "body": message.get("body", ""),
+            "ai_score": lead.get("ai_score") or lead.get("score") or 0,
+        })
+
+    return JSONResponse({
+        "total": len(candidates),
+        "total_with_email": len(leads_with_email),
+        "total_without_email": len(leads_without_email),
+        "leads": previews,
+    })
 
 
 @router.get("/sales/leads/{lead_id}", response_class=HTMLResponse)
