@@ -229,28 +229,32 @@ Submitted at: {now}
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
+            req_body = {
+                "from": "Flowreach Demo <demo@notify.flowreach.work>",
+                "to": ["yy@flowreach.work"],
+                "subject": f"New Demo Request — {data.company}",
+                "text": email_body,
+            }
+            print(f"[demo] Sending to Resend: to=yy@flowreach.work subject='New Demo Request — {data.company}'")
             resp = await client.post(
                 "https://api.resend.com/emails",
                 headers={
                     "Authorization": f"Bearer {cfg.RESEND_API_KEY}",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "from": "Flowreach Demo <demo@notify.flowreach.work>",
-                    "to": ["yy@flowreach.work"],
-                    "subject": f"New Demo Request — {data.company}",
-                    "text": email_body,
-                },
+                json=req_body,
             )
+            resp_body = resp.text
+            print(f"[demo] Resend response: status={resp.status_code} body={resp_body[:2000]!r}")
             if resp.status_code >= 400:
-                error_detail = resp.text[:500]
-                print(f"[demo] Resend error {resp.status_code}: {error_detail}")
                 return JSONResponse(
                     status_code=500,
                     content={"detail": "Failed to send notification. Please try again later."},
                 )
     except Exception as e:
+        import traceback
         print(f"[demo] Resend exception: {e}")
+        traceback.print_exc()
         return JSONResponse(
             status_code=500,
             content={"detail": "Failed to send notification. Please try again later."},
