@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Demo — Flowreach</title>
+<meta name="description" content="Book a demo of Flowreach — your AI sales team, fully automated.">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        },
+        colors: {
+          ink: '#0A0F1E',
+          brand: '#3B6EF6',
+          muted: '#64748B',
+          line: '#E2E8F0',
+          surface: '#F8FAFC',
+        },
+        boxShadow: {
+          'soft': '0 1px 2px rgba(10,15,30,0.04), 0 4px 12px rgba(10,15,30,0.06)',
+          'lift': '0 10px 30px -10px rgba(10,15,30,0.20), 0 4px 14px -4px rgba(10,15,30,0.10)',
+          'glow': '0 30px 80px -20px rgba(59,110,246,0.45)',
+        },
+        animation: {
+          'fade-up': 'fadeUp 0.7s ease-out both',
+        },
+        keyframes: {
+          fadeUp: { '0%': { opacity: 0, transform: 'translateY(16px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', sans-serif; color: #0A0F1E; background:#fff; -webkit-font-smoothing: antialiased; }
+  .gradient-text {
+    background: linear-gradient(135deg, #6366F1 0%, #3B6EF6 50%, #06B6D4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .gradient-bg {
+    background: linear-gradient(135deg, #6366F1 0%, #3B6EF6 50%, #06B6D4 100%);
+  }
+  .nav-link { position: relative; }
+  .nav-link::after {
+    content: ""; position: absolute; left: 0; bottom: -4px;
+    width: 0; height: 2px; background: #3B6EF6;
+    transition: width .25s ease;
+  }
+  .nav-link:hover::after { width: 100%; }
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body class="font-sans text-ink bg-white">
+
+<!-- =================== NAVBAR =================== -->
+<header id="navbar" class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-line">
+  <nav class="max-w-7xl mx-auto px-5 sm:px-8 h-16 md:h-20 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <img src="/static/images/flowreach-logo-dark.svg" alt="Flowreach" class="h-8">
+    </a>
+    <div class="hidden md:flex items-center gap-9 text-sm font-medium text-ink/80">
+      <a href="/#features" class="nav-link hover:text-ink">Product</a>
+      <a href="/#how-it-works" class="nav-link hover:text-ink">Solutions</a>
+      <a href="/pricing" class="nav-link hover:text-ink">Pricing</a>
+      <a href="/blog" class="nav-link hover:text-ink">Blog</a>
+    </div>
+    <div class="hidden md:flex items-center gap-3">
+      <a href="/login" class="px-4 py-2 text-sm font-semibold text-ink rounded-lg border border-line hover:border-ink/30 hover:bg-surface transition">Login</a>
+      <a href="/login" class="px-4 py-2 text-sm font-semibold text-white rounded-lg bg-brand hover:bg-brand/90 shadow-soft transition">Get Started</a>
+    </div>
+    <button id="mobile-toggle" class="md:hidden p-2 -mr-2 text-ink" aria-label="Open menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+  <div id="mobile-menu" class="hidden md:hidden border-t border-line bg-white">
+    <div class="px-5 py-4 space-y-3">
+      <a href="/#features" class="block py-2 text-ink/80 font-medium">Product</a>
+      <a href="/#how-it-works" class="block py-2 text-ink/80 font-medium">Solutions</a>
+      <a href="/pricing" class="block py-2 text-ink/80 font-medium">Pricing</a>
+      <a href="/blog" class="block py-2 text-ink/80 font-medium">Blog</a>
+      <div class="pt-3 flex gap-2 border-t border-line">
+        <a href="/login" class="flex-1 text-center px-4 py-2.5 text-sm font-semibold rounded-lg border border-line">Login</a>
+        <a href="/login" class="flex-1 text-center px-4 py-2.5 text-sm font-semibold rounded-lg bg-brand text-white">Get Started</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- =================== DEMO FORM =================== -->
+<section class="relative overflow-hidden min-h-[calc(100vh-5rem)]">
+  <!-- Background glow -->
+  <div aria-hidden="true" class="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-30 blur-3xl"
+       style="background: radial-gradient(closest-side, #6366F1, transparent 70%);"></div>
+  <div aria-hidden="true" class="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full opacity-20 blur-3xl"
+       style="background: radial-gradient(closest-side, #06B6D4, transparent 70%);"></div>
+
+  <div id="form-container" class="relative max-w-lg mx-auto px-5 sm:px-8 py-16 md:py-24">
+    <div class="text-center reveal visible">
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 text-brand text-xs font-semibold tracking-wide">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand"></span>
+        BOOK A DEMO
+      </span>
+      <h1 class="mt-6 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.1]">
+        See Flowreach in <span class="gradient-text">action</span>
+      </h1>
+      <p class="mt-4 text-lg text-muted max-w-md mx-auto">
+        Fill in the form and we'll reach out on WhatsApp within 24 hours to schedule your personalised demo.
+      </p>
+    </div>
+
+    <form id="demo-form" class="mt-10 reveal visible bg-white border border-line rounded-2xl p-8 shadow-soft">
+      <!-- Name -->
+      <div class="mb-5">
+        <label for="name" class="block text-sm font-semibold text-ink mb-1.5">Name <span class="text-red-500">*</span></label>
+        <input type="text" id="name" name="name" required
+               class="w-full px-4 py-3 rounded-xl border border-line text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+               placeholder="Your full name">
+      </div>
+
+      <!-- Company Name -->
+      <div class="mb-5">
+        <label for="company" class="block text-sm font-semibold text-ink mb-1.5">Company Name <span class="text-red-500">*</span></label>
+        <input type="text" id="company" name="company" required
+               class="w-full px-4 py-3 rounded-xl border border-line text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+               placeholder="Your company">
+      </div>
+
+      <!-- WhatsApp Number -->
+      <div class="mb-5">
+        <label for="whatsapp" class="block text-sm font-semibold text-ink mb-1.5">WhatsApp Number <span class="text-red-500">*</span></label>
+        <input type="tel" id="whatsapp" name="whatsapp" required
+               class="w-full px-4 py-3 rounded-xl border border-line text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+               placeholder="+60 12-345 6789">
+      </div>
+
+      <!-- Email -->
+      <div class="mb-5">
+        <label for="email" class="block text-sm font-semibold text-ink mb-1.5">Email <span class="text-muted text-xs font-normal">(optional)</span></label>
+        <input type="email" id="email" name="email"
+               class="w-full px-4 py-3 rounded-xl border border-line text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition"
+               placeholder="you@company.com">
+      </div>
+
+      <!-- Dropdown -->
+      <div class="mb-6">
+        <label for="challenge" class="block text-sm font-semibold text-ink mb-1.5">What's your biggest sales challenge? <span class="text-red-500">*</span></label>
+        <select id="challenge" name="challenge" required
+                class="w-full px-4 py-3 rounded-xl border border-line text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition bg-white appearance-none"
+                style="background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px;">
+          <option value="" disabled selected>Select your challenge</option>
+          <option value="找不到足够的潜在客户">找不到足够的潜在客户</option>
+          <option value="跟进太费时间">跟进太费时间</option>
+          <option value="不知道哪些客户值得追">不知道哪些客户值得追</option>
+          <option value="销售团队人手不足">销售团队人手不足</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+
+      <button type="submit" id="submit-btn"
+              class="w-full px-6 py-3.5 rounded-xl gradient-bg text-white font-semibold shadow-lift hover:opacity-90 transition text-base flex items-center justify-center gap-2">
+        <span id="btn-text">Book Your Demo</span>
+        <span id="btn-spinner" class="hidden">
+          <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+        </span>
+      </button>
+
+      <p class="mt-4 text-xs text-muted text-center">
+        7-day money-back guarantee · No long-term contracts
+      </p>
+    </form>
+
+    <!-- Thank you message (hidden by default) -->
+    <div id="thank-you" class="hidden mt-10 text-center reveal visible bg-white border border-line rounded-2xl p-10 shadow-soft">
+      <div class="mx-auto w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-6">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2 class="text-2xl font-extrabold text-ink">Thanks! 🎉</h2>
+      <p class="mt-4 text-lg text-muted leading-relaxed">We'll reach out on WhatsApp within 24 hours to schedule your demo.</p>
+      <a href="/" class="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand/90 transition">
+        Back to Home
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FOOTER =================== -->
+<footer class="bg-ink text-white/70 border-t border-white/10">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8 py-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+    <p>© 2026 Flowreach Sdn. Bhd. All rights reserved.</p>
+    <div class="flex gap-6">
+      <a href="/privacy" class="hover:text-white transition">Privacy</a>
+      <a href="/terms" class="hover:text-white transition">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<!-- =================== SCRIPTS =================== -->
+<script>
+  // Mobile menu toggle
+  const toggle = document.getElementById('mobile-toggle');
+  const menu = document.getElementById('mobile-menu');
+  toggle?.addEventListener('click', () => menu.classList.toggle('hidden'));
+  menu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.add('hidden')));
+
+  // Form submission
+  const form = document.getElementById('demo-form');
+  const formContainer = document.getElementById('form-container');
+  const submitBtn = document.getElementById('submit-btn');
+  const btnText = document.getElementById('btn-text');
+  const btnSpinner = document.getElementById('btn-spinner');
+  const thankYou = document.getElementById('thank-you');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Validate
+    const name = form.name.value.trim();
+    const company = form.company.value.trim();
+    const whatsapp = form.whatsapp.value.trim();
+    const challenge = form.challenge.value;
+
+    if (!name || !company || !whatsapp || !challenge) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+
+    // Show loading
+    btnText.textContent = 'Submitting...';
+    btnSpinner.classList.remove('hidden');
+    submitBtn.disabled = true;
+
+    try {
+      const res = await fetch('/demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, company, whatsapp,
+          email: form.email.value.trim(),
+          challenge
+        })
+      });
+
+      if (res.ok) {
+        form.classList.add('hidden');
+        thankYou.classList.remove('hidden');
+        thankYou.classList.add('visible');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.detail || 'Something went wrong. Please try again.');
+      }
+    } catch (err) {
+      alert('Network error. Please check your connection and try again.');
+    } finally {
+      btnText.textContent = 'Book Your Demo';
+      btnSpinner.classList.add('hidden');
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

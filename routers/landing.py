@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
+import httpx
+import datetime
+import config as cfg
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -181,3 +185,72 @@ async def terms_of_service(request: Request):
         request=request,
         name="landing/terms.html",
     )
+
+
+# =================== DEMO BOOKING ===================
+
+class DemoRequest(BaseModel):
+    name: str = Field(min_length=1)
+    company: str = Field(min_length=1)
+    whatsapp: str = Field(min_length=1)
+    email: str = ""
+    challenge: str = Field(min_length=1)
+
+
+@router.get("/demo", response_class=HTMLResponse)
+async def demo_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="landing/demo.html",
+    )
+
+
+@router.post("/demo", response_class=JSONResponse)
+async def submit_demo(data: DemoRequest):
+    if not cfg.RESEND_API_KEY:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Email service not configured. Please contact us directly at hello@flowreach.app"},
+        )
+
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    email_body = f"""New Demo Request — {data.company}
+
+Name: {data.name}
+Company: {data.company}
+WhatsApp: {data.whatsapp}
+Email: {data.email or 'Not provided'}
+Challenge: {data.challenge}
+Submitted at: {now}
+"""
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {cfg.RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": "Flowreach Demo <demo@notify.flowreach.work>",
+                    "to": ["yy@flowreach.work"],
+                    "subject": f"New Demo Request — {data.company}",
+                    "text": email_body,
+                },
+            )
+            if resp.status_code >= 400:
+                error_detail = resp.text[:500]
+                print(f"[demo] Resend error {resp.status_code}: {error_detail}")
+                return JSONResponse(
+                    status_code=500,
+                    content={"detail": "Failed to send notification. Please try again later."},
+                )
+    except Exception as e:
+        print(f"[demo] Resend exception: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Failed to send notification. Please try again later."},
+        )
+
+    return JSONResponse(content={"ok": True})
