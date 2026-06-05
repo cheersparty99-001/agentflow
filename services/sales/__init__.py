@@ -2,7 +2,7 @@
 
 from .scraper import scrape_leads, scrape_google_maps, scrape_news_leads, process_csv_upload
 from .qualifier import qualify_lead, qualify_leads
-from .message_gen import generate_message, TEMPLATES
+from .message_gen import generate_message, generate_campaign_messages
 from .outreach import send_outreach, run_campaign
 from .reply_handler import handle_reply
 from .gmail_client import GmailClient
@@ -17,7 +17,7 @@ __all__ = [
     "qualify_lead",
     "qualify_leads",
     "generate_message",
-    "TEMPLATES",
+    "generate_campaign_messages",
     "send_outreach",
     "run_campaign",
     "handle_reply",

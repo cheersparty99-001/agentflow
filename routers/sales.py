@@ -300,34 +300,31 @@ async def generate_email(request: Request, lead_id: str):
     if not lead:
         return JSONResponse({"ok": False, "error": "Lead not found"})
     
-    # Normalize lead for template field access
-    lead = _normalize_lead(lead)
+    account_id = user.get("account_id", "")
+    agent_name = user.get("name", user.get("email", "Alex"))
+    agent_title = user.get("title", "Business Development")
     
-    business = lead.get("business", "Boleh AI")
-    industry = lead.get("industry", "").replace("_", " ")
-    name = lead.get("name", "your company")
-    contact = lead.get("contact", "there")
-    location = lead.get("location", "Malaysia")
+    from services.sales.message_gen import generate_message
     
-    subjects = {
-        "food_beverage": f"Helping {name} save time with AI",
-        "retail": f"How {name} can automate customer follow-ups",
-        "insurance": f"Streamlining claims for {name}",
-        "healthcare": f"AI patient scheduling for {name}",
-        "technology": f"Scaling {name} with AI agents",
-        "finance": f"Financial automation for {name}",
-        "logistics": f"Route optimization for {name}",
-        "education": f"EdTech solutions for {name}",
-        "wholesale": f"AI for {name}\u2019s distribution",
-        "ecommerce": f"Growing {name} with AI recommendations",
-        "hospitality": f"Booking automation for {name}",
-        "professional_services": f"AI tools for {name}",
-    }
-    subject = subjects.get(industry.replace(" ", "_"), f"Hello from {business}")
-    
-    body = f"Hi {contact},\n\nI noticed {name} in {location} is doing well in the {industry} space. Many {industry} businesses we work with spend hours on repetitive tasks like follow-ups, lead qualification, and customer outreach.\n\nWe help companies like yours save 10+ hours per week by automating these with AI agents. Would you be open to a quick chat to see if this could work for {name}?\n\nBest regards,\nThe {business} Team"
-    
-    return JSONResponse({"ok": True, "subject": subject, "body": body})
+    try:
+        result = generate_message(
+            lead=lead,
+            channel="email",
+            message_type="cold",
+            agent_name=agent_name,
+            agent_title=agent_title,
+            account_id=account_id,
+        )
+        return JSONResponse({
+            "ok": True,
+            "subject": result["subject"],
+            "body": result["body"],
+            "generated_by": result.get("generated_by", "ai"),
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": f"Failed to generate email: {str(e)}"})
 
 
 @router.post("/sales/leads/{lead_id}/send-email")
