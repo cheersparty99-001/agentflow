@@ -210,7 +210,7 @@ async def submit_demo(data: DemoRequest):
     if not cfg.RESEND_API_KEY:
         return JSONResponse(
             status_code=500,
-            content={"detail": "Email service not configured. Please contact us directly at hello@flowreach.app"},
+            content={"detail": "Email service not configured. Please contact us directly at yy@flowreach.work"},
         )
 
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

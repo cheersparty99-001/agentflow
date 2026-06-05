@@ -86,7 +86,7 @@ async def get_settings(request: Request):
         return JSONResponse({
             "agency_name": "My Agency",
             "phone": "",
-            "email": "demo@flowreach.app",
+            "email": "demo@flowreach.work",
             "language": "en",
         })
 
