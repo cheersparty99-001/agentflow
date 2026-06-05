@@ -207,7 +207,10 @@ async def demo_page(request: Request):
 
 @router.post("/demo", response_class=JSONResponse)
 async def submit_demo(data: DemoRequest):
-    if not cfg.RESEND_API_KEY:
+    key = cfg.RESEND_API_KEY or ""
+    print(f"[demo] RESEND_API_KEY: len={len(key)} prefix={key[:4]!r}")
+
+    if not key:
         return JSONResponse(
             status_code=500,
             content={"detail": "Email service not configured. Please contact us directly at yy@flowreach.work"},
