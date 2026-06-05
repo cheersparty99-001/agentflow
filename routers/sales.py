@@ -301,8 +301,8 @@ async def generate_email(request: Request, lead_id: str):
         return JSONResponse({"ok": False, "error": "Lead not found"})
     
     account_id = user.get("account_id", "")
-    agent_name = user.get("name", user.get("email", "Alex"))
-    agent_title = user.get("title", "Business Development")
+    agent_name = user.get("name", "The Flowreach Team")
+    agent_title = user.get("title", "B2B Sales Automation")
     
     from services.sales.message_gen import generate_message
     
