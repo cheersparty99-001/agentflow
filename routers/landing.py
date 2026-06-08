@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 import httpx
@@ -261,3 +261,20 @@ Submitted at: {now}
         )
 
     return JSONResponse(content={"ok": True})
+
+
+@router.get("/sitemap.xml", response_class=Response, include_in_schema=False)
+async def sitemap():
+    pages = [
+        {"loc": "https://flowreach.work/", "priority": "1.0"},
+        {"loc": "https://flowreach.work/pricing", "priority": "0.8"},
+        {"loc": "https://flowreach.work/blog", "priority": "0.7"},
+        {"loc": "https://flowreach.work/demo", "priority": "0.9"},
+        {"loc": "https://flowreach.work/login", "priority": "0.5"},
+    ]
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for p in pages:
+        xml += f"  <url>\n    <loc>{p['loc']}</loc>\n    <priority>{p['priority']}</priority>\n  </url>\n"
+    xml += "</urlset>"
+    return Response(content=xml, media_type="application/xml")
