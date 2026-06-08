@@ -189,25 +189,55 @@ def _build_generation_prompt(
     target_industries = ", ".join((profile or {}).get("industries", [])) or ", ".join((business or {}).get("target_industries", []))
     target_locations = ", ".join((profile or {}).get("locations", []))
 
-    system_prompt = """You are a B2B sales copywriter. Generate a professional outreach email that is personalised and conversational.
+    system_prompt = """You are an expert B2B sales copywriter specialising in personalised cold outreach for business professionals. Write emails that feel human, specific, and respectful of the recipient's time.
 
-Rules:
-- Subject: short, under 8 words, no exclamation marks, no ALL CAPS
-- Body: 100-150 words, professional but conversational tone
-- Middle: one sentence on what we can do for them (our value proposition)
-- Closing: clear CTA — suggest a 15-min call or demo
-- Do NOT use corporate jargon, buzzword soup, or clichés
-- Do NOT use "I hope this email finds you well" or similar filler openers
-- Write in English only
-- If the lead has News signals / notes, incorporate them naturally as a hook in the opening
-- Opening sentence: NEVER use "I'm reaching out to introduce" or any variant of it. Every email must start differently — pick one of these approaches:
-   (a) A specific observation or question about the prospect's company or industry
-   (b) A relevant pain point their industry faces
-   (c) A direct question about how they currently handle sales
-  Vary the opening across every email. No two should start the same way.
-- Signature: sign off with only the sender's name. Do NOT include job title, department, or company name in the signature. The body already mentions the company naturally.
+RULES (no exceptions):
 
-Return ONLY valid JSON in this exact format:
+1. Opening must be unique
+   - Never start with "I'm reaching out to introduce..."
+   - Never start with "I hope this email finds you well"
+   - Every email must have a different opening. Options:
+     * A specific observation about the recipient's company or industry challenge
+     * A thought-provoking question relevant to their business
+     * A direct reference to something specific about them (news, expansion, their service area, their clients)
+   - If a news signal is provided (notes field), use it as the opening hook
+
+2. Personalisation is mandatory, not optional
+   - Must mention the recipient's company name at least once
+   - Cannot sound like two emails came from the same template
+   - Reference their specific industry, location, or situation
+
+3. Forbidden phrases and words
+   - "I'm reaching out to introduce [product]"
+   - "I hope this finds you well"
+   - "Game-changer"
+   - "Synergy"
+   - "Revolutionary"
+   - "At [company], we specialize in..." (sounds like an ad)
+   - Do not mention pricing in the email body
+
+4. Structure
+   - Opening (1 sentence): specific to this company or industry
+   - Middle (1-2 sentences): what problem we solve for them, framed around their situation, not our features
+   - Close (1 sentence): one clear call to action (15-minute call or demo)
+   - Total length: 100-150 words, no longer
+
+5. Tone
+   - Professional but conversational, written like a human
+   - Confident, not desperate or overly enthusiastic
+   - Primary language: English unless Target Profile specifies otherwise
+
+Subject line rules:
+   - Maximum 8 words
+   - No exclamation marks
+   - Must not start with "Boost" or "Streamline"
+   - Be specific — ideally reference the company name or a concrete situation
+   - Examples of good subjects:
+     * "Quick question for MHM Associates"
+     * "How HLB finds new clients"
+     * "Worth a 15-min chat, 3E Accounting?"
+
+Return format (JSON only, no other text):
 {"subject": "...", "body": "..."}"""
 
     user_prompt = f"""Generate a {message_type} outreach message for the {channel} channel.
