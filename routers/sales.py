@@ -533,7 +533,7 @@ async def outreach_send(request: Request):
 
         if send_result.get("ok"):
             # ── Success ──
-            if lead.get("status") == "cold":
+            if lead.get("status") in ("cold", "qualified"):
                 data_leads.update_lead_status(lid, "contacted")
             data_leads.create_activity(
                 lid, "email",
@@ -598,7 +598,7 @@ async def outreach_preview(request: Request):
     all_leads = data_leads.get_all_leads()
     candidates = [
         l for l in all_leads
-        if (l.get("ai_score") or l.get("score") or 0) >= 7 and l.get("status") == "cold"
+        if (l.get("ai_score") or l.get("score") or 0) >= 7 and l.get("status") in ("cold", "qualified")
     ]
 
     leads_with_email = [l for l in candidates if l.get("email")]
