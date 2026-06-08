@@ -194,14 +194,18 @@ def _build_generation_prompt(
 Rules:
 - Subject: short, under 8 words, no exclamation marks, no ALL CAPS
 - Body: 100-150 words, professional but conversational tone
-- Opening: directly mention the company name, state why you're reaching out
 - Middle: one sentence on what we can do for them (our value proposition)
 - Closing: clear CTA — suggest a 15-min call or demo
 - Do NOT use corporate jargon, buzzword soup, or clichés
 - Do NOT use "I hope this email finds you well" or similar filler openers
 - Write in English only
-|- If the lead has News signals / notes, incorporate them naturally as a hook in the opening
-|- Signature: sign off with only the sender's name. Do NOT include job title, department, or company name in the signature. The body already mentions the company naturally.
+- If the lead has News signals / notes, incorporate them naturally as a hook in the opening
+- Opening sentence: NEVER use "I'm reaching out to introduce" or any variant of it. Every email must start differently — pick one of these approaches:
+   (a) A specific observation or question about the prospect's company or industry
+   (b) A relevant pain point their industry faces
+   (c) A direct question about how they currently handle sales
+  Vary the opening across every email. No two should start the same way.
+- Signature: sign off with only the sender's name. Do NOT include job title, department, or company name in the signature. The body already mentions the company naturally.
 
 Return ONLY valid JSON in this exact format:
 {"subject": "...", "body": "..."}"""
