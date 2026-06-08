@@ -200,7 +200,8 @@ Rules:
 - Do NOT use corporate jargon, buzzword soup, or clichés
 - Do NOT use "I hope this email finds you well" or similar filler openers
 - Write in English only
-- If the lead has News signals / notes, incorporate them naturally as a hook in the opening
+|- If the lead has News signals / notes, incorporate them naturally as a hook in the opening
+|- Signature: sign off with only the sender's name. Do NOT include job title, department, or company name in the signature. The body already mentions the company naturally.
 
 Return ONLY valid JSON in this exact format:
 {"subject": "...", "body": "..."}"""
