@@ -236,7 +236,7 @@ Submitted at: {now}
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             req_body = {
-                "from": "Flowreach <hello@flowreach.work>",
+                "from": "Flowreach <yy@flowreach.work>",
                 "to": ["yy@flowreach.work"],
                 "subject": f"New Demo Request — {data.company}",
                 "text": email_body,
