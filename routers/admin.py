@@ -345,14 +345,6 @@ async def api_onboarding_generate_token(request: Request):
     if not user:
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 
-    if cfg.DEMO_MODE:
-        # In demo mode, generate a fake token
-        fake_token = str(uuid.uuid4())
-        return JSONResponse({
-            "token": fake_token,
-            "url": f"https://flowreach.work/register?token={fake_token}"
-        })
-
     try:
         sb = get_supabase()
         token_uuid = str(uuid.uuid4())
@@ -367,7 +359,7 @@ async def api_onboarding_generate_token(request: Request):
 
         return JSONResponse({
             "token": token_uuid,
-            "url": f"https://flowreach.work/register?token={token_uuid}",
+            "url": f"https://flowreach.work/register?token={token_uuid}"
         })
     except Exception as e:
         print(f"[admin] Error generating token: {e}")
