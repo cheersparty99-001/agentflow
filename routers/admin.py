@@ -1,12 +1,14 @@
 import os
 import html
+import uuid
+import httpx
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from jinja2 import Environment, FileSystemLoader
 from services.supabase_client import get_supabase, safe_single, safe_multi, safe_count, safe_insert, safe_update
 from routers.auth import get_current_user
 import config as cfg
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 
 router = APIRouter()
 
@@ -54,9 +56,40 @@ async def admin_accounts(request: Request):
         return RedirectResponse(url="/login")
 
     accounts = DEMO_ACCOUNTS if cfg.DEMO_MODE else []
+
+    # Fetch pending accounts and onboarding tokens from DB
+    pending_accounts = []
+    onboarding_tokens = []
+    if not cfg.DEMO_MODE:
+        try:
+            sb = get_supabase()
+            pa = sb.table("accounts").select("*").eq("status", "pending").execute()
+            if pa and pa.data:
+                # For each pending account, try to find the associated user email
+                for acct in pa.data:
+                    user_rec = sb.table("users").select("email").eq("account_id", acct["id"]).maybe_single().execute()
+                    pending_accounts.append({
+                        "id": acct["id"],
+                        "agency_name": acct.get("agency_name", ""),
+                        "email": user_rec.data.get("email", "") if user_rec and user_rec.data else "",
+                        "created_at": acct.get("created_at", ""),
+                    })
+        except Exception as e:
+            print(f"[admin] Error fetching pending accounts: {e}")
+
+        try:
+            sb = get_supabase()
+            ot = sb.table("onboarding_tokens").select("*").order("created_at", desc=True).execute()
+            if ot and ot.data:
+                onboarding_tokens = ot.data
+        except Exception as e:
+            print(f"[admin] Error fetching onboarding tokens: {e}")
+
     template = env.get_template("admin/accounts.html")
     html = template.render(
         accounts=accounts,
+        pending_accounts=pending_accounts,
+        onboarding_tokens=onboarding_tokens,
         agency_name="Admin Panel",
         demo_mode=cfg.DEMO_MODE,
         current_path=request.url.path,
@@ -281,3 +314,177 @@ async def admin_export_logs(request: Request):
 
     from fastapi.responses import PlainTextResponse
     return PlainTextResponse(csv_content, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=agent_logs.csv"})
+
+
+# --- Onboarding API Routes ---
+
+@router.get("/api/onboarding/tokens")
+async def api_onboarding_tokens(request: Request):
+    """List all onboarding tokens."""
+    user = await require_admin(request)
+    if not user:
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    tokens = []
+    if not cfg.DEMO_MODE:
+        try:
+            sb = get_supabase()
+            result = sb.table("onboarding_tokens").select("*").order("created_at", desc=True).execute()
+            if result and result.data:
+                tokens = result.data
+        except Exception as e:
+            print(f"[admin] Error fetching tokens: {e}")
+
+    return JSONResponse(tokens)
+
+
+@router.post("/api/onboarding/generate-token")
+async def api_onboarding_generate_token(request: Request):
+    """Generate a new onboarding token (7 day expiry)."""
+    user = await require_admin(request)
+    if not user:
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    if cfg.DEMO_MODE:
+        # In demo mode, generate a fake token
+        fake_token = str(uuid.uuid4())
+        return JSONResponse({
+            "token": fake_token,
+            "url": f"https://flowreach.work/register?token={fake_token}"
+        })
+
+    try:
+        sb = get_supabase()
+        token_uuid = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(days=7)
+
+        sb.table("onboarding_tokens").insert({
+            "token": token_uuid,
+            "created_by": user.get("email", ""),
+            "expires_at": expires_at.isoformat(),
+        }).execute()
+
+        return JSONResponse({
+            "token": token_uuid,
+            "url": f"https://flowreach.work/register?token={token_uuid}",
+        })
+    except Exception as e:
+        print(f"[admin] Error generating token: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/api/onboarding/approve")
+async def api_onboarding_approve(request: Request):
+    """Approve a pending account — set status=active, assign plan, create usage_limits, send activation email."""
+    user = await require_admin(request)
+    if not user:
+        return JSONResponse({"error": "Not authorized"}, status_code=403)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    account_id = body.get("account_id", "")
+    plan = body.get("plan", "")
+
+    if not account_id or not plan:
+        return JSONResponse({"error": "account_id and plan are required"}, status_code=400)
+
+    if plan not in ("Starter", "Growth", "Pro"):
+        return JSONResponse({"error": "Invalid plan. Must be Starter, Growth, or Pro"}, status_code=400)
+
+    # Define plan limits
+    plan_limits = {
+        "Starter": {"leads_per_month": 100, "messages_per_month": 300},
+        "Growth": {"leads_per_month": 300, "messages_per_month": 1000},
+        "Pro": {"leads_per_month": 800, "messages_per_month": 3000},
+    }
+    limits = plan_limits[plan]
+
+    if cfg.DEMO_MODE:
+        # In demo mode, just return success
+        return JSONResponse({"success": True, "message": f"Account approved with {plan} plan (demo mode)"})
+
+    sb = get_supabase()
+
+    # Update account status and plan
+    try:
+        sb.table("accounts").update({
+            "status": "active",
+            "plan": plan,
+        }).eq("id", account_id).execute()
+    except Exception as e:
+        return JSONResponse({"error": f"Failed to update account: {str(e)}"}, status_code=500)
+
+    # Create usage_limits record
+    try:
+        sb.table("usage_limits").insert({
+            "account_id": account_id,
+            "monthly_lead_limit": limits["leads_per_month"],
+            "monthly_message_limit": limits["messages_per_month"],
+        }).execute()
+    except Exception as e:
+        print(f"[admin] Error creating usage_limits: {e}")
+
+    # Find user email for activation email
+    customer_email = ""
+    customer_name = ""
+    try:
+        user_rec = sb.table("users").select("email").eq("account_id", account_id).maybe_single().execute()
+        if user_rec and user_rec.data:
+            customer_email = user_rec.data.get("email", "")
+    except Exception:
+        pass
+
+    try:
+        acct_rec = sb.table("accounts").select("agency_name").eq("id", account_id).maybe_single().execute()
+        if acct_rec and acct_rec.data:
+            customer_name = acct_rec.data.get("agency_name", "")
+    except Exception:
+        pass
+
+    # Send activation email
+    if cfg.RESEND_API_KEY and customer_email:
+        email_body = f"""Hi {customer_name},
+
+Your Flowreach account is ready!
+
+Log in here: https://flowreach.work/login
+
+Email: {customer_email}
+Plan: {plan}
+
+Your team will be in touch shortly to help you get started.
+
+Best,
+The Flowreach Team
+"""
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                req_body = {
+                    "from": "Flowreach <yy@flowreach.work>",
+                    "to": [customer_email],
+                    "subject": "Your Flowreach account is ready",
+                    "text": email_body,
+                }
+                print(f"[admin] Sending activation email to {customer_email}")
+                resp = await client.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {cfg.RESEND_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json=req_body,
+                )
+                if resp.status_code >= 400:
+                    print(f"[admin] Resend activation error: {resp.status_code} {resp.text[:200]}")
+                else:
+                    print(f"[admin] Activation email sent successfully")
+        except Exception as e:
+            print(f"[admin] Resend API error: {e}")
+    else:
+        print(f"[admin] RESEND_API_KEY not configured or no email — skipping activation email")
+
+    return JSONResponse({"success": True, "message": f"Account approved with {plan} plan"})

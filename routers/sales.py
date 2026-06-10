@@ -96,35 +96,6 @@ async def require_user(request: Request):
     return user
 
 
-# ── DB Seeder ─────────────────────────────────────────────────────────────────
-
-def seed_db_with_demo_data():
-    """Seed Supabase with demo data if empty."""
-    existing = data_leads.get_all_leads()
-    if existing:
-        print(f"[Sales] DB already has {len(existing)} leads, skipping seed")
-        return
-
-    seeds = [
-        {"company_name": "Poblano KL", "industry": "food_beverage", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 7, "status": "cold", "contact_name": "", "phone": "", "email": "", "location": "Kuala Lumpur", "notes": "Mexican restaurant in KL"},
-        {"company_name": "KB Insurance Agency", "industry": "insurance", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 9, "status": "interested", "contact_name": "Khalid Bashir", "phone": "+60 13-456 7890", "email": "khalid@kbinsurance.my", "location": "Penang", "notes": "Interested in AI for claims"},
-        {"company_name": "Beauty Palace Ampang", "industry": "beauty", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 8, "status": "replied", "contact_name": "Mei Ling Wong", "phone": "+60 16-789 0123", "email": "", "location": "Ampang", "notes": "Demo scheduled"},
-        {"company_name": "Shah Alam Wholesale", "industry": "wholesale", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 9, "status": "cold", "contact_name": "Ravi Chandran", "phone": "+60 17-890 1234", "email": "", "location": "Shah Alam", "notes": "Large distributor"},
-        {"company_name": "PrestoPay Malaysia", "industry": "fintech", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 9, "status": "interested", "contact_name": "Tan Li Wei", "phone": "+60 11-2345 6789", "email": "", "location": "Kuala Lumpur", "notes": "Series A startup"},
-        {"company_name": "MediTech Solutions", "industry": "healthcare", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 8, "status": "replied", "contact_name": "Dr. Sarah Lim", "phone": "+60 18-901 2345", "email": "", "location": "Selangor", "notes": "Hospital chain"},
-        {"company_name": "EduSmart Learning", "industry": "education", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 7, "status": "contacted", "contact_name": "Prof. Amir Hassan", "phone": "+60 19-012 3456", "email": "", "location": "Cyberjaya", "notes": "EdTech platform"},
-        {"company_name": "ShopEase Malaysia", "industry": "ecommerce", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 8, "status": "replied", "contact_name": "Nadia Osman", "phone": "+60 10-1234 5678", "email": "", "location": "Petaling Jaya", "notes": "Wants AI recommendations"},
-        {"company_name": "LogiSwift MY", "industry": "logistics", "business_id": "b2000000-0000-0000-0000-000000000002", "ai_score": 9, "status": "interested", "contact_name": "Ganesh Krishnan", "phone": "+60 15-678 9012", "email": "", "location": "Port Klang", "notes": "Fleet of 200 vehicles"},
-        {"company_name": "Marvelous Retail", "industry": "retail", "business_id": "b1000000-0000-0000-0000-000000000001", "ai_score": 7, "status": "cold", "contact_name": "Siti Nurhaliza", "phone": "+60 14-567 8901", "email": "", "location": "Johor Bahru", "notes": "Chain of stores"},
-    ]
-
-    for s in seeds:
-        lead = data_leads.create_lead(s)
-        data_leads.create_activity(lead["id"], "note", f"Seed lead: {s['company_name']}", {})
-
-    print(f"[Sales] Seeded {len(seeds)} demo leads to Supabase")
-
-
 # ── Helper functions for template rendering ────────────────────────────────────
 
 def _render(request, template_name, **extra):

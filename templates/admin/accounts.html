@@ -14,6 +14,121 @@
   </a>
 </div>
 
+<!-- ==================== SECTION A: Onboarding Tokens ==================== -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-8">
+  <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+    <h3 class="text-lg font-semibold text-slate-900">Generate Onboarding Link</h3>
+    <button id="generate-token-btn"
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+      Generate Link
+    </button>
+  </div>
+  <div id="generated-link-container" class="hidden px-5 py-4 border-b border-slate-200 bg-blue-50">
+    <p class="text-sm text-slate-600 mb-2">Share this link with your client:</p>
+    <div class="flex items-center gap-2">
+      <input id="generated-link" type="text" readonly
+        class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white font-mono text-xs"
+        value="">
+      <button id="copy-link-btn"
+        class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors whitespace-nowrap">
+        Copy
+      </button>
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-slate-50 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <th class="px-5 py-3">Token</th>
+          <th class="px-5 py-3">Created By</th>
+          <th class="px-5 py-3">Created At</th>
+          <th class="px-5 py-3">Expires At</th>
+          <th class="px-5 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% if onboarding_tokens %}
+          {% for t in onboarding_tokens %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-5 py-3 font-mono text-xs text-slate-600">{{ t.token[:16] }}...</td>
+            <td class="px-5 py-3 text-slate-700">{{ t.created_by or '—' }}</td>
+            <td class="px-5 py-3 text-slate-500 text-xs">{{ t.created_at[:10] if t.created_at else '—' }}</td>
+            <td class="px-5 py-3 text-slate-500 text-xs">{{ t.expires_at[:10] if t.expires_at else '—' }}</td>
+            <td class="px-5 py-3">
+              {% if t.used %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Used</span>
+              {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" class="px-5 py-8 text-center text-slate-400 text-sm">No tokens generated yet.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SECTION B: Pending Accounts ==================== -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-8">
+  <div class="px-5 py-4 border-b border-slate-200">
+    <h3 class="text-lg font-semibold text-slate-900">Pending Accounts</h3>
+    <p class="text-slate-500 text-xs mt-1">Approve new registrations to activate their accounts.</p>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-slate-50 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <th class="px-5 py-3">Company</th>
+          <th class="px-5 py-3">Email</th>
+          <th class="px-5 py-3">Registered</th>
+          <th class="px-5 py-3">Plan</th>
+          <th class="px-5 py-3">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% if pending_accounts %}
+          {% for a in pending_accounts %}
+          <tr class="hover:bg-slate-50" id="pending-row-{{ a.id }}">
+            <td class="px-5 py-3 font-medium text-slate-900">{{ a.agency_name }}</td>
+            <td class="px-5 py-3 text-slate-500">{{ a.email }}</td>
+            <td class="px-5 py-3 text-slate-400 text-xs">{{ a.created_at[:10] if a.created_at else '—' }}</td>
+            <td class="px-5 py-3">
+              <select id="plan-select-{{ a.id }}" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-medium">
+                <option value="Starter">Starter</option>
+                <option value="Growth">Growth</option>
+                <option value="Pro">Pro</option>
+              </select>
+            </td>
+            <td class="px-5 py-3">
+              <button onclick="approveAccount('{{ a.id }}')"
+                class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors">
+                Approve
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" class="px-5 py-8 text-center text-slate-400 text-sm">
+              {% if demo_mode %}
+                No pending accounts (demo mode — real registrations will appear here).
+              {% else %}
+                No pending accounts. New registrations will appear here.
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== EXISTING ACCOUNTS TABLE ==================== -->
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
@@ -68,6 +183,82 @@ async function toggleSuspend(id) {
     const res = await fetch('/admin/accounts/suspend/' + id, { method: 'POST' });
     const data = await res.json();
     if (data.success) location.reload();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// Generate Onboarding Link
+document.getElementById('generate-token-btn')?.addEventListener('click', async function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  try {
+    const res = await fetch('/api/onboarding/generate-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    if (data.url) {
+      document.getElementById('generated-link').value = data.url;
+      document.getElementById('generated-link-container').classList.remove('hidden');
+    } else {
+      alert('Error: ' + (data.error || 'Failed to generate token'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Link';
+  }
+});
+
+// Copy link to clipboard
+document.getElementById('copy-link-btn')?.addEventListener('click', function() {
+  const input = document.getElementById('generated-link');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    const orig = this.textContent;
+    this.textContent = 'Copied!';
+    setTimeout(() => { this.textContent = orig; }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers
+    document.execCommand('copy');
+    const orig = this.textContent;
+    this.textContent = 'Copied!';
+    setTimeout(() => { this.textContent = orig; }, 2000);
+  });
+});
+
+// Approve Account
+async function approveAccount(accountId) {
+  const select = document.getElementById('plan-select-' + accountId);
+  const plan = select.value;
+  if (!confirm('Approve this account with ' + plan + ' plan?')) return;
+
+  try {
+    const res = await fetch('/api/onboarding/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account_id: accountId, plan: plan }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Remove the row with animation
+      const row = document.getElementById('pending-row-' + accountId);
+      if (row) {
+        row.style.transition = 'opacity 0.3s';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 300);
+      }
+      // Check if no more pending rows
+      const remaining = document.querySelectorAll('[id^="pending-row-"]');
+      if (remaining.length === 0) {
+        location.reload();
+      }
+    } else {
+      alert('Error: ' + (data.error || 'Failed to approve'));
+    }
   } catch (err) {
     alert('Error: ' + err.message);
   }

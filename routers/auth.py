@@ -58,7 +58,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
                 "account_id": "00000000-0000-0000-0000-000000000001",
                 "role": "client",
                 "email": email,
-                "is_admin": False,
+                "is_admin": True,
             }
             response = RedirectResponse(url="/dashboard", status_code=302)
             response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
@@ -72,7 +72,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
         if not user:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        user_db = sb.table("users").select("*").eq("email", email).single().execute()
+        user_db = sb.table("users").select("*").eq("email", email).maybe_single().execute()
         if not user_db.data:
             user_data = user.user_metadata or {}
             sb.table("users").insert({
@@ -84,11 +84,53 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
         else:
             account_id = user_db.data.get("account_id")
 
+        # Check account status if account_id exists
+        if account_id:
+            try:
+                acct = sb.table("accounts").select("status").eq("id", account_id).maybe_single().execute()
+                if acct and acct.data:
+                    acct_status = acct.data.get("status", "active")
+                    if acct_status == "pending":
+                        with open("templates/login.html") as f:
+                            html = f.read()
+                        error_html = html.replace(
+                            '</form>',
+                            f'</form><div class="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm">Your account is pending activation. We\'ll notify you at <strong>{email}</strong> within 24 hours.</div>'
+                        )
+                        return HTMLResponse(error_html)
+                    elif acct_status not in ("active", None):
+                        with open("templates/login.html") as f:
+                            html = f.read()
+                        error_html = html.replace(
+                            '</form>',
+                            f'</form><div class="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">Your account is not active. Contact yy@flowreach.work</div>'
+                        )
+                        return HTMLResponse(error_html)
+            except Exception as e:
+                print(f"[auth] Error checking account status: {e}")
+                with open("templates/login.html") as f:
+                    html = f.read()
+                error_html = html.replace(
+                    '</form>',
+                    f'</form><div class="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">Account not found. Contact yy@flowreach.work</div>'
+                )
+                return HTMLResponse(error_html)
+        else:
+            # No account found
+            with open("templates/login.html") as f:
+                html = f.read()
+            error_html = html.replace(
+                '</form>',
+                f'</form><div class="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">Account not found. Contact yy@flowreach.work</div>'
+            )
+            return HTMLResponse(error_html)
+
         session_data = {
             "user_id": user.id,
             "account_id": account_id,
             "role": user_db.data.get("role", "client") if user_db.data else "client",
             "email": email,
+            "is_admin": user_db.data.get("role") == "admin" if user_db.data else False,
         }
         response = RedirectResponse(url="/dashboard", status_code=302)
         response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)

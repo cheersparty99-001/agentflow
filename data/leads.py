@@ -70,6 +70,13 @@ def get_all_leads() -> list[dict]:
     return result.data or []
 
 
+def delete_lead(lead_id: str):
+    """Delete a lead and its activities from Supabase."""
+    _sb().table("lead_activities").delete().eq("lead_id", lead_id).execute()
+    _sb().table("sales_messages").delete().eq("lead_id", lead_id).execute()
+    _sb().table("leads").delete().eq("id", lead_id).execute()
+
+
 # ── Activities ──────────────────────────────────────────────────────
 
 
