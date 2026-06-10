@@ -60,30 +60,29 @@ async def admin_accounts(request: Request):
     # Fetch pending accounts and onboarding tokens from DB
     pending_accounts = []
     onboarding_tokens = []
-    if not cfg.DEMO_MODE:
-        try:
-            sb = get_supabase()
-            pa = sb.table("accounts").select("*").eq("status", "pending").execute()
-            if pa and pa.data:
-                # For each pending account, try to find the associated user email
-                for acct in pa.data:
-                    user_rec = sb.table("users").select("email").eq("account_id", acct["id"]).maybe_single().execute()
-                    pending_accounts.append({
-                        "id": acct["id"],
-                        "agency_name": acct.get("agency_name", ""),
-                        "email": user_rec.data.get("email", "") if user_rec and user_rec.data else "",
-                        "created_at": acct.get("created_at", ""),
-                    })
-        except Exception as e:
-            print(f"[admin] Error fetching pending accounts: {e}")
+    try:
+        sb = get_supabase()
+        pa = sb.table("accounts").select("*").eq("status", "pending").execute()
+        if pa and pa.data:
+            # For each pending account, try to find the associated user email
+            for acct in pa.data:
+                user_rec = sb.table("users").select("email").eq("account_id", acct["id"]).maybe_single().execute()
+                pending_accounts.append({
+                    "id": acct["id"],
+                    "agency_name": acct.get("agency_name", ""),
+                    "email": user_rec.data.get("email", "") if user_rec and user_rec.data else "",
+                    "created_at": acct.get("created_at", ""),
+                })
+    except Exception as e:
+        print(f"[admin] Error fetching pending accounts: {e}")
 
-        try:
-            sb = get_supabase()
-            ot = sb.table("onboarding_tokens").select("*").order("created_at", desc=True).execute()
-            if ot and ot.data:
-                onboarding_tokens = ot.data
-        except Exception as e:
-            print(f"[admin] Error fetching onboarding tokens: {e}")
+    try:
+        sb = get_supabase()
+        ot = sb.table("onboarding_tokens").select("*").order("created_at", desc=True).execute()
+        if ot and ot.data:
+            onboarding_tokens = ot.data
+    except Exception as e:
+        print(f"[admin] Error fetching onboarding tokens: {e}")
 
     template = env.get_template("admin/accounts.html")
     html = template.render(
