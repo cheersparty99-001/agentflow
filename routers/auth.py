@@ -63,7 +63,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             response = RedirectResponse(url="/dashboard", status_code=302)
             response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
             return response
-        raise HTTPException(status_code=401, detail="Demo: use demo@flowreach.work")
+        # Fall through for other emails: let Supabase Auth handle it
 
     sb = get_supabase()
     try:

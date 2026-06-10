@@ -394,10 +394,6 @@ async def api_onboarding_approve(request: Request):
     }
     limits = plan_limits[plan]
 
-    if cfg.DEMO_MODE:
-        # In demo mode, just return success
-        return JSONResponse({"success": True, "message": f"Account approved with {plan} plan (demo mode)"})
-
     sb = get_supabase()
 
     # Update account status and plan
