@@ -38,33 +38,6 @@ async def login_page(request: Request):
 
 @router.post("/login")
 async def login(request: Request, email: str = Form(...), password: str = Form(...)):
-    if cfg.DEMO_MODE:
-        if not password or len(password) < 4:
-            raise HTTPException(status_code=401, detail="Invalid demo credentials")
-        if email == "admin@flowreach.work":
-            session_data = {
-                "user_id": "admin-user",
-                "account_id": "00000000-0000-0000-0000-000000000001",
-                "role": "admin",
-                "email": email,
-                "is_admin": True,
-            }
-            response = RedirectResponse(url="/dashboard", status_code=302)
-            response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
-            return response
-        if email == "demo@flowreach.work":
-            session_data = {
-                "user_id": "demo-user",
-                "account_id": "00000000-0000-0000-0000-000000000001",
-                "role": "client",
-                "email": email,
-                "is_admin": True,
-            }
-            response = RedirectResponse(url="/dashboard", status_code=302)
-            response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
-            return response
-        # Fall through for other emails: let Supabase Auth handle it
-
     sb = get_supabase()
     try:
         res = sb.auth.sign_in_with_password({"email": email, "password": password})

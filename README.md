@@ -48,7 +48,6 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-anon-key
 SUPABASE_SERVICE_KEY=your-service-role-key
 SECRET_KEY=generate-a-random-secret
-DEMO_MODE=true
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_WHATSAPP_FROM=
@@ -115,7 +114,6 @@ agentflow/
 | `SUPABASE_KEY` | Supabase anon/public key | Yes |
 | `SUPABASE_SERVICE_KEY` | Supabase service role key | Yes |
 | `SECRET_KEY` | Session cookie signing secret | Yes |
-| `DEMO_MODE` | Enable demo mode (no real SMS) | No (default: true) |
 | `TWILIO_ACCOUNT_SID` | Twilio account SID | For WhatsApp |
 | `TWILIO_AUTH_TOKEN` | Twilio auth token | For WhatsApp |
 | `TWILIO_WHATSAPP_FROM` | Twilio WhatsApp sender number | For WhatsApp |

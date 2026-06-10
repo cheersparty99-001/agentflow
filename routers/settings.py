@@ -63,7 +63,6 @@ async def settings_page(request: Request):
     template = env.get_template("settings.html")
     html = template.render(
         agency_name=agency_name,
-        demo_mode=cfg.DEMO_MODE,
         current_path=request.url.path,
         is_admin=user.get("is_admin", False),
         user_email=user.get("email", ""),

@@ -1,7 +1,6 @@
 """Improved email extractor for real_leads.json missing emails."""
 import os, sys, json, asyncio, re
 sys.path.insert(0, '/root/agentflow')
-os.environ['DEMO_MODE'] = 'false'
 
 import httpx
 

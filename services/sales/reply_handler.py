@@ -206,11 +206,6 @@ def handle_reply(
         "handled_at": tracker_record["handled_at"],
     }
 
-    if cfg.DEMO_MODE:
-        print(
-            f"[Sales/ReplyHandler] DEMO -- Processed reply from {from_email}: "
-            f"sentiment={sentiment}, auto_reply={'yes' if auto_reply_sent else 'no'}"
-        )
 
     return result
 

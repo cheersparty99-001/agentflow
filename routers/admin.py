@@ -29,14 +29,6 @@ async def require_admin(request: Request):
     return user
 
 
-# --- Demo in-memory data ---
-DEMO_ACCOUNTS = [
-    {"id": "a1", "agency_name": "Demo Insurance Agency", "phone": "0123456789", "email": "demo@agentflow.my", "monthly_fee": 99.00, "is_active": True, "plan_notes": "Active Plan", "billing_notes": "", "created_at": "2026-01-15T08:00:00"},
-    {"id": "a2", "agency_name": "Puncak Insurance Brokers", "phone": "0134567890", "email": "admin@puncak.com", "monthly_fee": 199.00, "is_active": True, "plan_notes": "Premium Plan", "billing_notes": "", "created_at": "2026-02-01T10:00:00"},
-    {"id": "a3", "agency_name": "Jalan Insurance Agency", "phone": "0145678901", "email": "info@jalanins.com", "monthly_fee": 49.00, "is_active": False, "plan_notes": "Suspended - overdue", "billing_notes": "Invoice #INV-003 overdue 45 days", "created_at": "2026-03-10T09:00:00"},
-]
-
-
 @router.get("/admin", response_class=HTMLResponse)
 async def admin_panel(request: Request):
     user = await require_admin(request)
@@ -54,8 +46,6 @@ async def admin_accounts(request: Request):
     user = await require_admin(request)
     if not user:
         return RedirectResponse(url="/login")
-
-    accounts = DEMO_ACCOUNTS if cfg.DEMO_MODE else []
 
     # Fetch pending accounts and onboarding tokens from DB
     pending_accounts = []
@@ -90,7 +80,6 @@ async def admin_accounts(request: Request):
         pending_accounts=pending_accounts,
         onboarding_tokens=onboarding_tokens,
         agency_name="Admin Panel",
-        demo_mode=cfg.DEMO_MODE,
         current_path=request.url.path,
         is_admin=True,
         user_email=user.get("email", ""),
@@ -120,9 +109,10 @@ async def admin_create_account(
     if not user:
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 
-    if cfg.DEMO_MODE:
-        new_id = f"a{len(DEMO_ACCOUNTS) + 1}"
-        DEMO_ACCOUNTS.append({
+    try:
+        sb = get_supabase()
+        new_id = str(uuid.uuid4())
+        sb.table("accounts").insert({
             "id": new_id,
             "agency_name": agency_name,
             "phone": phone,
@@ -131,11 +121,11 @@ async def admin_create_account(
             "is_active": True,
             "plan_notes": "New Account",
             "billing_notes": "",
-            "created_at": datetime.utcnow().isoformat(),
-        })
+        }).execute()
         return JSONResponse({"success": True, "id": new_id})
-
-    return JSONResponse({"success": True})
+    except Exception as e:
+        print(f"[admin] Error creating account: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @router.get("/admin/accounts/edit/{account_id}", response_class=HTMLResponse)
@@ -145,11 +135,6 @@ async def admin_edit_account_page(account_id: str, request: Request):
         return RedirectResponse(url="/login")
 
     account = None
-    if cfg.DEMO_MODE:
-        for a in DEMO_ACCOUNTS:
-            if a["id"] == account_id:
-                account = a
-                break
 
     if not account:
         return HTMLResponse("<html><body><h1>Account not found</h1></body></html>", status_code=404)
@@ -184,15 +169,16 @@ async def admin_edit_account(
     if not user:
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 
-    if cfg.DEMO_MODE:
-        for a in DEMO_ACCOUNTS:
-            if a["id"] == account_id:
-                a["agency_name"] = agency_name
-                a["phone"] = phone
-                a["email"] = email
-                a["monthly_fee"] = float(monthly_fee)
-                break
-        return RedirectResponse(url="/admin/accounts", status_code=302)
+    try:
+        sb = get_supabase()
+        sb.table("accounts").update({
+            "agency_name": agency_name,
+            "phone": phone,
+            "email": email,
+            "monthly_fee": float(monthly_fee),
+        }).eq("id", account_id).execute()
+    except Exception as e:
+        print(f"[admin] Error updating account: {e}")
 
     return RedirectResponse(url="/admin/accounts", status_code=302)
 
@@ -203,12 +189,18 @@ async def admin_suspend_account(account_id: str, request: Request):
     if not user:
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 
-    if cfg.DEMO_MODE:
-        for a in DEMO_ACCOUNTS:
-            if a["id"] == account_id:
-                a["is_active"] = not a["is_active"]
-                a["plan_notes"] = "Active" if a["is_active"] else "Suspended"
-                break
+    try:
+        sb = get_supabase()
+        acct = sb.table("accounts").select("is_active").eq("id", account_id).maybe_single().execute()
+        if acct and acct.data:
+            current = acct.data.get("is_active", True)
+            new_active = not current
+            sb.table("accounts").update({
+                "is_active": new_active,
+                "plan_notes": "Active" if new_active else "Suspended",
+            }).eq("id", account_id).execute()
+    except Exception as e:
+        print(f"[admin] Error toggling account status: {e}")
 
     return JSONResponse({"success": True})
 
@@ -221,13 +213,17 @@ async def admin_account_detail(account_id: str, request: Request):
 
     account = None
     logs = []
-    if cfg.DEMO_MODE:
-        for a in DEMO_ACCOUNTS:
-            if a["id"] == account_id:
-                account = a
-                break
-        logs = [l for l in request.app.state.demo_logs if l.get("account_id", "00000000-0000-0000-0000-000000000001") == "00000000-0000-0000-0000-000000000001"]
-        logs = logs[:20]
+    try:
+        sb = get_supabase()
+        acct = sb.table("accounts").select("*").eq("id", account_id).maybe_single().execute()
+        if acct and acct.data:
+            account = acct.data
+        # Fetch recent logs for this account
+        log_result = sb.table("agent_logs").select("*").eq("account_id", account_id).order("created_at", desc=True).limit(20).execute()
+        if log_result and log_result.data:
+            logs = log_result.data
+    except Exception as e:
+        print(f"[admin] Error fetching account detail: {e}")
 
     if not account:
         return HTMLResponse("<html><body><h1>Account not found</h1></body></html>", status_code=404)
@@ -237,7 +233,6 @@ async def admin_account_detail(account_id: str, request: Request):
         account=account,
         logs=logs,
         agency_name="Admin Panel",
-        demo_mode=cfg.DEMO_MODE,
         current_path=request.url.path,
         is_admin=True,
         user_email=user.get("email", ""),
@@ -252,14 +247,18 @@ async def admin_logs_page(request: Request):
         return RedirectResponse(url="/login")
 
     logs = []
-    if cfg.DEMO_MODE:
-        logs = sorted(request.app.state.demo_logs, key=lambda x: x.get("created_at", ""), reverse=True)
+    try:
+        sb = get_supabase()
+        result = sb.table("agent_logs").select("*").order("created_at", desc=True).limit(100).execute()
+        if result and result.data:
+            logs = result.data
+    except Exception as e:
+        print(f"[admin] Error fetching logs: {e}")
 
     template = env.get_template("admin/logs.html")
     html = template.render(
         logs=logs[:100],
         agency_name="Admin Panel",
-        demo_mode=cfg.DEMO_MODE,
         current_path=request.url.path,
         is_admin=True,
         user_email=user.get("email", ""),
@@ -274,15 +273,20 @@ async def admin_api_logs(request: Request, module: str = "", status: str = "", l
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 
     logs = []
-    if cfg.DEMO_MODE:
-        logs = list(request.app.state.demo_logs)
+    try:
+        sb = get_supabase()
+        query = sb.table("agent_logs").select("*")
         if module:
-            logs = [l for l in logs if l.get("module", "") == module]
+            query = query.eq("module", module)
         if status:
-            logs = [l for l in logs if l.get("status", "") == status]
-        logs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            query = query.eq("status", status)
+        result = query.order("created_at", desc=True).limit(limit).execute()
+        if result and result.data:
+            logs = result.data
+    except Exception as e:
+        print(f"[admin] Error fetching API logs: {e}")
 
-    return JSONResponse(logs[:limit])
+    return JSONResponse(logs)
 
 
 @router.get("/admin/api/logs/export")
@@ -292,8 +296,13 @@ async def admin_export_logs(request: Request):
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 
     logs = []
-    if cfg.DEMO_MODE:
-        logs = sorted(request.app.state.demo_logs, key=lambda x: x.get("created_at", ""), reverse=True)
+    try:
+        sb = get_supabase()
+        result = sb.table("agent_logs").select("*").order("created_at", desc=True).execute()
+        if result and result.data:
+            logs = result.data
+    except Exception as e:
+        print(f"[admin] Error fetching logs for export: {e}")
 
     import csv, io
     output = io.StringIO()
@@ -325,14 +334,13 @@ async def api_onboarding_tokens(request: Request):
         return JSONResponse({"error": "Not authorized"}, status_code=403)
 
     tokens = []
-    if not cfg.DEMO_MODE:
-        try:
-            sb = get_supabase()
-            result = sb.table("onboarding_tokens").select("*").order("created_at", desc=True).execute()
-            if result and result.data:
-                tokens = result.data
-        except Exception as e:
-            print(f"[admin] Error fetching tokens: {e}")
+    try:
+        sb = get_supabase()
+        result = sb.table("onboarding_tokens").select("*").order("created_at", desc=True).execute()
+        if result and result.data:
+            tokens = result.data
+    except Exception as e:
+        print(f"[admin] Error fetching tokens: {e}")
 
     return JSONResponse(tokens)
 

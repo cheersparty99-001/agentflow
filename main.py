@@ -51,7 +51,6 @@ async def startup():
             missing.append(var)
     if missing:
         print(f"[Flowreach] WARNING: Missing env vars: {', '.join(missing)}")
-    print(f"[Flowreach] Demo mode: {cfg.DEMO_MODE}")
 
     or_key = cfg.OPENROUTER_API_KEY
     if or_key:

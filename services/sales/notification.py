@@ -1,13 +1,8 @@
-"""Notification — sends alerts to Edwin via WhatsApp/template.
-DEMO_MODE: prints to console.
-"""
+"""Notification — sends alerts to Edwin via WhatsApp/template."""
 
 import config as cfg
 
 EDWIN_PHONE = getattr(cfg, 'EDWIN_NOTIFY_WHATSAPP', '')
-
-def _is_demo() -> bool:
-    return getattr(cfg, 'DEMO_MODE', True)
 
 def _build_alert_text(lead: dict, message: str, intent: str, confidence: float, suggested_reply: str) -> str:
     return f'''Sales Alert - Reply Received
@@ -33,12 +28,6 @@ def notify_edwin_reply(lead: dict, message: str, intent: str, confidence: float,
     """Notify Edwin about a lead reply via WhatsApp."""
     alert = _build_alert_text(lead, message, intent, confidence, suggested_reply)
     
-    if _is_demo():
-        print(f'[Sales/Notification] DEMO -- Would send WhatsApp to {EDWIN_PHONE or "Edwin"}')
-        print(f'---\n{alert}\n---')
-        return {"status": "logged", "to": EDWIN_PHONE}
-    
-    # Production: Send via Twilio WhatsApp
     if not EDWIN_PHONE:
         print('[Sales/Notification] ERROR: EDWIN_NOTIFY_WHATSAPP not configured')
         return {"status": "error", "reason": "Missing EDWIN_NOTIFY_WHATSAPP"}

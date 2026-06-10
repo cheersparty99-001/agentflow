@@ -102,7 +102,6 @@ def _render(request, template_name, **extra):
     user = request.state.user if hasattr(request.state, "user") else {}
     tmpl = env.get_template(template_name)
     html = tmpl.render(
-        demo_mode=cfg.DEMO_MODE,
         current_path=request.url.path,
         is_admin=user.get("is_admin", False),
         user_email=user.get("email", ""),
@@ -909,45 +908,6 @@ async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
     results = {"checked": 0, "replies": [], "notifications": []}
-
-    if cfg.DEMO_MODE:
-        # Demo: simulate a reply
-        from services.sales.reply_handler import handle_reply
-        from services.sales.notification import notify_edwin_reply
-
-        reply = {
-            "from_email": "ahmad@tamansari.my",
-            "from_name": "Ahmad bin Ismail",
-            "subject": "Re: Quick question about Restoran Taman Sari",
-            "body": "Hi! I'm interested. Can you tell me more about your AI solutions?",
-        }
-
-        all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
-        lead = next((l for l in all_leads if "ahmad" in (l.get("email") or "").lower()), None)
-        if lead:
-            intent_result = handle_reply(reply["body"], reply["from_email"], reply["from_name"], reply["subject"], lead=lead)
-            sentiment = intent_result.get("sentiment", "neutral")
-
-            data_leads.create_activity(
-                lead["id"], "email",
-                f"Inbound reply: {reply['subject']} — Sentiment: {sentiment}",
-                {"detail": f"From: {reply['from_name']} <{reply['from_email']}>\nSubject: {reply['subject']}\n\n{reply['body']}\n\nAI Analysis:\nSentiment: {sentiment}\nAuto-reply: {intent_result.get('auto_reply', '(none)')}"},
-            )
-
-            if sentiment == "positive":
-                data_leads.update_lead_status(lead["id"], "interested")
-                lead["status"] = "interested"
-                notify_edwin_reply(lead, reply["body"], sentiment, 0.9, intent_result.get("auto_reply", ""))
-                results["notifications"].append({"lead_id": lead["id"], "action": "escalate"})
-            elif sentiment in ("negative", "unsubscribe"):
-                data_leads.update_lead_status(lead["id"], "closed_lost")
-                lead["status"] = "closed_lost"
-
-            results["replies"].append({"from": reply["from_email"], "sentiment": sentiment, "lead_id": lead["id"]})
-
-        results["checked"] = 1
-        print(f"[Sales/Outreach] Reply check (DEMO): Found {results['checked']} reply, sentiment={results['replies'][0]['sentiment'] if results['replies'] else 'N/A'}")
-        return JSONResponse({"ok": True, "demo": True, **results})
 
     # Production: use Gmail API
     from services.sales.gmail_client import GmailClient

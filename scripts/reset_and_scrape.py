@@ -6,7 +6,6 @@ from collections import Counter
 sys.path.insert(0, '/root/agentflow')
 
 # Force production mode for real Google Maps API calls
-os.environ['DEMO_MODE'] = 'false'
 
 import config as cfg
 from services.sales.scraper import scrape_google_maps

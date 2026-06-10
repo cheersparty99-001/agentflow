@@ -10,7 +10,6 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     import secrets
     SECRET_KEY = secrets.token_urlsafe(32)
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"  # UI-only: controls "[DEMO MODE]" banner in templates. All functional paths use real APIs now.
 CRON_SECRET = os.getenv("CRON_SECRET", "")
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")

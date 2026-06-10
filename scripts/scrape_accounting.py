@@ -2,7 +2,6 @@
 import os, sys, json, asyncio, uuid
 from datetime import datetime
 sys.path.insert(0, '/root/agentflow')
-os.environ['DEMO_MODE'] = 'false'
 
 import config as cfg
 from services.sales.scraper import scrape_google_maps, _extract_email_from_website, _clean_company_name

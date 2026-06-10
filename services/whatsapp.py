@@ -6,9 +6,6 @@ import config as cfg
 
 def send_message(config_dict: dict, phone: str, message: str) -> bool:
     """Send a WhatsApp message via Twilio. Returns True on success."""
-    demo_mode = cfg.DEMO_MODE
-    if demo_mode:
-        return True
 
     sid = config_dict.get("twilio_sid") or cfg.TWILIO_ACCOUNT_SID
     token = config_dict.get("twilio_token") or cfg.TWILIO_AUTH_TOKEN
