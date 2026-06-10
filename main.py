@@ -39,6 +39,7 @@ app.include_router(admin.router)
 app.include_router(sales.router)
 app.include_router(email_auth.router)
 app.include_router(debug.router)
+app.include_router(onboarding.router)
 
 @app.on_event("startup")
 async def startup():
