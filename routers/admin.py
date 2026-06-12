@@ -66,6 +66,15 @@ async def admin_accounts(request: Request):
     except Exception as e:
         print(f"[admin] Error fetching pending accounts: {e}")
 
+    # Fetch all active accounts
+    accounts = []
+    try:
+        sb = get_supabase()
+        result = sb.table("accounts").select("*").eq("status", "active").execute()
+        accounts = result.data if result.data else []
+    except Exception as e:
+        print(f"[admin] Error fetching accounts: {e}")
+
     try:
         sb = get_supabase()
         ot = sb.table("onboarding_tokens").select("*").order("created_at", desc=True).execute()
