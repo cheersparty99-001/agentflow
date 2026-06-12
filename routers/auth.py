@@ -57,10 +57,6 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
         else:
             account_id = user_db.data.get("account_id")
 
-        print(f"[Auth Debug] user_db.data: {user_db.data}")
-        print(f"[Auth Debug] role: {user_db.data.get('role') if user_db.data else 'NO DATA'}")
-        print(f"[Auth Debug] is_admin computed: {user_db.data.get('role') == 'admin' if user_db.data else False}")
-
         # Check account status if account_id exists
         if account_id:
             try:

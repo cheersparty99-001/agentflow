@@ -98,8 +98,9 @@ async def require_user(request: Request):
 
 # ── Helper functions for template rendering ────────────────────────────────────
 
-def _render(request, template_name, **extra):
-    user = request.state.user if hasattr(request.state, "user") else {}
+async def _render(request, template_name, **extra):
+    from routers.auth import get_current_user
+    user = await get_current_user(request) or {}
     tmpl = env.get_template(template_name)
     html = tmpl.render(
         current_path=request.url.path,
@@ -189,7 +190,7 @@ async def sales_dashboard(request: Request):
     # Escalation alerts: leads needing attention (interested or with replies)
     escalations = [l for l in normalized if l["status"] in ("interested", "replied")]
 
-    return _render(request, "sales/dashboard.html",
+    return await _render(request, "sales/dashboard.html",
                    biz_stats=biz_stats,
                    total_leads=len(normalized),
                    recent_activities=acts_normalized,
@@ -235,7 +236,7 @@ async def sales_leads(
         for ld in all_leads if ld.get("industry")
     ))
 
-    return _render(request, "sales/leads.html",
+    return await _render(request, "sales/leads.html",
                    leads=page_leads,
                    page=page,
                    total_pages=total_pages,
@@ -244,7 +245,7 @@ async def sales_leads(
                    all_businesses=BUSINESSES,
                    all_industries=all_industries,
                    filters={"status": status, "business": business, "industry": industry, "search": search},
-                   )
+               )
 
 
 @router.post("/sales/leads/add")
@@ -623,7 +624,7 @@ async def sales_lead_detail(request: Request, lead_id: str):
     lead = _normalize_lead(lead)
     acts = _normalize_activities(data_leads.list_activities(lead_id=lead_id, limit=100))
 
-    return _render(request, "sales/lead_detail.html", lead=lead, activities=acts)
+    return await _render(request, "sales/lead_detail.html", lead=lead, activities=acts)
 
 
 @router.post("/sales/leads/{lead_id}/status")
@@ -708,7 +709,7 @@ async def sales_pipeline(request: Request):
     for s in LEAD_STATUSES:
         columns[s] = [l for l in leads if l["status"] == s]
 
-    return _render(request, "sales/pipeline.html", columns=columns, all_statuses=LEAD_STATUSES)
+    return await _render(request, "sales/pipeline.html", columns=columns, all_statuses=LEAD_STATUSES)
 
 
 @router.post("/sales/outreach/trigger")
@@ -970,7 +971,7 @@ async def sales_target_profiles_list(request: Request):
 
     profiles = data_profiles.list_profiles()
     businesses = data_profiles.list_businesses()
-    return _render(request, "sales/target_profile.html", profiles=profiles, businesses=businesses)
+    return await _render(request, "sales/target_profile.html", profiles=profiles, businesses=businesses)
 
 
 @router.post("/sales/target-profiles")
