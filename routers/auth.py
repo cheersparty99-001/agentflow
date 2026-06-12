@@ -105,6 +105,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             "email": email,
             "is_admin": user_db.data.get("role") == "admin" if user_db.data else False,
         }
+        print(f"[Auth] session_data: {session_data}")
         response = RedirectResponse(url="/dashboard", status_code=302)
         response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
         return response
