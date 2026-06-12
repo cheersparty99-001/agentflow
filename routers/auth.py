@@ -120,6 +120,9 @@ async def auth_callback(request: Request):
     (access_token, refresh_token) and POSTs them to /auth/set-session
     to establish the session cookie, then redirects to /sales/dashboard.
     """
+    print("[Auth Callback] triggered")
+    print(f"[Auth Callback] URL: {request.url}")
+    print(f"[Auth Callback] Headers: {dict(request.headers)}")
     return HTMLResponse("""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>Completing sign in...</title></head>
@@ -162,6 +165,7 @@ async def auth_callback(request: Request):
 @router.post("/auth/set-session")
 async def auth_set_session(request: Request, access_token: str = "", refresh_token: str = ""):
     """Receive tokens from Supabase callback, create session cookie."""
+    print(f"[Auth set-session] access_token={access_token[:20] if access_token else 'EMPTY'} refresh_token={refresh_token[:20] if refresh_token else 'EMPTY'}")
     sb = get_supabase()
     try:
         res = sb.auth.set_session(refresh_token, access_token)
