@@ -791,6 +791,9 @@ Boleh AI"""
 
 @router.post("/sales/webhook/whatsapp")
 async def sales_webhook_whatsapp(request: Request):
+    user = await require_user(request)
+    if user is None:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
     try:
         body = await request.json()
     except Exception:
@@ -877,6 +880,9 @@ async def sales_webhook_whatsapp(request: Request):
 
 @router.post("/sales/webhook/gmail")
 async def sales_webhook_gmail(request: Request):
+    user = await require_user(request)
+    if user is None:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
     try:
         body = await request.json()
     except Exception:
