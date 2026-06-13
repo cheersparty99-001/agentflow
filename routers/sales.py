@@ -13,7 +13,7 @@ from data import leads as data_leads, profiles as data_profiles, usage as data_u
 
 router = APIRouter()
 
-env = Environment(loader=FileSystemLoader("templates"))
+env = Environment(loader=FileSystemLoader("templates"), autoescape=True)
 
 # ── Demo Data ──────────────────────────────────────────────────────────────────
 LEAD_STATUSES = ["cold", "contacted", "replied", "interested", "closed_lost", "closed_won"]

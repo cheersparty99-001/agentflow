@@ -1,3 +1,4 @@
+import html
 from fastapi import APIRouter, Request, Depends, HTTPException, Form
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer
@@ -65,16 +66,16 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
                     acct_status = acct.data.get("status", "active")
                     if acct_status == "pending":
                         with open("templates/login.html") as f:
-                            html = f.read()
-                        error_html = html.replace(
+                            login_html = f.read()
+                        error_html = login_html.replace(
                             '</form>',
-                            f'</form><div class="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm">Your account is pending activation. We\'ll notify you at <strong>{email}</strong> within 24 hours.</div>'
+                            f'</form><div class="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm">Your account is pending activation. We\'ll notify you at <strong>{html.escape(email)}</strong> within 24 hours.</div>'
                         )
                         return HTMLResponse(error_html)
                     elif acct_status not in ("active", None):
                         with open("templates/login.html") as f:
-                            html = f.read()
-                        error_html = html.replace(
+                            login_html = f.read()
+                        error_html = login_html.replace(
                             '</form>',
                             f'</form><div class="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">Your account is not active. Contact yy@flowreach.work</div>'
                         )
@@ -82,8 +83,8 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             except Exception as e:
                 print(f"[auth] Error checking account status: {e}")
                 with open("templates/login.html") as f:
-                    html = f.read()
-                error_html = html.replace(
+                    login_html = f.read()
+                error_html = login_html.replace(
                     '</form>',
                     f'</form><div class="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">Account not found. Contact yy@flowreach.work</div>'
                 )
@@ -91,8 +92,8 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
         else:
             # No account found
             with open("templates/login.html") as f:
-                html = f.read()
-            error_html = html.replace(
+                login_html = f.read()
+            error_html = login_html.replace(
                 '</form>',
                 f'</form><div class="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">Account not found. Contact yy@flowreach.work</div>'
             )

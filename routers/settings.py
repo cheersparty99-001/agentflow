@@ -12,7 +12,7 @@ import config as cfg
 
 router = APIRouter()
 
-env = Environment(loader=FileSystemLoader("templates"))
+env = Environment(loader=FileSystemLoader("templates"), autoescape=True)
 
 
 async def require_user(request: Request):

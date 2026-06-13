@@ -9,7 +9,7 @@ from services.supabase_client import get_supabase, safe_single, safe_update
 import config as cfg
 
 router = APIRouter()
-env = Environment(loader=FileSystemLoader("templates"))
+env = Environment(loader=FileSystemLoader("templates"), autoescape=True)
 
 
 @router.get("/debug/settings-test")

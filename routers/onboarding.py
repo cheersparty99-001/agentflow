@@ -9,7 +9,7 @@ import config as cfg
 
 router = APIRouter()
 
-env = Environment(loader=FileSystemLoader("templates"))
+env = Environment(loader=FileSystemLoader("templates"), autoescape=True)
 
 
 @router.get("/register", response_class=HTMLResponse)
