@@ -3,6 +3,7 @@ import uuid
 import json
 import random
 import time
+import asyncio
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -121,7 +122,10 @@ def _send_single_email(account_id: str, lead_id: str, to_email: str, subject: st
 
     gmail = GmailClient(account_id=account_id)
     if not gmail.is_authenticated:
-        gmail.authenticate()
+        try:
+            gmail.authenticate()
+        except ValueError as e:
+            return {"ok": False, "error": str(e)}
     if not gmail.is_authenticated:
         return {"ok": False, "error": "Email not connected — connect your email in Settings first"}
 
@@ -529,7 +533,7 @@ async def outreach_send(request: Request):
         if i < len(lead_ids) - 1:
             delay = random.uniform(30, 60)
             print(f"[Sales/Outreach] Waiting {delay:.0f}s before next send...")
-            time.sleep(delay)
+            await asyncio.sleep(delay)
 
     # ── Build response ──
     resp = {

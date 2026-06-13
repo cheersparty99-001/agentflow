@@ -84,25 +84,7 @@ class GmailClient:
                 elapsed = _time.time() - t0
                 print(f"[Sales/GmailClient] Per-account OAuth failed after {elapsed:.2f}s, falling back: type={type(e).__name__}, msg={e}")
 
-        # Config-based fallback (old flow)
-        missing = [k for k, v in [("GMAIL_CLIENT_ID", cfg.GMAIL_CLIENT_ID), ("GMAIL_CLIENT_SECRET", cfg.GMAIL_CLIENT_SECRET), ("GMAIL_REFRESH_TOKEN", cfg.GMAIL_REFRESH_TOKEN)] if not v]
-        if missing:
-            print(f"[Sales/GmailClient] ERROR: Missing Gmail credentials in config: {', '.join(missing)} (all empty/falsy)")
-            return False
-
-        try:
-            from googleapiclient.discovery import build
-            self._creds = _get_gmail_creds()
-            self._service = build("gmail", "v1", credentials=self._creds)
-            self.email_address = self.email_address or getattr(cfg, "GMAIL_FROM", "")
-            self._authenticated = True
-            elapsed = _time.time() - t0
-            print(f"[Sales/GmailClient] Authenticated via config: {self.email_address} (took {elapsed:.2f}s)")
-            return True
-        except Exception as e:
-            elapsed = _time.time() - t0
-            print(f"[Sales/GmailClient] Config auth error after {elapsed:.2f}s: type={type(e).__name__}, msg={e}")
-            return False
+        raise ValueError("Email not connected. Please connect your Gmail account in Settings first.")
 
     @property
     def is_authenticated(self) -> bool:
