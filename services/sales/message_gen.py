@@ -116,7 +116,7 @@ def _load_business_info(business_id: str) -> Optional[dict]:
 # ── OpenRouter GPT-4o caller ────────────────────────────────────────
 
 
-def _call_openrouter(system_prompt: str, user_prompt: str, timeout: int = 25) -> Optional[str]:
+async def _call_openrouter(system_prompt: str, user_prompt: str, timeout: int = 25) -> Optional[str]:
     """Call OpenRouter GPT-4o and return the response text."""
     if not cfg.OPENROUTER_API_KEY:
         logger.warning("[MessageGen] OPENROUTER_API_KEY not configured — cannot call AI")
@@ -125,24 +125,24 @@ def _call_openrouter(system_prompt: str, user_prompt: str, timeout: int = 25) ->
     import httpx
 
     try:
-        resp = httpx.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {cfg.OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "openai/gpt-4o",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "temperature": 0.7,
-                "max_tokens": 600,
-                "response_format": {"type": "json_object"},
-            },
-            timeout=timeout,
-        )
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {cfg.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "openai/gpt-4o",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 600,
+                    "response_format": {"type": "json_object"},
+                },
+            )
         data = resp.json()
         if "error" in data:
             logger.error(f"[MessageGen] OpenRouter API error: {data['error']}")
@@ -268,7 +268,7 @@ Generate a personalised {message_type} outreach message that feels tailored to t
 # ── AI generation ──────────────────────────────────────────────────
 
 
-def _ai_generate_message(
+async def _ai_generate_message(
     lead: dict,
     profile: Optional[dict],
     business: Optional[dict],
@@ -281,7 +281,7 @@ def _ai_generate_message(
     system_prompt, user_prompt = _build_generation_prompt(
         lead, profile, business, agent_name, agent_title, channel, message_type,
     )
-    response = _call_openrouter(system_prompt, user_prompt)
+    response = await _call_openrouter(system_prompt, user_prompt)
 
     if not response:
         return None
@@ -339,7 +339,7 @@ def _fallback_generate_message(
 # ── Public API ────────────────────────────────────────────────────
 
 
-def generate_message(
+async def generate_message(
     lead: dict,
     channel: str = "email",
     message_type: str = "cold",
@@ -379,7 +379,7 @@ def generate_message(
         business_info = _load_business_info(business_id)
 
     if cfg.OPENROUTER_API_KEY:
-        ai_result = _ai_generate_message(
+        ai_result = await _ai_generate_message(
             lead, profile, business_info, agent_name, agent_title, channel, message_type,
         )
         if ai_result:
@@ -424,7 +424,7 @@ def generate_message(
     return result
 
 
-def generate_campaign_messages(
+async def generate_campaign_messages(
     leads: list[dict],
     channel: str = "email",
     message_type: str = "cold",
@@ -445,7 +445,7 @@ def generate_campaign_messages(
     """
     messages = []
     for lead in leads:
-        msg = generate_message(
+        msg = await generate_message(
             lead=lead,
             channel=channel,
             message_type=message_type,

@@ -72,7 +72,7 @@ def _load_business_info(business_id: str) -> Optional[dict]:
 # ── AI scoring via OpenRouter GPT-4o ────────────────────────────────
 
 
-def _call_openrouter(system_prompt: str, user_prompt: str, timeout: int = 25) -> Optional[str]:
+async def _call_openrouter(system_prompt: str, user_prompt: str, timeout: int = 25) -> Optional[str]:
     """Call OpenRouter GPT-4o and return the response text."""
     if not cfg.OPENROUTER_API_KEY:
         print("[Qualifier] OPENROUTER_API_KEY not configured — cannot call AI")
@@ -81,24 +81,24 @@ def _call_openrouter(system_prompt: str, user_prompt: str, timeout: int = 25) ->
     import httpx
 
     try:
-        resp = httpx.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {cfg.OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "openai/gpt-4o",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "temperature": 0.3,
-                "max_tokens": 500,
-                "response_format": {"type": "json_object"},
-            },
-            timeout=timeout,
-        )
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {cfg.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "openai/gpt-4o",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 500,
+                    "response_format": {"type": "json_object"},
+                },
+            )
         data = resp.json()
         if "error" in data:
             print(f"[Qualifier] OpenRouter API error: {data['error']}")
