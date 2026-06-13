@@ -795,6 +795,9 @@ Boleh AI"""
 
 @router.post("/sales/webhook/whatsapp")
 async def sales_webhook_whatsapp(request: Request):
+    from services.rate_limiter import rate_limiter
+    client_ip = request.client.host if request.client else "unknown"
+    rate_limiter.check("webhook", client_ip, max_requests=30, window_seconds=60)
     user = await require_user(request)
     if user is None:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
@@ -884,6 +887,9 @@ async def sales_webhook_whatsapp(request: Request):
 
 @router.post("/sales/webhook/gmail")
 async def sales_webhook_gmail(request: Request):
+    from services.rate_limiter import rate_limiter
+    client_ip = request.client.host if request.client else "unknown"
+    rate_limiter.check("webhook", client_ip, max_requests=30, window_seconds=60)
     user = await require_user(request)
     if user is None:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)

@@ -39,6 +39,9 @@ async def login_page(request: Request):
 
 @router.post("/login")
 async def login(request: Request, email: str = Form(...), password: str = Form(...)):
+    from services.rate_limiter import rate_limiter
+    client_ip = request.client.host if request.client else "unknown"
+    rate_limiter.check("login", client_ip, max_requests=5, window_seconds=60)
     sb = get_supabase()
     try:
         res = sb.auth.sign_in_with_password({"email": email, "password": password})

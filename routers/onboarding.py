@@ -65,6 +65,9 @@ async def register_page(request: Request, token: str = ""):
 @router.post("/register")
 async def register_submit(request: Request):
     """POST /register — handle registration form submission."""
+    from services.rate_limiter import rate_limiter
+    client_ip = request.client.host if request.client else "unknown"
+    rate_limiter.check("register", client_ip, max_requests=3, window_seconds=3600)
     # Parse JSON body
     try:
         body = await request.json()
@@ -120,6 +123,15 @@ async def register_submit(request: Request):
     except Exception as e:
         print(f"[register] Error checking expiry: {e}")
 
+    # Atomically claim the token
+    try:
+        claim = sb.table("onboarding_tokens").update({"used": True}).eq("token", token_str).eq("used", False).execute()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": f"Error claiming token: {str(e)}"})
+    if not claim.data or len(claim.data) == 0:
+        return JSONResponse(status_code=400, content={"detail": "This token has already been used."})
+    tok = claim.data[0]
+
     # Step 2: Sign up with Supabase Auth
     try:
         res = sb.auth.sign_up({"email": email, "password": password})
@@ -132,39 +144,38 @@ async def register_submit(request: Request):
             return JSONResponse(status_code=400, content={"detail": "An account with this email already exists"})
         return JSONResponse(status_code=500, content={"detail": f"Authentication error: {error_msg}"})
 
-    # Step 3: Create account record
+    # Steps 3-5: create account, user record, mark token used.
+    # Wrap in try/except — on failure, rollback the Supabase Auth user to avoid orphans.
     account_id = str(uuid.uuid4())
     try:
+        # Step 3: Create account record
         sb.table("accounts").insert({
             "id": account_id,
             "agency_name": company,
             "status": "pending",
             "plan": None,
         }).execute()
-    except Exception as e:
-        print(f"[register] Error creating account: {e}")
-        return JSONResponse(status_code=500, content={"detail": "Failed to create account"})
 
-    # Step 4: Create user record
-    try:
+        # Step 4: Create user record
         sb.table("users").insert({
             "id": user.id,
             "email": email,
             "account_id": account_id,
             "role": "client",
         }).execute()
-    except Exception as e:
-        print(f"[register] Error creating user: {e}")
-        return JSONResponse(status_code=500, content={"detail": "Failed to create user profile"})
 
-    # Step 5: Mark token as used
-    try:
+        # Step 5: Mark token as used (also attach account_id)
         sb.table("onboarding_tokens").update({
             "used": True,
             "account_id": account_id,
         }).eq("token", token_str).execute()
     except Exception as e:
-        print(f"[register] Error marking token used: {e}")
+        print(f"[register] Error during account/user/token setup: {e}")
+        try:
+            sb.auth.admin.delete_user(user.id)
+        except Exception as rollback_err:
+            print(f"[register] Failed to rollback Supabase Auth user {user.id}: {rollback_err}")
+        raise
 
     # Step 6: Send notification email to yy@flowreach.work
     if cfg.RESEND_API_KEY:
