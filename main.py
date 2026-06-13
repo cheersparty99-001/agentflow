@@ -41,17 +41,25 @@ app.include_router(email_auth.router)
 app.include_router(debug.router)
 app.include_router(onboarding.router)
 
+_REQUIRED_ENV_VARS = [
+    "SUPABASE_URL",
+    "SUPABASE_KEY",
+    "SUPABASE_SERVICE_KEY",
+    "SECRET_KEY",
+    "GMAIL_CLIENT_ID",
+    "GMAIL_CLIENT_SECRET",
+    "GMAIL_REFRESH_TOKEN",
+]
+_missing_required = [var for var in _REQUIRED_ENV_VARS if not getattr(cfg, var, None)]
+if _missing_required:
+    print(
+        f"[Flowreach] FATAL: Missing required env vars: {', '.join(_missing_required)}",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
 @app.on_event("startup")
 async def startup():
-    # Seed check removed — seed data no longer needed
-    missing = []
-    required = ["SUPABASE_URL", "SUPABASE_KEY", "SUPABASE_SERVICE_KEY"]
-    for var in required:
-        if not getattr(cfg, var, None):
-            missing.append(var)
-    if missing:
-        print(f"[Flowreach] WARNING: Missing env vars: {', '.join(missing)}")
-
     or_key = cfg.OPENROUTER_API_KEY
     if or_key:
         print(f"[Flowreach] OPENROUTER_API_KEY: present (len={len(or_key)})")

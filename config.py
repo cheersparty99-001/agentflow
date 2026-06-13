@@ -8,8 +8,10 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
-    import secrets
-    SECRET_KEY = secrets.token_urlsafe(32)
+    raise RuntimeError(
+        "SECRET_KEY environment variable is required. "
+        "Generate a strong random key and set it in Railway Variables."
+    )
 CRON_SECRET = os.getenv("CRON_SECRET", "")
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
