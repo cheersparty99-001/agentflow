@@ -11,13 +11,33 @@ Usage:
   service = oauth.get_gmail_service(account_id)
 """
 
+import base64
+import hashlib
 import json
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from cryptography.fernet import Fernet
+
 import config as cfg
 from services.supabase_client import get_supabase
+
+
+def _get_fernet() -> Fernet:
+    """Derive a Fernet key from the SECRET_KEY."""
+    key = hashlib.sha256(cfg.SECRET_KEY.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(key))
+
+
+def _encrypt_token(data: dict) -> str:
+    """Encrypt a token dict as a Fernet-encrypted string."""
+    return _get_fernet().encrypt(json.dumps(data).encode()).decode()
+
+
+def _decrypt_token(encrypted: str) -> dict:
+    """Decrypt a Fernet-encrypted token string back to a dict."""
+    return json.loads(_get_fernet().decrypt(encrypted.encode()))
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -34,30 +54,34 @@ def _sb():
     return get_supabase()
 
 
-def _get_stored_connections(account_id: str) -> dict:
-    """Read the billing_notes JSON blob for email connections."""
-    result = _sb().table("accounts").select("billing_notes").eq("id", account_id).single().execute()
-    raw = result.data.get("billing_notes") if result.data else None
+def _load_billing_notes(raw) -> dict:
+    """Parse raw billing_notes, detecting Fernet-encrypted blobs vs legacy JSON."""
     if not raw:
         return {}
     try:
-        data = json.loads(raw)
-        return data.get("email_connections", {})
-    except (json.JSONDecodeError, TypeError):
+        if isinstance(raw, str) and raw.startswith("gAAAAA"):
+            return _decrypt_token(raw)
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError, ValueError):
         return {}
 
 
+def _get_stored_connections(account_id: str) -> dict:
+    """Read the billing_notes blob for email connections."""
+    result = _sb().table("accounts").select("billing_notes").eq("id", account_id).single().execute()
+    raw = result.data.get("billing_notes") if result.data else None
+    data = _load_billing_notes(raw)
+    return data.get("email_connections", {})
+
+
 def _save_connections(account_id: str, connections: dict):
-    """Overwrite the billing_notes JSON blob with updated connections."""
+    """Overwrite the billing_notes blob with updated, encrypted connections."""
     # Read existing data first to not clobber other stored info
     result = _sb().table("accounts").select("billing_notes").eq("id", account_id).single().execute()
     raw = result.data.get("billing_notes") if result.data else None
-    try:
-        existing = json.loads(raw) if raw else {}
-    except (json.JSONDecodeError, TypeError):
-        existing = {}
+    existing = _load_billing_notes(raw)
     existing["email_connections"] = connections
-    _sb().table("accounts").update({"billing_notes": json.dumps(existing)}).eq("id", account_id).execute()
+    _sb().table("accounts").update({"billing_notes": _encrypt_token(existing)}).eq("id", account_id).execute()
 
 
 class GoogleOAuth:

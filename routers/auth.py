@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer
 import config as cfg
 from services.supabase_client import get_supabase
+from services.csrf import generate_csrf_token, validate_csrf_token
 
 router = APIRouter()
 
@@ -37,8 +38,16 @@ async def login_page(request: Request):
         return HTMLResponse(f.read())
 
 
+@router.get("/csrf-token")
+async def get_csrf_token(request: Request):
+    return JSONResponse({"csrf_token": generate_csrf_token()})
+
+
 @router.post("/login")
-async def login(request: Request, email: str = Form(...), password: str = Form(...)):
+async def login(request: Request, email: str = Form(...), password: str = Form(...), csrf_token: str = Form("")):
+    token = request.headers.get("X-CSRF-Token", "") or csrf_token
+    if not validate_csrf_token(token):
+        raise HTTPException(status_code=403, detail="Invalid or expired CSRF token")
     from services.rate_limiter import rate_limiter
     client_ip = request.client.host if request.client else "unknown"
     rate_limiter.check("login", client_ip, max_requests=5, window_seconds=60)
