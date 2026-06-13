@@ -133,8 +133,6 @@ async def auth_callback(request: Request):
     (access_token, refresh_token) and POSTs them to /auth/set-session
     to establish the session cookie, then redirects to /sales/dashboard.
     """
-    print("[Auth Callback] triggered")
-    print(f"[Auth Callback] URL: {request.url}")
     return HTMLResponse("""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>Completing sign in...</title></head>
@@ -181,7 +179,6 @@ async def auth_set_session(request: Request):
     body = await request.json()
     access_token = body.get("access_token", "")
     refresh_token = body.get("refresh_token", "")
-    print(f"[Auth set-session] access_token={access_token[:20] if access_token else 'EMPTY'} refresh_token={refresh_token[:20] if refresh_token else 'EMPTY'}")
     sb = get_supabase()
     try:
         res = sb.auth.set_session(refresh_token, access_token)

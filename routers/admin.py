@@ -382,7 +382,7 @@ async def api_onboarding_generate_token(request: Request):
 
         return JSONResponse({
             "token": token_uuid,
-            "url": f"https://flowreach.work/register?token={token_uuid}"
+            "url": f"{cfg.BASE_URL}/register?token={token_uuid}"
         })
     except Exception as e:
         print(f"[admin] Error generating token: {e}")
@@ -429,13 +429,18 @@ async def api_onboarding_approve(request: Request):
     except Exception as e:
         return JSONResponse({"error": f"Failed to update account: {str(e)}"}, status_code=500)
 
-    # Create usage_limits record
+    # Create or update usage_limits record
     try:
-        sb.table("usage_limits").insert({
+        usage_data = {
             "account_id": account_id,
             "monthly_lead_limit": limits["leads_per_month"],
             "monthly_message_limit": limits["messages_per_month"],
-        }).execute()
+        }
+        existing = sb.table("usage_limits").select("id").eq("account_id", account_id).maybe_single().execute()
+        if existing and existing.data:
+            sb.table("usage_limits").update(usage_data).eq("account_id", account_id).execute()
+        else:
+            sb.table("usage_limits").insert(usage_data).execute()
     except Exception as e:
         print(f"[admin] Error creating usage_limits: {e}")
 
@@ -462,7 +467,7 @@ async def api_onboarding_approve(request: Request):
 
 Your Flowreach account is ready!
 
-Log in here: https://flowreach.work/login
+Log in here: {cfg.BASE_URL}/login
 
 Email: {customer_email}
 Plan: {plan}

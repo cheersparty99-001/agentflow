@@ -272,11 +272,11 @@ Submitted at: {now}
 @router.get("/sitemap.xml", response_class=Response, include_in_schema=False)
 async def sitemap():
     pages = [
-        {"loc": "https://flowreach.work/", "priority": "1.0"},
-        {"loc": "https://flowreach.work/pricing", "priority": "0.8"},
-        {"loc": "https://flowreach.work/blog", "priority": "0.7"},
-        {"loc": "https://flowreach.work/demo", "priority": "0.9"},
-        {"loc": "https://flowreach.work/login", "priority": "0.5"},
+        {"loc": f"{cfg.BASE_URL}/", "priority": "1.0"},
+        {"loc": f"{cfg.BASE_URL}/pricing", "priority": "0.8"},
+        {"loc": f"{cfg.BASE_URL}/blog", "priority": "0.7"},
+        {"loc": f"{cfg.BASE_URL}/demo", "priority": "0.9"},
+        {"loc": f"{cfg.BASE_URL}/login", "priority": "0.5"},
     ]
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

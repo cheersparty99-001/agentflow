@@ -104,21 +104,21 @@ class GoogleOAuth:
         )
         return f"{GOOGLE_AUTH_URL}?{params}"
 
-    def handle_callback(self, code: str, account_id: str, redirect_uri: str) -> dict:
+    async def handle_callback(self, code: str, account_id: str, redirect_uri: str) -> dict:
         """Exchange auth code for tokens and store them."""
         import httpx
 
-        resp = httpx.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "code": code,
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "redirect_uri": redirect_uri,
-                "grant_type": "authorization_code",
-            },
-            timeout=15,
-        )
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                GOOGLE_TOKEN_URL,
+                data={
+                    "code": code,
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+            )
         data = resp.json()
         if "error" in data:
             raise ValueError(f"Google OAuth error: {data.get('error_description', data['error'])}")
@@ -129,11 +129,12 @@ class GoogleOAuth:
         expires_at = (datetime.utcnow() + timedelta(seconds=expires_in)).isoformat()
 
         # Fetch the user's email address from Google
-        user_info = httpx.get(
-            GOOGLE_USERINFO_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-            timeout=10,
-        ).json()
+        async with httpx.AsyncClient(timeout=10) as client:
+            user_info_resp = await client.get(
+                GOOGLE_USERINFO_URL,
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+        user_info = user_info_resp.json()
         email = user_info.get("email", "")
         if not email:
             email = "unknown@google.com"
