@@ -106,7 +106,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             "is_admin": user_db.data.get("role") == "admin" if user_db.data else False,
         }
         response = RedirectResponse(url="/dashboard", status_code=302)
-        response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
+        response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800, secure=True, samesite="lax")
         return response
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
@@ -122,7 +122,6 @@ async def auth_callback(request: Request):
     """
     print("[Auth Callback] triggered")
     print(f"[Auth Callback] URL: {request.url}")
-    print(f"[Auth Callback] Headers: {dict(request.headers)}")
     return HTMLResponse("""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>Completing sign in...</title></head>
@@ -142,7 +141,8 @@ async def auth_callback(request: Request):
     return;
   }
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', '/auth/set-session?access_token=' + encodeURIComponent(access_token) + '&refresh_token=' + encodeURIComponent(refresh_token), true);
+  xhr.open('POST', '/auth/set-session', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.withCredentials = true;
   xhr.onload = function() {
     if (xhr.status === 200) {
@@ -154,7 +154,7 @@ async def auth_callback(request: Request):
   xhr.onerror = function() {
     window.location.href = '/login';
   };
-  xhr.send();
+  xhr.send(JSON.stringify({access_token: access_token, refresh_token: refresh_token}));
 })();
 </script>
 <p>Completing sign in...</p>
@@ -163,8 +163,11 @@ async def auth_callback(request: Request):
 
 
 @router.post("/auth/set-session")
-async def auth_set_session(request: Request, access_token: str = "", refresh_token: str = ""):
+async def auth_set_session(request: Request):
     """Receive tokens from Supabase callback, create session cookie."""
+    body = await request.json()
+    access_token = body.get("access_token", "")
+    refresh_token = body.get("refresh_token", "")
     print(f"[Auth set-session] access_token={access_token[:20] if access_token else 'EMPTY'} refresh_token={refresh_token[:20] if refresh_token else 'EMPTY'}")
     sb = get_supabase()
     try:
@@ -189,7 +192,7 @@ async def auth_set_session(request: Request, access_token: str = "", refresh_tok
             session_data["is_admin"] = False
 
         response = JSONResponse(content={"ok": True})
-        response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800)
+        response.set_cookie(key="session", value=create_session_token(session_data), httponly=True, max_age=604800, secure=True, samesite="lax")
         return response
     except Exception as e:
         print(f"[Auth] set-session error: {e}")
