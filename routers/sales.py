@@ -417,6 +417,91 @@ async def score_lead(request: Request, lead_id: str):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+async def outreach_send_logic(lead_ids, business, message_type, channel, account_id, agent_name, agent_title):
+    # ── 1. Business hours check ──
+    ok, msg = _is_business_hours()
+    if not ok:
+        print(f"[Sales/Outreach] Skipped: {msg}")
+        return
+
+    # ── 2. Cap at 20 leads per batch ──
+    total = len(lead_ids)
+    if total > 20:
+        lead_ids = lead_ids[:20]
+
+    # ── 3. Process each lead ──
+    from services.sales.message_gen import generate_message
+    from services.sales import usage as sales_usage
+
+    sent = 0
+
+    for i, lid in enumerate(lead_ids):
+        lead = data_leads.get_lead(lid)
+        if not lead:
+            continue
+
+        company_name = lead.get("company_name", lead.get("name", "Unknown"))
+        to_email = lead.get("email", "")
+
+        if not to_email:
+            continue
+
+        # Check monthly/daily usage limits
+        limit_check = sales_usage.check_limits(account_id, "message")
+        if not limit_check.get("allowed"):
+            print(f"[Sales/Outreach] Stopped early: {limit_check.get('reason', 'Usage limit reached')}")
+            break
+
+        # Generate AI copy
+        try:
+            message = generate_message(
+                lead=lead,
+                channel=channel,
+                message_type=message_type,
+                agent_name=agent_name,
+                agent_title=agent_title,
+                account_id=account_id,
+                company_name_override=business,
+            )
+        except Exception as e:
+            err_msg = f"Message generation failed: {str(e)}"
+            print(f"[Sales/Outreach] {err_msg}")
+            continue
+
+        subject = message.get("subject", "")
+        body_text = message.get("body", "")
+
+        # Send the email via Gmail API
+        send_result = _send_single_email(account_id, lid, to_email, subject, body_text)
+
+        if send_result.get("ok"):
+            # ── Success ──
+            if lead.get("status") in ("cold", "qualified"):
+                data_leads.update_lead_status(lid, "contacted")
+            data_leads.create_activity(
+                lid, "email",
+                f"Outreach sent to {to_email}",
+                {"subject": subject, "detail": f"Auto-generated outreach message for {company_name}"},
+            )
+            sent += 1
+            print(f"[Sales/Outreach] Sent to {company_name}: success")
+        else:
+            # ── Failure — log and continue ──
+            error = send_result.get("error", "Send failed")
+            data_leads.create_activity(
+                lid, "email",
+                f"Email FAILED: {error}",
+                {"detail": f"To: {to_email}, Subject: {subject}, Error: {error}"},
+            )
+            print(f"[Sales/Outreach] Sent to {company_name}: fail — {error}")
+
+        # Random delay between sends (30-60 seconds)
+        if i < len(lead_ids) - 1:
+            delay = random.uniform(30, 60)
+            print(f"[Sales/Outreach] Waiting {delay:.0f}s before next send...")
+            await asyncio.sleep(delay)
+
+
 @router.post("/sales/outreach/send")
 async def outreach_send(request: Request):
     user = await require_user(request)
@@ -440,120 +525,10 @@ async def outreach_send(request: Request):
     agent_name = user.get("name", "The Flowreach Team")
     agent_title = user.get("title", "B2B Sales Automation")
 
-    # ── 1. Business hours check ──
-    ok, msg = _is_business_hours()
-    if not ok:
-        return JSONResponse({"ok": False, "error": msg})
-
-    # ── 2. Cap at 20 leads per batch ──
-    total = len(lead_ids)
-    queued = 0
-    if total > 20:
-        queued = total - 20
-        lead_ids = lead_ids[:20]
-
-    # ── 3. Process each lead ──
-    from services.sales.message_gen import generate_message
-    from services.sales import usage as sales_usage
-
-    sent = 0
-    results = []
-    stopped_early = False
-
-    for i, lid in enumerate(lead_ids):
-        lead = data_leads.get_lead(lid)
-        if not lead:
-            results.append({"lead_id": lid, "company_name": "?", "status": "skipped", "error": "Lead not found"})
-            continue
-
-        company_name = lead.get("company_name", lead.get("name", "Unknown"))
-        to_email = lead.get("email", "")
-
-        if not to_email:
-            results.append({"lead_id": lid, "company_name": company_name, "status": "skipped", "error": "No email address"})
-            continue
-
-        # Check monthly/daily usage limits
-        limit_check = sales_usage.check_limits(account_id, "message")
-        if not limit_check.get("allowed"):
-            stopped_early = True
-            results.append({
-                "lead_id": lid, "company_name": company_name,
-                "status": "skipped", "error": limit_check.get("reason", "Usage limit reached"),
-            })
-            break
-
-        # Generate AI copy
-        try:
-            message = generate_message(
-                lead=lead,
-                channel=channel,
-                message_type=message_type,
-                agent_name=agent_name,
-                agent_title=agent_title,
-                account_id=account_id,
-                company_name_override=business,
-            )
-        except Exception as e:
-            err_msg = f"Message generation failed: {str(e)}"
-            print(f"[Sales/Outreach] {err_msg}")
-            results.append({"lead_id": lid, "company_name": company_name, "status": "failed", "error": err_msg})
-            continue
-
-        subject = message.get("subject", "")
-        body_text = message.get("body", "")
-
-        # Send the email via Gmail API
-        send_result = _send_single_email(account_id, lid, to_email, subject, body_text)
-
-        if send_result.get("ok"):
-            # ── Success ──
-            if lead.get("status") in ("cold", "qualified"):
-                data_leads.update_lead_status(lid, "contacted")
-            data_leads.create_activity(
-                lid, "email",
-                f"Outreach sent to {to_email}",
-                {"subject": subject, "detail": f"Auto-generated outreach message for {company_name}"},
-            )
-            sent += 1
-            results.append({"lead_id": lid, "company_name": company_name, "status": "sent"})
-            print(f"[Sales/Outreach] Sent to {company_name}: success")
-        else:
-            # ── Failure — log and continue ──
-            error = send_result.get("error", "Send failed")
-            data_leads.create_activity(
-                lid, "email",
-                f"Email FAILED: {error}",
-                {"detail": f"To: {to_email}, Subject: {subject}, Error: {error}"},
-            )
-            results.append({"lead_id": lid, "company_name": company_name, "status": "failed", "error": error})
-            print(f"[Sales/Outreach] Sent to {company_name}: fail — {error}")
-
-        # Random delay between sends (30-60 seconds)
-        if i < len(lead_ids) - 1:
-            delay = random.uniform(30, 60)
-            print(f"[Sales/Outreach] Waiting {delay:.0f}s before next send...")
-            await asyncio.sleep(delay)
-
-    # ── Build response ──
-    resp = {
-        "ok": True,
-        "total": total,
-        "sent": sent,
-        "failed": len([r for r in results if r["status"] == "failed"]),
-        "skipped": len([r for r in results if r["status"] == "skipped"]),
-        "results": results,
-    }
-    if queued:
-        resp["queued"] = queued
-        resp["message"] = (
-            f"Processed first 20 leads. {queued} lead(s) remaining — "
-            f"submit a new request with their lead_ids to process the rest."
-        )
-    if stopped_early:
-        resp["stopped_early"] = True
-
-    return JSONResponse(resp)
+    background_task = asyncio.create_task(outreach_send_logic(
+        lead_ids, business, message_type, channel, account_id, agent_name, agent_title,
+    ))
+    return JSONResponse({"ok": True, "message": "Outreach started. Results will be available shortly."})
 
 
 @router.get("/sales/outreach/preview")
@@ -671,7 +646,15 @@ async def sales_leads_upload(request: Request, file: UploadFile = File(...)):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
+    MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" not in content_type and "text/csv" not in content_type:
+        return JSONResponse({"error": "Invalid content type"}, status_code=400)
+
     content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        return JSONResponse({"error": "File too large. Maximum size is 10 MB."}, status_code=413)
+
     try:
         text = content.decode("utf-8")
     except Exception:
@@ -1094,9 +1077,11 @@ async def sales_onboarding_start_sampling(request: Request):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
+    account_id = user.get("account_id")
+
     # Get current onboarding state from accounts table
     from services.supabase_client import get_supabase as sb
-    account = sb().table("accounts").select("sales_onboarding_status,sampling_start_date,sampling_lead_count").eq("id", "00000000-0000-0000-0000-000000000001").single().execute()
+    account = sb().table("accounts").select("sales_onboarding_status,sampling_start_date,sampling_lead_count").eq("id", account_id).single().execute()
     current_status = account.data.get("sales_onboarding_status", "pending") if account.data else "pending"
 
     if current_status == "sampling":
@@ -1126,7 +1111,7 @@ async def sales_onboarding_start_sampling(request: Request):
         "sales_onboarding_status": "sampling",
         "sampling_start_date": datetime.utcnow().isoformat(),
         "sampling_lead_count": sample_count,
-    }).eq("id", "00000000-0000-0000-0000-000000000001").execute()
+    }).eq("id", account_id).execute()
 
     return JSONResponse({"ok": True, "samples_created": sample_count, "status": "sampling"})
 
@@ -1148,8 +1133,10 @@ async def sales_onboarding_confirm(request: Request, quality_rating: int = Form(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
+    account_id = user.get("account_id")
+
     from services.supabase_client import get_supabase as sb
-    account = sb().table("accounts").select("sales_onboarding_status").eq("id", "00000000-0000-0000-0000-000000000001").single().execute()
+    account = sb().table("accounts").select("sales_onboarding_status").eq("id", account_id).single().execute()
     status = account.data.get("sales_onboarding_status", "") if account.data else ""
 
     if status != "sampling":
@@ -1158,7 +1145,7 @@ async def sales_onboarding_confirm(request: Request, quality_rating: int = Form(
     sb().table("accounts").update({
         "sales_onboarding_status": "confirmed",
         "plan_notes": notes,
-    }).eq("id", "00000000-0000-0000-0000-000000000001").execute()
+    }).eq("id", account_id).execute()
 
     return JSONResponse({"ok": True, "status": "confirmed", "quality_rating": quality_rating})
 
@@ -1172,8 +1159,10 @@ async def sales_onboarding_activate(request: Request):
     if not user.get("is_admin", False):
         return JSONResponse({"error": "Admin only"}, status_code=403)
 
+    account_id = user.get("account_id")
+
     from services.supabase_client import get_supabase as sb
-    account = sb().table("accounts").select("sales_onboarding_status").eq("id", "00000000-0000-0000-0000-000000000001").single().execute()
+    account = sb().table("accounts").select("sales_onboarding_status").eq("id", account_id).single().execute()
     status = account.data.get("sales_onboarding_status", "") if account.data else ""
 
     if status != "confirmed":
@@ -1181,7 +1170,7 @@ async def sales_onboarding_activate(request: Request):
 
     sb().table("accounts").update({
         "sales_onboarding_status": "active",
-    }).eq("id", "00000000-0000-0000-0000-000000000001").execute()
+    }).eq("id", account_id).execute()
 
     return JSONResponse({"ok": True, "status": "active", "message": "Real outreach enabled"})
 

@@ -143,7 +143,14 @@ async def admin_edit_account_page(account_id: str, request: Request):
     if not user:
         return RedirectResponse(url="/login")
 
-    account = None
+    # Look up the account by ID
+    try:
+        sb = get_supabase()
+        result = sb.table("accounts").select("*").eq("id", account_id).maybe_single().execute()
+        account = result.data if result else None
+    except Exception as e:
+        print(f"[admin] Error fetching account {account_id}: {e}")
+        account = None
 
     if not account:
         return HTMLResponse("<html><body><h1>Account not found</h1></body></html>", status_code=404)
