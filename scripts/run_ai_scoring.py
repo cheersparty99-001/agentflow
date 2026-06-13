@@ -2,6 +2,7 @@
 
 Usage: OPENROUTER_API_KEY=<key> python scripts/run_ai_scoring.py
 """
+import asyncio
 import os
 import sys
 import time
@@ -25,7 +26,7 @@ from services.sales.qualifier import qualify_lead
 
 ACCOUNT_ID = "00000000-0000-0000-0000-000000000001"
 
-def main():
+async def main():
     sb = get_supabase()
 
     # Fetch leads with ai_score=0
@@ -47,7 +48,7 @@ def main():
         print(f"\n[{i+1}/{len(leads)}] Scoring: {name}")
 
         try:
-            result = qualify_lead(lead, account_id=ACCOUNT_ID)
+            result = await qualify_lead(lead, account_id=ACCOUNT_ID)
 
             ai_score = result.get("ai_score")
             ai_reason = result.get("ai_score_reason", "")
@@ -93,4 +94,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

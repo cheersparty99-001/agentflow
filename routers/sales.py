@@ -394,7 +394,7 @@ async def score_lead(request: Request, lead_id: str):
     from services.sales.qualifier import qualify_lead
 
     try:
-        result = qualify_lead(lead, account_id=account_id)
+        result = await qualify_lead(lead, account_id=account_id)
 
         # Persist score back to leads table
         data_leads.update_lead(lead_id, {

@@ -170,10 +170,10 @@ Score 1-10 and give specific reasons."""
     return system_prompt, user_prompt
 
 
-def _ai_score_lead(lead: dict, profile: dict, business: dict) -> Optional[dict]:
+async def _ai_score_lead(lead: dict, profile: dict, business: dict) -> Optional[dict]:
     """Score a lead using AI. Returns {score, reason} or None on failure."""
     system_prompt, user_prompt = _build_ai_scoring_prompt(lead, profile, business)
-    response = _call_openrouter(system_prompt, user_prompt)
+    response = await _call_openrouter(system_prompt, user_prompt)
 
     if not response:
         return None
@@ -233,7 +233,7 @@ def _heuristic_score(lead: dict) -> dict:
 # ── Public API ──────────────────────────────────────────────────────
 
 
-def qualify_lead(
+async def qualify_lead(
     lead: dict,
     account_id: str = "",
 ) -> dict:
@@ -257,7 +257,7 @@ def qualify_lead(
         profile = _load_active_profile(business_id, account_id)
         business_info = _load_business_info(business_id)
         if profile and cfg.OPENROUTER_API_KEY:
-            ai_result = _ai_score_lead(lead, profile, business_info)
+            ai_result = await _ai_score_lead(lead, profile, business_info)
             if ai_result:
                 print(f"[Qualifier] AI scored '{lead.get('company_name', 'Unknown')}' at {ai_result['score']}/10 — {ai_result['reason']}")
             else:
@@ -300,7 +300,7 @@ def qualify_lead(
     return result
 
 
-def qualify_leads(
+async def qualify_leads(
     leads: list[dict],
     account_id: str = "",
     min_score: int = 0,
@@ -315,7 +315,7 @@ def qualify_leads(
     Returns:
         List of scored and qualified lead dicts.
     """
-    results = [qualify_lead(lead, account_id) for lead in leads]
+    results = [await qualify_lead(lead, account_id) for lead in leads]
     if min_score > 0:
         results = [r for r in results if r.get("score", 0) >= min_score]
     results.sort(key=lambda r: r.get("score", 0), reverse=True)

@@ -45,10 +45,9 @@ _REQUIRED_ENV_VARS = [
     "SUPABASE_KEY",
     "SUPABASE_SERVICE_KEY",
     "SECRET_KEY",
-    "GMAIL_CLIENT_ID",
-    "GMAIL_CLIENT_SECRET",
-    "GMAIL_REFRESH_TOKEN",
 ]
+# GMAIL vars are optional — only needed for the Connect Email feature
+_GMAIL_ENV_VARS = ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"]
 _missing_required = [var for var in _REQUIRED_ENV_VARS if not getattr(cfg, var, None)]
 if _missing_required:
     print(
@@ -56,6 +55,12 @@ if _missing_required:
         file=sys.stderr,
     )
     sys.exit(1)
+missing_gmail = [var for var in _GMAIL_ENV_VARS if not getattr(cfg, var, None)]
+if missing_gmail:
+    print(
+        f"[Flowreach] WARNING: Gmail env vars not set: {', '.join(missing_gmail)}. "
+        "Connect Email feature will be unavailable.",
+    )
 
 @app.on_event("startup")
 async def startup():
