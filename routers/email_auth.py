@@ -48,7 +48,7 @@ async def email_callback_google(request: Request, code: str = "", state: str = "
     redirect_uri = f"{cfg.BASE_URL.rstrip('/')}/email/callback/google"
 
     try:
-        conn = google_oauth.handle_callback(code, account_id, str(redirect_uri))
+        conn = await google_oauth.handle_callback(code, account_id, str(redirect_uri))
         print(f"[EmailAuth] Google connected: {conn.get('email', '')}")
         return RedirectResponse(url="/settings?email_connected=google")
     except Exception as e:
