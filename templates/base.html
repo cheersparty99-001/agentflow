@@ -185,12 +185,16 @@
     try {
       var r = await fetch('/api/ai-chat/init');
       var data = await r.json();
-      if (!data.authenticated) return;
+      if (!data.authenticated) {
+        hideSpinner();
+        return;
+      }
 
       chatState.hasProfile = data.has_profile;
       chatState.userName = data.user_name || 'there';
       chatState.companyName = data.company_name || '';
       chatState.accountId = data.account_id;
+      chatState.inited = true;
 
       // If user has no profile, auto-open and greet
       if (!data.has_profile) {
@@ -201,13 +205,25 @@
           }
         }, 1500);
       } else {
-        // Just show the icon, ready to open
-        var messagesEl = getChatEl('ai-chat-messages');
-        messagesEl.innerHTML = '';
+        hideSpinner();
+        // If panel is already open (user clicked before init finished), add greeting
+        if (chatState.open) {
+          addAIMessage('Hi ' + chatState.userName + '! How can I help you today?');
+        }
       }
     } catch(e) {
       console.log('[AI Chat] Init error:', e);
+      hideSpinner();
+      // Show a fallback message so user isn't stuck at spinner
+      if (chatState.open) {
+        addAIMessage('Sorry, I had trouble loading. Please try refreshing the page.');
+      }
     }
+  }
+
+  function hideSpinner() {
+    var messagesEl = getChatEl('ai-chat-messages');
+    messagesEl.innerHTML = '';
   }
 
   // ── Toggle ──────────────────────────────────────────────────────────────────
