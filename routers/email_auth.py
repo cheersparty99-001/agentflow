@@ -50,7 +50,8 @@ async def email_callback_google(request: Request, code: str = "", state: str = "
     try:
         conn = await google_oauth.handle_callback(code, account_id, str(redirect_uri))
         print(f"[EmailAuth] Google connected: {conn.get('email', '')}")
-        return RedirectResponse(url="/settings?email_connected=google")
+        print("[Email Callback] completed, redirecting to settings")
+        return RedirectResponse(url="/settings")
     except Exception as e:
         print(f"[EmailAuth] Callback error: {e}")
         return RedirectResponse(url="/settings?email_error=" + str(e)[:50])

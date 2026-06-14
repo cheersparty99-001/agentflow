@@ -331,15 +331,7 @@ async function disconnectEmail() {
   } catch(e) { alert('Failed to disconnect. Please try again.'); }
 }
 
-const params = new URLSearchParams(window.location.search);
-if (params.get('email_connected') === 'google') {
-  window.location.search = '';
-  location.reload();
-}
-if (params.get('email_error')) {
-  alert('Failed to connect email: ' + params.get('email_error'));
-}
-
+// ── Email Connection ──
 async function checkEmailStatus() {
   try {
     const r = await fetch('/email/status');
@@ -348,6 +340,12 @@ async function checkEmailStatus() {
       location.reload();
     }
   } catch(e) {}
+}
+
+// Also handle email_error from callback (rare)
+const params = new URLSearchParams(window.location.search);
+if (params.get('email_error')) {
+  alert('Failed to connect email: ' + params.get('email_error'));
 }
 
 // ── Target Profiles ──
