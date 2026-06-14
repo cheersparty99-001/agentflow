@@ -43,3 +43,42 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO users (id, email, role, account_id, is_admin)
 VALUES ('00000000-0000-0000-0000-000000000003', 'demo@flowreach.work', 'client', '00000000-0000-0000-0000-000000000001', false)
 ON CONFLICT (id) DO NOTHING;
+
+-- ── Chat Conversations ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS chat_conversations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  account_id UUID REFERENCES accounts(id) NOT NULL,
+  user_id UUID REFERENCES users(id) NOT NULL,
+  title TEXT DEFAULT 'New Conversation',
+  messages JSONB DEFAULT '[]'::jsonb,
+  is_archived BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ── Follow-up Settings ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS followup_settings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  account_id UUID REFERENCES accounts(id) NOT NULL,
+  is_enabled BOOLEAN DEFAULT true,
+  followup_delay_days INTEGER DEFAULT 2,
+  max_followups INTEGER DEFAULT 3,
+  followup_interval_days INTEGER DEFAULT 3,
+  channels TEXT[] DEFAULT ARRAY['email'],
+  auto_schedule BOOLEAN DEFAULT true,
+  followup_template TEXT DEFAULT '',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(account_id)
+);
+
+-- ── Dashboard Banners ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS dashboard_banners (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  message TEXT NOT NULL,
+  banner_type TEXT DEFAULT 'info',
+  is_active BOOLEAN DEFAULT true,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP
+);

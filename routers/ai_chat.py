@@ -2,9 +2,18 @@
 
 POST /api/ai-chat — main chat endpoint backed by Claude via OpenRouter.
 GET  /api/ai-chat/init — returns account data for the frontend widget init.
+GET  /api/ai-chat/conversations — list saved conversations for this user.
+POST /api/ai-chat/conversations — save/update a conversation.
+POST /api/ai-chat/conversations/load — load a specific conversation.
+
+Enhancements:
+- Conversation persistence (save/load from Supabase)
+- Auto-naming conversations based on first message
+- Follow-up awareness (reads followup_settings)
 """
 
 import json
+import re
 import uuid
 from datetime import datetime
 from fastapi import APIRouter, Request
@@ -29,6 +38,29 @@ async def require_user(request: Request):
     return user
 
 
+# ── Follow-up Settings Loader ──────────────────────────────────────────
+
+
+def load_followup_settings(account_id: str) -> dict:
+    """Load follow-up settings for the account, with sensible defaults."""
+    sb = _sb()
+    settings = safe_single(
+        lambda: sb.table("followup_settings").select("*").eq("account_id", account_id).single(),
+        default=None,
+    )
+    if not settings:
+        return {
+            "is_enabled": True,
+            "followup_delay_days": 2,
+            "max_followups": 3,
+            "followup_interval_days": 3,
+            "channels": ["email"],
+            "auto_schedule": True,
+            "followup_template": "",
+        }
+    return settings
+
+
 # ── Account data loader ──────────────────────────────────────────────────────
 
 
@@ -39,10 +71,11 @@ def load_account_data(account_id: str) -> dict:
 
     # Account info
     account = safe_single(
-        lambda: sb.table("accounts").select("agency_name, email, phone, billing_notes").eq("id", account_id).single(),
+        lambda: sb.table("accounts").select("agency_name, email, phone, billing_notes, plan").eq("id", account_id).single(),
         default={"agency_name": "Your Company"},
     )
     data["company_name"] = (account or {}).get("agency_name", "Your Company")
+    data["plan"] = (account or {}).get("plan", "Starter")
 
     # Target profiles
     profiles = []
@@ -423,6 +456,7 @@ async def execute_action(action: dict, account_id: str) -> dict:
                 "success": True,
                 "message": f"Found {total_found} qualified leads for {ai_query or 'your profile'} in {ai_location or 'target locations'}",
                 "lead_count": total_found,
+                "lead_ids": lead_ids,
             }
         except Exception as e:
             print(f"[AI Chat] Error running scraper: {e}")
@@ -581,19 +615,37 @@ async def ai_chat(request: Request):
                 find_result = await execute_action({"type": "FIND_LEADS", "data": {}}, account_id)
                 if find_result.get("success"):
                     count = find_result.get("lead_count", 0)
+                    # Count how many leads have email addresses
+                    lead_ids = find_result.get("lead_ids", [])
+                    email_count = 0
+                    if lead_ids:
+                        try:
+                            sb = _sb()
+                            email_result = sb.table("leads").select("email").in_("id", lead_ids).execute()
+                            email_count = sum(1 for ld in (email_result.data or []) if ld.get("email"))
+                        except Exception:
+                            pass
                     reply += (
-                        f"\n\nFound {count} qualified leads for you! "
-                        f"Head to your Leads page to see them. "
-                        f"I've already scored each one — leads with 7+ are ready to outreach."
+                        f"\n\nFound {count} qualified leads! {email_count} of them have email addresses "
+                        f"ready for outreach. Head to your Leads page to see them."
                     )
                 else:
                     reply += f"\n\nNote: Lead search encountered an issue: {find_result.get('message')}"
             elif pending_action["type"] == "FIND_LEADS":
                 count = action_result.get("lead_count", 0)
+                # Count how many leads have email addresses
+                lead_ids = action_result.get("lead_ids", [])
+                email_count = 0
+                if lead_ids:
+                    try:
+                        sb = _sb()
+                        email_result = sb.table("leads").select("email").in_("id", lead_ids).execute()
+                        email_count = sum(1 for ld in (email_result.data or []) if ld.get("email"))
+                    except Exception:
+                        pass
                 reply = (
-                    f"Found {count} qualified leads for you! "
-                    f"Head to your Leads page to see them. "
-                    f"I've already scored each one — leads with 7+ are ready to outreach."
+                    f"Found {count} qualified leads! {email_count} of them have email addresses "
+                    f"ready for outreach. Head to your Leads page to see them."
                 )
             else:
                 reply = f"Done! {action_result.get('message', 'Action completed.')}"
@@ -605,6 +657,32 @@ async def ai_chat(request: Request):
             "pending_action": None,
             "action_result": action_result,
         })
+
+    # ── Website scraping ────────────────────────────────────────────
+    # If user shares a URL, fetch and extract business info
+    if user_message.startswith('http://') or user_message.startswith('https://'):
+        url = user_message
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    html = resp.text
+                    # Strip HTML tags to extract readable text
+                    text = re.sub(r'<[^>]+>', ' ', html)
+                    text = re.sub(r'\s+', ' ', text).strip()
+                    text = text[:5000]  # Limit to 5000 chars
+                    # Prepend scraped content as a system-style instruction
+                    user_message = (
+                        f"The user shared their company website URL: {url}\n\n"
+                        f"Website content extracted:\n{text}\n\n"
+                        f"Based on the above website content, extract: company name, what they do, "
+                        f"value proposition, target customers. Then generate a target profile draft "
+                        f"and ask the user to confirm."
+                    )
+        except Exception as e:
+            print(f"[AI Chat] Website scrape error: {e}")
+            # On error, proceed with normal message — Claude will handle it
 
     # Build messages for Claude
     claude_messages = []
@@ -630,3 +708,169 @@ async def ai_chat(request: Request):
         "pending_action": action,
         "action_result": None,
     })
+
+
+# ── Conversation Persistence Endpoints ──────────────────────────────────────
+
+
+@router.get("/api/ai-chat/conversations")
+async def list_conversations(request: Request):
+    """List saved conversations for the current user."""
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    user_id = user.get("user_id")
+    account_id = user.get("account_id")
+    if not user_id or not account_id:
+        return JSONResponse({"conversations": []})
+
+    sb = _sb()
+    try:
+        result = (
+            sb.table("chat_conversations")
+            .select("id, title, created_at, updated_at, is_archived")
+            .eq("account_id", account_id)
+            .eq("user_id", user_id)
+            .eq("is_archived", False)
+            .order("updated_at", desc=True)
+            .limit(50)
+            .execute()
+        )
+        return JSONResponse({"conversations": result.data or []})
+    except Exception as e:
+        print(f"[AI Chat] List conversations error: {e}")
+        return JSONResponse({"conversations": []})
+
+
+@router.post("/api/ai-chat/conversations/save")
+async def save_conversation(request: Request):
+    """Save/update a conversation. Returns the conversation id.
+
+    Request body:
+    {
+        \"conversation_id\": \"...\" (optional, omit for new),
+        \"title\": \"Conversation title\",
+        \"messages\": [...]
+    }
+    """
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    user_id = user.get("user_id")
+    account_id = user.get("account_id")
+    if not user_id or not account_id:
+        return JSONResponse({"error": "No account found"}, status_code=400)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    conv_id = body.get("conversation_id", "")
+    title = body.get("title", "New Conversation")
+    messages = body.get("messages", [])
+    now = datetime.utcnow().isoformat()
+
+    sb = _sb()
+
+    if conv_id:
+        # Update existing conversation
+        try:
+            sb.table("chat_conversations").update({
+                "title": title,
+                "messages": json.dumps(messages),
+                "updated_at": now,
+            }).eq("id", conv_id).eq("account_id", account_id).eq("user_id", user_id).execute()
+            return JSONResponse({"conversation_id": conv_id, "saved": True})
+        except Exception as e:
+            print(f"[AI Chat] Update conversation error: {e}")
+            return JSONResponse({"error": str(e)}, status_code=500)
+    else:
+        # Create new conversation
+        new_id = str(uuid.uuid4())
+        try:
+            sb.table("chat_conversations").insert({
+                "id": new_id,
+                "account_id": account_id,
+                "user_id": user_id,
+                "title": title,
+                "messages": json.dumps(messages),
+                "created_at": now,
+                "updated_at": now,
+            }).execute()
+            return JSONResponse({"conversation_id": new_id, "saved": True})
+        except Exception as e:
+            print(f"[AI Chat] Create conversation error: {e}")
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/api/ai-chat/conversations/load")
+async def load_conversation(request: Request):
+    """Load a specific conversation by id."""
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    account_id = user.get("account_id")
+    if not account_id:
+        return JSONResponse({"error": "No account found"}, status_code=400)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    conv_id = body.get("conversation_id", "")
+    if not conv_id:
+        return JSONResponse({"error": "conversation_id required"}, status_code=400)
+
+    sb = _sb()
+    try:
+        result = sb.table("chat_conversations").select("*").eq("id", conv_id).eq("account_id", account_id).single().execute()
+        conv = result.data if result else None
+        if not conv:
+            return JSONResponse({"error": "Conversation not found"}, status_code=404)
+
+        # Parse messages JSONB
+        messages = conv.get("messages", [])
+        if isinstance(messages, str):
+            messages = json.loads(messages)
+
+        return JSONResponse({
+            "conversation_id": conv["id"],
+            "title": conv.get("title", "New Conversation"),
+            "messages": messages,
+            "created_at": conv.get("created_at", ""),
+            "updated_at": conv.get("updated_at", ""),
+        })
+    except Exception as e:
+        print(f"[AI Chat] Load conversation error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/api/ai-chat/conversations/delete")
+async def delete_conversation(request: Request):
+    """Archive a conversation (soft delete)."""
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    account_id = user.get("account_id")
+    user_id = user.get("user_id")
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    conv_id = body.get("conversation_id", "")
+
+    sb = _sb()
+    try:
+        sb.table("chat_conversations").update({"is_archived": True}).eq("id", conv_id).eq("account_id", account_id).eq("user_id", user_id).execute()
+        return JSONResponse({"deleted": True})
+    except Exception as e:
+        print(f"[AI Chat] Delete conversation error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)

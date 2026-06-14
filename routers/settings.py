@@ -292,3 +292,85 @@ async def api_update_business(business_id: str, request: Request):
     except Exception as e:
         print(f"[Settings] Update business error: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ── Follow-up Settings API (stored in accounts.followup_settings JSON) ──────
+
+
+@router.get("/api/followup-settings")
+async def api_get_followup_settings(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    account_id = user.get("account_id")
+    sb = _sb()
+    account = safe_single(
+        lambda: sb.table("accounts").select("followup_settings").eq("id", account_id).single(),
+        default=None,
+    )
+    settings = account.get("followup_settings", {}) if account else {}
+
+    defaults = {
+        "first_followup_days": 3,
+        "second_followup_days": 5,
+        "send_start_hour": 9,
+        "send_end_hour": 18,
+        "max_followups": 2,
+        "timezone": "Asia/Kuala_Lumpur",
+    }
+    for k, v in defaults.items():
+        settings.setdefault(k, v)
+
+    return JSONResponse({"settings": settings})
+
+
+@router.post("/api/followup-settings")
+async def api_save_followup_settings(request: Request):
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    account_id = user.get("account_id")
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON body"}, status_code=400)
+
+    sb = _sb()
+    try:
+        sb.table("accounts").update({"followup_settings": body}).eq("id", account_id).execute()
+        return JSONResponse({"success": True})
+    except Exception as e:
+        print(f"[Settings] Followup settings error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ── Dashboard Banner API ────────────────────────────────────────────────
+
+
+@router.get("/api/banners")
+async def api_list_banners(request: Request):
+    """List active banners (visible to all authenticated users)."""
+    user = await require_user(request)
+    if not user:
+        return JSONResponse({"banners": []})
+
+    sb = _sb()
+    try:
+        from datetime import timezone
+        now = datetime.now(timezone.utc).isoformat()
+        result = (
+            sb.table("dashboard_banners")
+            .select("*")
+            .eq("is_active", True)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        banners = result.data or []
+        # Filter by expiry
+        active = [b for b in banners if not b.get("expires_at") or b["expires_at"] > now]
+        return JSONResponse({"banners": active})
+    except Exception as e:
+        print(f"[Settings] Banner error: {e}")
+        return JSONResponse({"banners": []})

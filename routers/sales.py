@@ -22,15 +22,14 @@ BUSINESSES = ["Boleh AI", "Wise Solutions", "Flowreach"]
 
 # ── Normalization helpers ───────────────────────────────────────────────────────
 
-# Map business_id -> business name (also used in templates)
-_BUSINESS_NAME_MAP = {
-    "b1000000-0000-0000-0000-000000000001": "Boleh AI",
-    "b2000000-0000-0000-0000-000000000002": "Wise Solutions",
-    "b3000000-0000-0000-0000-000000000003": "Flowreach",
-}
 
-def _normalize_lead(ld: dict) -> dict:
-    """Convert DB lead fields to template-compatible format."""
+def _normalize_lead(ld: dict, businesses: dict | None = None) -> dict:
+    """Convert DB lead fields to template-compatible format.
+    
+    Args:
+        ld: Lead dict from DB.
+        businesses: Optional mapping of business_id -> business_name (from DB lookup).
+    """
     if ld is None:
         return None
     ld["name"] = ld.get("company_name") or ld.get("name") or ""
@@ -39,7 +38,9 @@ def _normalize_lead(ld: dict) -> dict:
     ld["location"] = ld.get("city") or ld.get("location") or ""
     # Resolve business name
     biz_id = ld.get("business_id", "")
-    biz_name = _BUSINESS_NAME_MAP.get(biz_id, "")
+    biz_name = ""
+    if businesses and biz_id:
+        biz_name = businesses.get(biz_id, "")
     if not biz_name and ld.get("name"):
         # Possible the lead was stored with a 'business' field directly
         biz_name = ld.get("business", "")
@@ -61,16 +62,30 @@ def _normalize_activities(acts: list) -> list:
     return result
 
 
+def _get_business_map(account_id: str) -> dict[str, str]:
+    """Build business_id -> business_name mapping from the DB."""
+    from data import profiles as data_profiles
+    businesses = data_profiles.list_businesses(account_id)
+    return {b["id"]: b["name"] for b in businesses}
+
+
 def _make_create_lead_data(name: str, contact: str, phone: str, email: str,
                             industry: str, location: str, business: str,
                             source: str, notes: str, score: int = 7,
-                            status: str = "cold") -> dict:
+                            status: str = "cold",
+                            account_id: str = "") -> dict:
     """Build a dict suitable for data_leads.create_lead()."""
-    biz_id = None
-    for bid, bname in _BUSINESS_NAME_MAP.items():
-        if bname == business:
-            biz_id = bid
-            break
+    biz_id = ""
+    if account_id and business:
+        from data import profiles as data_profiles
+        try:
+            businesses = data_profiles.list_businesses(account_id)
+            for b in businesses:
+                if b["name"] == business:
+                    biz_id = b["id"]
+                    break
+        except Exception:
+            pass
     return {
         "company_name": name,
         "contact_name": contact,
@@ -181,12 +196,16 @@ async def sales_dashboard(request: Request):
         return RedirectResponse(url="/login")
 
     # Use data layer for stats
-    leads = data_leads.get_all_leads()
-    activities = data_leads.list_activities(limit=50)
-    biz_stats = data_leads.get_biz_stats()
+    account_id = user.get("account_id", "")
+    leads = data_leads.get_all_leads(account_id)
+    activities = data_leads.list_activities(limit=50, account_id=account_id)
+    biz_stats = data_leads.get_biz_stats(account_id)
+
+    # Build business name map from DB
+    biz_map = _get_business_map(account_id)
 
     # Normalize leads for template
-    normalized = [_normalize_lead(ld) for ld in leads]
+    normalized = [_normalize_lead(ld, biz_map) for ld in leads]
 
     # Recent activity feed (last 15)
     acts_normalized = _normalize_activities(activities[:15])
@@ -194,11 +213,26 @@ async def sales_dashboard(request: Request):
     # Escalation alerts: leads needing attention (interested or with replies)
     escalations = [l for l in normalized if l["status"] in ("interested", "replied")]
 
+    # Email connection status
+    email_status = {"connected": False}
+    try:
+        from services.sales.oauth import GoogleOAuth
+        email_conn = GoogleOAuth().get_connection(user.get("account_id", ""))
+        if email_conn:
+            email_status = {
+                "connected": True,
+                "provider": email_conn.get("provider"),
+                "email": email_conn.get("email"),
+            }
+    except Exception as e:
+        print(f"[Dashboard] Email status error: {e}")
+
     return await _render(request, "sales/dashboard.html",
                    biz_stats=biz_stats,
                    total_leads=len(normalized),
                    recent_activities=acts_normalized,
                    escalations=escalations,
+                   email_status=email_status,
                    leads_status_counts={s: len([l for l in normalized if l["status"] == s]) for s in LEAD_STATUSES},
                    )
 
@@ -217,24 +251,29 @@ async def sales_leads(
     if not user:
         return RedirectResponse(url="/login")
 
+    account_id = user.get("account_id", "")
+
     # Return JSON if format=json
     if format == "json":
-        leads_json, _ = data_leads.list_leads(status=status, page=1, per_page=1000)
+        leads_json, _ = data_leads.list_leads(account_id=account_id, status=status, page=1, per_page=1000)
         return JSONResponse({"leads": leads_json})
 
     # Use data layer with filtering and pagination
     # data_leads.list_leads uses different field names for filtering
-    page_leads_db, total = data_leads.list_leads(status=status, page=page, per_page=10)
+    page_leads_db, total = data_leads.list_leads(account_id=account_id, status=status, page=page, per_page=10)
     
+    # Build business name map from DB
+    biz_map = _get_business_map(account_id)
+
     # Normalize for template
-    page_leads = [_normalize_lead(ld) for ld in page_leads_db]
+    page_leads = [_normalize_lead(ld, biz_map) for ld in page_leads_db]
     
     per_page = 10
     total_pages = max(1, (total + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
 
     # Get all leads for industry filter options
-    all_leads = data_leads.get_all_leads()
+    all_leads = data_leads.get_all_leads(account_id)
     all_industries = sorted(set(
         ld.get("industry", "") or ld.get("industry", "")
         for ld in all_leads if ld.get("industry")
@@ -269,18 +308,21 @@ async def add_lead(
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
     
+    account_id = user.get("account_id", "")
+    
     lead_data = _make_create_lead_data(
         name=name, contact=contact, phone=phone, email=email,
         industry=industry, location=location, business=business,
-        source=source, notes=notes,
+        source=source, notes=notes, account_id=account_id,
     )
-    new_lead = data_leads.create_lead(lead_data)
+    new_lead = data_leads.create_lead(lead_data, account_id)
     
     # Log activity
     data_leads.create_activity(
         new_lead["id"], "note",
         f"Lead added manually by {user.get('email', 'user')}",
         {"added_by": user.get("email", "user")},
+        account_id=account_id,
     )
     
     return JSONResponse({"ok": True, "id": new_lead["id"]})
@@ -291,12 +333,12 @@ async def generate_email(request: Request, lead_id: str):
     user = await require_user(request)
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
-    
-    lead = data_leads.get_lead(lead_id)
+
+    account_id = user.get("account_id", "")
+    lead = data_leads.get_lead(lead_id, account_id)
     if not lead:
         return JSONResponse({"ok": False, "error": "Lead not found"})
-    
-    account_id = user.get("account_id", "")
+
     agent_name = user.get("name", "The Flowreach Team")
     agent_title = user.get("title", "B2B Sales Automation")
     
@@ -334,7 +376,8 @@ async def send_email(
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
 
-    lead = data_leads.get_lead(lead_id)
+    account_id = user.get("account_id", "")
+    lead = data_leads.get_lead(lead_id, account_id)
     if not lead:
         return JSONResponse({"ok": False, "error": "Lead not found"})
 
@@ -353,7 +396,8 @@ async def send_email(
         data_leads.create_activity(
             lead_id, "email",
             f"Email FAILED: {result.get('error', 'Unknown error')}",
-            {"detail": f"To: {to_email}\nSubject: {subject}\nError: {result.get('error', '')}"},
+            {"detail": f"To: {to_email}\\nSubject: {subject}\\nError: {result.get('error', '')}"},
+            account_id=account_id,
         )
         return JSONResponse({"ok": False, "error": result.get("error", "Send failed")})
 
@@ -362,15 +406,17 @@ async def send_email(
         lead_id, "email",
         f"Email sent to {to_email}",
         {"subject": subject, "body_preview": body[:200]},
+        account_id=account_id,
     )
 
     # Update status to contacted if cold
     if lead.get("status") == "cold":
-        data_leads.update_lead_status(lead_id, "contacted")
+        data_leads.update_lead_status(lead_id, "contacted", account_id=account_id)
         data_leads.create_activity(
             lead_id, "note",
             "Status changed to Contacted",
             {"detail": "Auto-updated after email outreach"},
+            account_id=account_id,
         )
 
     return JSONResponse({"ok": True, "message": f"Email sent to {to_email}"})
@@ -387,7 +433,7 @@ async def score_lead(request: Request, lead_id: str):
     if not account_id:
         return JSONResponse({"ok": False, "error": "No account_id in session"}, status_code=400)
 
-    lead = data_leads.get_lead(lead_id)
+    lead = data_leads.get_lead(lead_id, account_id)
     if not lead:
         return JSONResponse({"ok": False, "error": "Lead not found"}, status_code=404)
 
@@ -436,7 +482,7 @@ async def outreach_send_logic(lead_ids, business, message_type, channel, account
     sent = 0
 
     for i, lid in enumerate(lead_ids):
-        lead = data_leads.get_lead(lid)
+        lead = data_leads.get_lead(lid, account_id)
         if not lead:
             continue
 
@@ -477,11 +523,12 @@ async def outreach_send_logic(lead_ids, business, message_type, channel, account
         if send_result.get("ok"):
             # ── Success ──
             if lead.get("status") in ("cold", "qualified"):
-                data_leads.update_lead_status(lid, "contacted")
+                data_leads.update_lead_status(lid, "contacted", account_id=account_id)
             data_leads.create_activity(
                 lid, "email",
                 f"Outreach sent to {to_email}",
                 {"subject": subject, "detail": f"Auto-generated outreach message for {company_name}"},
+                account_id=account_id,
             )
             sent += 1
             print(f"[Sales/Outreach] Sent to {company_name}: success")
@@ -492,6 +539,7 @@ async def outreach_send_logic(lead_ids, business, message_type, channel, account
                 lid, "email",
                 f"Email FAILED: {error}",
                 {"detail": f"To: {to_email}, Subject: {subject}, Error: {error}"},
+                account_id=account_id,
             )
             print(f"[Sales/Outreach] Sent to {company_name}: fail — {error}")
 
@@ -545,7 +593,7 @@ async def outreach_preview(request: Request):
     agent_title = user.get("title", "B2B Sales Automation")
 
     # Find leads with score >= 7 AND status == "cold"
-    all_leads = data_leads.get_all_leads()
+    all_leads = data_leads.get_all_leads(account_id)
     candidates = [
         l for l in all_leads
         if (l.get("ai_score") or l.get("score") or 0) >= 7 and l.get("status") in ("cold", "qualified")
@@ -596,7 +644,8 @@ async def sales_lead_detail(request: Request, lead_id: str):
     if not user:
         return RedirectResponse(url="/login")
 
-    lead = data_leads.get_lead(lead_id)
+    account_id = user.get("account_id", "")
+    lead = data_leads.get_lead(lead_id, account_id)
     if not lead:
         return RedirectResponse(url="/sales/leads")
 
@@ -612,15 +661,17 @@ async def sales_lead_update_status(request: Request, lead_id: str, status: str =
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    lead = data_leads.get_lead(lead_id)
+    account_id = user.get("account_id", "")
+    lead = data_leads.get_lead(lead_id, account_id)
     if not lead:
         return JSONResponse({"error": "Lead not found"}, status_code=404)
 
-    data_leads.update_lead_status(lead_id, status)
+    data_leads.update_lead_status(lead_id, status, account_id)
     data_leads.create_activity(
         lead_id, "note",
         f"Status changed to {status}",
         {"detail": f"Lead status updated from previous to '{status}' by agent."},
+        account_id=account_id,
     )
     return JSONResponse({"ok": True, "status": status})
 
@@ -631,12 +682,13 @@ async def sales_lead_add_note(request: Request, lead_id: str, summary: str = For
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    lead = data_leads.get_lead(lead_id)
+    account_id = user.get("account_id", "")
+    lead = data_leads.get_lead(lead_id, account_id)
     if not lead:
         return JSONResponse({"error": "Lead not found"}, status_code=404)
 
-    act = data_leads.create_activity(lead_id, "note", summary, {"detail": detail})
-    data_leads.update_lead(lead_id, {})
+    act = data_leads.create_activity(lead_id, "note", summary, {"detail": detail}, account_id=account_id)
+    data_leads.update_lead(lead_id, {}, account_id)
     return JSONResponse({"ok": True, "activity": _normalize_activities([act])[0]})
 
 
@@ -690,7 +742,8 @@ async def sales_pipeline(request: Request):
     if not user:
         return RedirectResponse(url="/login")
 
-    leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
+    account_id = user.get("account_id", "")
+    leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads(account_id)]
 
     columns = {}
     for s in LEAD_STATUSES:
@@ -712,11 +765,12 @@ async def sales_outreach_trigger(
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
     # Target specific lead or batch
+    account_id = user.get("account_id", "")
     if lead_id:
-        single = data_leads.get_lead(lead_id)
+        single = data_leads.get_lead(lead_id, account_id)
         targets = [_normalize_lead(single)] if single else []
     else:
-        all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
+        all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads(account_id)]
         targets = [l for l in all_leads if l["status"] in ("cold", "contacted")]
 
     sent_count = 0
@@ -768,6 +822,7 @@ Boleh AI"""
             target["id"], "message",
             f"Outreach via {channel}" + (f" — {campaign}" if campaign else ""),
             {"detail": detail},
+            account_id=account_id,
         )
 
     return JSONResponse({"ok": True, "sent": sent_count, "channel": channel, "campaign": campaign, "errors": errors})
@@ -793,7 +848,8 @@ async def sales_webhook_whatsapp(request: Request):
     message = body.get("message", "") or body.get("text", "") or ""
     name = body.get("name", "Unknown")
 
-    all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
+    account_id = user.get("account_id", "")
+    all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads(account_id)]
 
     # Accept lead_id directly, or match by phone/name
     lead = None
@@ -837,19 +893,20 @@ async def sales_webhook_whatsapp(request: Request):
 
         result["action"] = action
 
-        # Log activity
+# Log activity
         data_leads.create_activity(
             lead["id"], "message",
             f"Inbound WhatsApp from {name} — Sentiment: {sentiment}",
             {"detail": f"Message: {message[:500]}\n\nAI Analysis:\nSentiment: {sentiment}\nAction: {action}\nAuto-reply: {intent_result.get('auto_reply', '(none)')[:200]}"},
+            account_id=account_id,
         )
 
         # Update lead status based on sentiment
         if sentiment in ("negative", "unsubscribe"):
-            data_leads.update_lead_status(lead["id"], "closed_lost")
+            data_leads.update_lead_status(lead["id"], "closed_lost", account_id)
             lead["status"] = "closed_lost"
         elif sentiment == "positive":
-            data_leads.update_lead_status(lead["id"], "interested")
+            data_leads.update_lead_status(lead["id"], "interested", account_id)
             lead["status"] = "interested"
 
         # Build escalation notification for positive intent
@@ -885,7 +942,8 @@ async def sales_webhook_gmail(request: Request):
     subject = body.get("subject", "") or "(no subject)"
     snippet = body.get("snippet", "") or body.get("body", "") or ""
 
-    all_leads = data_leads.get_all_leads()
+    account_id = user.get("account_id", "")
+    all_leads = data_leads.get_all_leads(account_id)
     matched = [l for l in all_leads if sender.lower() in (l.get("email") or "").lower()]
 
     for lead in matched:
@@ -893,8 +951,9 @@ async def sales_webhook_gmail(request: Request):
             lead["id"], "email",
             f"Inbound email: {subject}",
             {"detail": f"From: {sender}\nSubject: {subject}\n\n{snippet[:500]}"},
+            account_id=account_id,
         )
-        data_leads.update_lead(lead["id"], {})
+        data_leads.update_lead(lead["id"], {}, account_id)
 
     return JSONResponse({"ok": True, "matched": len(matched)})
 
@@ -920,7 +979,8 @@ async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
 
     replies = gmail.check_replies(since_minutes=since_minutes)
     results["checked"] = len(replies)
-    all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads()]
+    account_id = user.get("account_id", "")
+    all_leads = [_normalize_lead(ld) for ld in data_leads.get_all_leads(account_id)]
 
     for reply in replies:
         # Match to lead by email
@@ -943,15 +1003,16 @@ async def sales_check_replies(request: Request, since_minutes: int = Form(60)):
             lead["id"], "email",
             f"Inbound reply: {reply['subject']} — Sentiment: {sentiment}",
             {"detail": f"From: {reply['from_name']} <{sender_email}>\nSubject: {reply['subject']}\n\n{reply['body'][:500]}\n\nAI Analysis:\nSentiment: {sentiment}\nAuto-reply: {intent_result.get('auto_reply', '(none)')}"},
+            account_id=account_id,
         )
 
         if sentiment == "positive":
-            data_leads.update_lead_status(lead["id"], "interested")
+            data_leads.update_lead_status(lead["id"], "interested", account_id)
             lead["status"] = "interested"
             notify_edwin_reply(lead, reply["body"], sentiment, 0.9, intent_result.get("auto_reply", ""))
             results["notifications"].append({"lead_id": lead["id"], "action": "escalate"})
         elif sentiment in ("negative", "unsubscribe"):
-            data_leads.update_lead_status(lead["id"], "closed_lost")
+            data_leads.update_lead_status(lead["id"], "closed_lost", account_id)
             lead["status"] = "closed_lost"
 
         results["replies"].append({"from": sender_email, "sentiment": sentiment, "lead_id": lead["id"], "matched": True})
@@ -968,8 +1029,9 @@ async def sales_target_profiles_list(request: Request):
     if not user:
         return RedirectResponse(url="/login")
 
-    profiles = data_profiles.list_profiles()
-    businesses = data_profiles.list_businesses()
+    account_id = user.get("account_id", "")
+    profiles = data_profiles.list_profiles(account_id)
+    businesses = data_profiles.list_businesses(account_id)
     return await _render(request, "sales/target_profile.html", profiles=profiles, businesses=businesses)
 
 
@@ -989,7 +1051,8 @@ async def sales_target_profiles_create(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    businesses = data_profiles.list_businesses()
+    account_id = user.get("account_id", "")
+    businesses = data_profiles.list_businesses(account_id)
     biz = next((b for b in businesses if b["id"] == business_id), None)
 
     profile_data = {
@@ -1004,7 +1067,7 @@ async def sales_target_profiles_create(
         "min_ai_score": min_ai_score,
         "is_active": True,
     }
-    data_profiles.create_profile(profile_data)
+    data_profiles.create_profile(profile_data, account_id)
     return RedirectResponse(url="/sales/target-profiles", status_code=303)
 
 
@@ -1014,7 +1077,8 @@ async def sales_target_profiles_get(request: Request, profile_id: str):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    profile = data_profiles.get_profile(profile_id)
+    account_id = user.get("account_id", "")
+    profile = data_profiles.get_profile(profile_id, account_id)
     if not profile:
         return JSONResponse({"error": "Not found"}, status_code=404)
     return JSONResponse(profile)
@@ -1037,11 +1101,12 @@ async def sales_target_profiles_update(
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    existing = data_profiles.get_profile(profile_id)
+    account_id = user.get("account_id", "")
+    existing = data_profiles.get_profile(profile_id, account_id)
     if not existing:
         return JSONResponse({"error": "Not found"}, status_code=404)
 
-    businesses = data_profiles.list_businesses()
+    businesses = data_profiles.list_businesses(account_id)
     biz = next((b for b in businesses if b["id"] == business_id), None)
 
     data_profiles.update_profile(profile_id, {
@@ -1054,7 +1119,7 @@ async def sales_target_profiles_update(
         "keywords_include": [kw.strip() for kw in keywords_include.split(",") if kw.strip()],
         "keywords_exclude": [kw.strip() for kw in keywords_exclude.split(",") if kw.strip()],
         "min_ai_score": min_ai_score,
-    })
+    }, account_id)
     return RedirectResponse(url="/sales/target-profiles", status_code=303)
 
 
@@ -1064,7 +1129,8 @@ async def sales_target_profiles_delete(request: Request, profile_id: str):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    data_profiles.delete_profile(profile_id)
+    account_id = user.get("account_id", "")
+    data_profiles.delete_profile(profile_id, account_id)
     return JSONResponse({"ok": True})
 
 
@@ -1122,7 +1188,8 @@ async def sales_onboarding_list_samples(request: Request):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    all_leads = data_leads.get_all_leads()
+    account_id = user.get("account_id", "")
+    all_leads = data_leads.get_all_leads(account_id)
     samples = [l for l in all_leads if l.get("is_sample")]
     return JSONResponse({"samples": samples, "count": len(samples)})
 
@@ -1184,10 +1251,11 @@ async def sales_usage_get(request: Request):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    limits = data_usage.get_limits() or {}
+    account_id = user.get("account_id", "")
+    limits = data_usage.get_limits(account_id) or {}
     usage = {
-        "total_leads_scraped": data_usage.get_leads_count_this_month(),
-        "total_outreach_sent": data_usage.get_messages_count_this_month(),
+        "total_leads_scraped": data_usage.get_leads_count_this_month(account_id),
+        "total_outreach_sent": data_usage.get_messages_count_this_month(account_id),
         "total_samples": 0,
         "sampling_limit": limits.get("sampling_limit", 30),
         "monthly_outreach_limit": limits.get("monthly_outreach_limit", 500),
@@ -1256,11 +1324,12 @@ async def scraper_run(
             notes=ld.get("notes", f"Google Maps scrape — rating: {ld.get('rating', 'N/A')}"),
             score=min(10, int(ld.get("rating", 0) * 2)),
         )
-        new_lead = data_leads.create_lead(lead_data)
+        new_lead = data_leads.create_lead(lead_data, account_id)
         data_leads.create_activity(
             new_lead["id"], "note",
             f"Lead found via Google Maps scrape ({industry}, {location})",
             {"detail": f"Found {len(leads)} leads in {location} for {industry} industry"},
+            account_id=account_id,
         )
         imported += 1
 

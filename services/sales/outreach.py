@@ -74,7 +74,7 @@ def send_outreach(
     agent_name: str = "Alex",
     agent_title: str = "Business Development",
     campaign_id: Optional[str] = None,
-    account_id: str = "00000000-0000-0000-0000-000000000001",
+    account_id: str = "",
 ) -> dict:
     """Send an outreach message to a single lead.
 
@@ -144,7 +144,7 @@ def run_campaign(
     channel: str = "email",
     message_type: str = "cold",
     agent_name: str = "Alex",
-    account_id: str = "00000000-0000-0000-0000-000000000001",
+    account_id: str = "",
 ) -> dict:
     """Execute an outreach campaign against a list of leads.
 

@@ -1,13 +1,13 @@
 """Usage — monthly and daily usage limits for sales outreach.
 
 Delegates to the Supabase-backed data.usage layer for persistence.
+Multi-tenant: account_id flows through from check_limits / get_usage_summary
+to the data layer — no hardcoded IDs.
 """
 
 from datetime import datetime, date
 import config as cfg
 from data import usage as data_usage
-
-_ACCOUNT_ID = "00000000-0000-0000-0000-000000000001"
 
 
 def check_limits(account_id: str, action: str) -> dict:
@@ -15,7 +15,7 @@ def check_limits(account_id: str, action: str) -> dict:
 
     Returns: {'allowed': True/False, 'reason': ''}
     """
-    limits = data_usage.get_limits()
+    limits = data_usage.get_limits(account_id)
     if not limits:
         return {"allowed": True, "reason": ""}
 
@@ -24,7 +24,7 @@ def check_limits(account_id: str, action: str) -> dict:
     daily_message_limit = limits.get("daily_message_limit", 50)
 
     if action == "lead":
-        used = data_usage.get_leads_count_this_month()
+        used = data_usage.get_leads_count_this_month(account_id)
         if used >= monthly_lead_limit:
             return {
                 "allowed": False,
@@ -32,13 +32,13 @@ def check_limits(account_id: str, action: str) -> dict:
             }
 
     if action == "message":
-        used_month = data_usage.get_messages_count_this_month()
+        used_month = data_usage.get_messages_count_this_month(account_id)
         if used_month >= monthly_message_limit:
             return {
                 "allowed": False,
                 "reason": f"Monthly message limit reached ({used_month}/{monthly_message_limit})",
             }
-        used_today = data_usage.get_today_messages()
+        used_today = data_usage.get_today_messages(account_id)
         if used_today >= daily_message_limit:
             return {
                 "allowed": False,
@@ -60,7 +60,7 @@ def increment_usage(account_id: str, action: str):
 
 def get_usage_summary(account_id: str) -> dict:
     """Get current usage summary with limits."""
-    limits = data_usage.get_limits()
+    limits = data_usage.get_limits(account_id)
     if not limits:
         return {
             "leads": {"used": 0, "limit": 500, "remaining": 500, "percentage": 0},
@@ -70,9 +70,9 @@ def get_usage_summary(account_id: str) -> dict:
             },
         }
 
-    used_leads = data_usage.get_leads_count_this_month()
-    used_msgs = data_usage.get_messages_count_this_month()
-    used_today = data_usage.get_today_messages()
+    used_leads = data_usage.get_leads_count_this_month(account_id)
+    used_msgs = data_usage.get_messages_count_this_month(account_id)
+    used_today = data_usage.get_today_messages(account_id)
 
     monthly_lead_limit = limits.get("monthly_lead_limit", 500)
     monthly_msg_limit = limits.get("monthly_message_limit", 1000)
@@ -100,22 +100,22 @@ def get_usage_summary(account_id: str) -> dict:
     }
 
 
-def set_limits(monthly_leads: int = 500, monthly_messages: int = 1000, daily_messages: int = 50):
-    """Set usage limits in Supabase."""
+def set_limits(account_id: str, monthly_leads: int = 500, monthly_messages: int = 1000, daily_messages: int = 50):
+    """Set usage limits for an account in Supabase."""
     from services.supabase_client import get_supabase
 
-    existing = data_usage.get_limits()
+    existing = data_usage.get_limits(account_id)
     if existing:
         get_supabase().table("usage_limits").update({
             "monthly_lead_limit": monthly_leads,
             "monthly_message_limit": monthly_messages,
             "daily_message_limit": daily_messages,
-        }).eq("account_id", _ACCOUNT_ID).execute()
+        }).eq("account_id", account_id).execute()
     else:
         get_supabase().table("usage_limits").insert({
-            "account_id": _ACCOUNT_ID,
+            "account_id": account_id,
             "monthly_lead_limit": monthly_leads,
             "monthly_message_limit": monthly_messages,
             "daily_message_limit": daily_messages,
         }).execute()
-    print(f"[Sales/Usage] Limits set: leads={monthly_leads}/mo, msgs={monthly_messages}/mo, {daily_messages}/day")
+    print(f"[Sales/Usage] Limits set for {account_id}: leads={monthly_leads}/mo, msgs={monthly_messages}/mo, {daily_messages}/day")

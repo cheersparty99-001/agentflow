@@ -146,8 +146,7 @@
       <!-- Input -->
       <div class="px-4 py-3 border-t border-slate-100 bg-white">
         <div class="flex items-center gap-2">
-          <input id="ai-chat-input" type="text" placeholder="Ask me anything..."
-            class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <textarea id="ai-chat-input" placeholder="Ask me anything..." class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" rows="1" style="max-height: 80px;"></textarea>
           <button id="ai-chat-send-btn" onclick="sendChatMessage()"
             class="w-9 h-9 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center flex-shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +200,7 @@
         setTimeout(function() {
           if (!chatState.firstOpenDone) {
             openChat();
-            addAIMessage('Hi ' + chatState.userName + '! I\'m your Flowreach AI assistant. I\'m here to help you get set up and make the most of your account. Let\'s start — tell me about your business. What do you sell, and who are your ideal customers?');
+            addAIMessage('Hi ' + chatState.userName + '! I\'m your Flowreach AI assistant. Let\'s get you set up. Do you have a company website? Share the URL and I\'ll learn about your business automatically. Or just tell me what you do — either works!');
           }
         }, 1500);
       } else {
@@ -297,6 +296,8 @@
   function formatMessageText(text) {
     // Convert simple markdown-like formatting to HTML
     text = escapeHtml(text);
+    // Links [text](url)
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     // Bold **text**
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     // Italic *text*
@@ -427,7 +428,7 @@
 
     initChat();
 
-    // IME input method fix — don't send on character selection Enter
+// IME input method fix — don't send on character selection Enter
     getChatEl('ai-chat-input').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.isComposing && !e.shiftKey) {
         e.preventDefault();

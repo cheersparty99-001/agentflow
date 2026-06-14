@@ -89,7 +89,7 @@ def _build_record(lead, source, account_id, location_hint: str = ""):
 
 # ── Google Maps API ──
 
-async def scrape_google_maps(query: str, location: str, max_results: int = 50, account_id: str = '00000000-0000-0000-0000-000000000001') -> list[dict]:
+async def scrape_google_maps(query: str, location: str, max_results: int = 50, account_id: str = '') -> list[dict]:
     """Scrape leads from Google Maps Places API.
 
     Uses Google Places Text Search + Place Details API.
@@ -206,7 +206,7 @@ async def _extract_email_from_website(url: str) -> str:
 
 # ── News RSS Scraper (no API key needed) ──
 
-async def scrape_news_leads(keywords: list, max_results: int = 20, account_id: str = '00000000-0000-0000-0000-000000000001') -> list[dict]:
+async def scrape_news_leads(keywords: list, max_results: int = 20, account_id: str = '') -> list[dict]:
     """Scrape news for company leads using Google News RSS."""
 
     query_str = ' '.join(keywords)
@@ -244,7 +244,7 @@ async def scrape_news_leads(keywords: list, max_results: int = 20, account_id: s
 
 # ── CSV Upload ──
 
-async def process_csv_upload(file_content: str, account_id: str = '00000000-0000-0000-0000-000000000001') -> list[dict]:
+async def process_csv_upload(file_content: str, account_id: str = '') -> list[dict]:
     """Process CSV upload for manual lead import."""
     import csv, io
     reader = csv.DictReader(io.StringIO(file_content))
@@ -273,7 +273,7 @@ async def process_csv_upload(file_content: str, account_id: str = '00000000-0000
 
 # ── Existing API compatibility ──
 
-async def scrape_leads(source: str = 'google_maps', query: str = '', max_results: int = 10, account_id: str = '00000000-0000-0000-0000-000000000001') -> list[dict]:
+async def scrape_leads(source: str = 'google_maps', query: str = '', max_results: int = 10, account_id: str = '') -> list[dict]:
     """Legacy compat: scrape from any source."""
     if source == 'google_maps':
         return await scrape_google_maps(query, '', max_results, account_id)

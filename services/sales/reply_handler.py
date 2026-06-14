@@ -138,7 +138,7 @@ def handle_reply(
     outreach_id: Optional[str] = None,
     lead_id: Optional[str] = None,
     lead: Optional[dict] = None,
-    account_id: str = "00000000-0000-0000-0000-000000000001",
+    account_id: str = "",
     auto_reply_enabled: bool = True,
 ) -> dict:
     """Process an inbound reply to an outreach message.

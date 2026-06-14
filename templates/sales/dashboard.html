@@ -20,27 +20,41 @@
 </div>
 
 <!-- Onboarding Banner -->
-{% if total_leads == 0 %}
-<div class="mb-6 p-6 bg-blue-50 border border-blue-200 rounded-xl">
-  <h3 class="text-base font-bold text-blue-900">Welcome to Flowreach!</h3>
-  <p class="text-sm text-blue-700 mt-1">Get started in 3 steps:</p>
-  <div class="mt-4 space-y-2">
-    <div class="flex items-center gap-3">
-      <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
-      <span class="text-sm text-blue-800">Set up your target profile</span>
-      <a href="/settings" class="text-xs text-blue-600 font-medium hover:underline ml-auto">Settings</a>
+{% if not email_status or not email_status.connected %}
+<div class="mb-6 p-5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+      </svg>
     </div>
-    <div class="flex items-center gap-3">
-      <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-      <span class="text-sm text-blue-800">Find your first leads</span>
-      <button onclick="openFindLeadsModal()" class="text-xs text-blue-600 font-medium hover:underline ml-auto">Find New Leads</button>
-    </div>
-    <div class="flex items-center gap-3">
-      <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">3</span>
-      <span class="text-sm text-blue-800">Send your first outreach</span>
-      <button onclick="openSendOutreachModal()" class="text-xs text-blue-600 font-medium hover:underline ml-auto">Send Outreach</button>
+    <div>
+      <p class="text-sm font-medium text-blue-900">One thing left: Connect your email to start sending outreach</p>
+      <p class="text-xs text-blue-600 mt-0.5">Flowreach sends emails through your connected Gmail account</p>
     </div>
   </div>
+  <a href="/settings" class="flex-shrink-0 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5">
+    Connect Email
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+  </a>
+</div>
+{% elif total_leads == 0 %}
+<div class="mb-6 p-5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+      <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <div>
+      <p class="text-sm font-medium text-blue-900">You're all set! Tell your AI assistant what kind of customers you're looking for and I'll find them for you.</p>
+      <p class="text-xs text-blue-600 mt-0.5">Your AI assistant can understand any language and set everything up through conversation</p>
+    </div>
+  </div>
+  <button onclick="openChat(); closeFindLeadsModal();" class="flex-shrink-0 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5">
+    Open AI Assistant
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+  </button>
 </div>
 {% endif %}
 
@@ -335,8 +349,8 @@ async function executeOutreach() {
     result.classList.remove('hidden');
     if (data.ok) {
       result.className = 'text-sm text-green-600 font-medium';
-      result.textContent = 'Sent ' + (data.sent || 0) + ' outreach messages!';
-      setTimeout(() => { closeOutreachModal(); window.location.reload(); }, 2000);
+      result.textContent = 'Outreach started — emails will be sent in the background. Check back in a few minutes.';
+      setTimeout(() => { closeOutreachModal(); window.location.reload(); }, 3000);
     } else {
       result.className = 'text-sm text-red-600 font-medium';
       result.textContent = 'Error: ' + (data.error || 'Unknown');
