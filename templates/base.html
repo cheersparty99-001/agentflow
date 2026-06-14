@@ -93,6 +93,327 @@
     if (menuBtn) menuBtn.addEventListener('click', () => mobileMenu.classList.remove('hidden'));
     if (closeBtn) closeBtn.addEventListener('click', () => mobileMenu.classList.add('hidden'));
   </script>
+
+  <!-- AI Chat Widget -->
+  <div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
+    <!-- Chat Icon Button -->
+    <button id="ai-chat-btn" onclick="toggleChat()"
+      class="w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+      style="display: flex;">
+      <svg id="ai-chat-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+      <svg id="ai-chat-close-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <!-- Chat Panel -->
+    <div id="ai-chat-panel"
+      class="absolute bottom-16 right-0 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transition-all duration-300 ease-out"
+      style="width: 380px; height: 500px; display: none; opacity: 0; transform: translateY(10px);">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 bg-blue-600 text-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-semibold">Flowreach AI</p>
+            <p class="text-xs text-blue-200">Online</p>
+          </div>
+        </div>
+        <button onclick="toggleChat()" class="text-white/80 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Messages -->
+      <div id="ai-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3" style="height: 360px; background: #f8fafc;">
+        <div class="flex items-center justify-center h-full">
+          <div class="text-center">
+            <div class="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+            <p class="text-xs text-slate-400">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="px-4 py-3 border-t border-slate-100 bg-white">
+        <div class="flex items-center gap-2">
+          <input id="ai-chat-input" type="text" placeholder="Ask me anything..."
+            class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onkeydown="if(event.key==='Enter') sendChatMessage()">
+          <button id="ai-chat-send-btn" onclick="sendChatMessage()"
+            class="w-9 h-9 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ── AI Chat Widget JS ──────────────────────────────────────────────────────
+
+  var chatState = {
+    open: false,
+    history: [],
+    chatInited: false,
+    hasProfile: null,
+    userName: 'there',
+    companyName: '',
+    accountId: '',
+    firstOpenDone: false,
+    typingMessageId: null,
+  };
+
+  function getChatEl(id) { return document.getElementById(id); }
+
+  // ── Initialize ─────────────────────────────────────────────────────────────
+
+  async function initChat() {
+    if (chatState.chatInited) return;
+    chatState.chatInited = true;
+
+    try {
+      var r = await fetch('/api/ai-chat/init');
+      var data = await r.json();
+      if (!data.authenticated) return;
+
+      chatState.hasProfile = data.has_profile;
+      chatState.userName = data.user_name || 'there';
+      chatState.companyName = data.company_name || '';
+      chatState.accountId = data.account_id;
+
+      // If user has no profile, auto-open and greet
+      if (!data.has_profile) {
+        setTimeout(function() {
+          if (!chatState.firstOpenDone) {
+            openChat();
+            addAIMessage('Hi ' + chatState.userName + '! I\'m your Flowreach AI assistant. I\'m here to help you get set up and make the most of your account. Let\'s start — tell me about your business. What do you sell, and who are your ideal customers?');
+          }
+        }, 1500);
+      } else {
+        // Just show the icon, ready to open
+        var messagesEl = getChatEl('ai-chat-messages');
+        messagesEl.innerHTML = '';
+      }
+    } catch(e) {
+      console.log('[AI Chat] Init error:', e);
+    }
+  }
+
+  // ── Toggle ──────────────────────────────────────────────────────────────────
+
+  function openChat() {
+    chatState.open = true;
+    chatState.firstOpenDone = true;
+    var panel = getChatEl('ai-chat-panel');
+    var icon = getChatEl('ai-chat-icon');
+    var closeIcon = getChatEl('ai-chat-close-icon');
+    var btn = getChatEl('ai-chat-btn');
+
+    panel.style.display = 'block';
+    setTimeout(function() {
+      panel.style.opacity = '1';
+      panel.style.transform = 'translateY(0)';
+    }, 10);
+    icon.classList.add('hidden');
+    closeIcon.classList.remove('hidden');
+    btn.classList.remove('shadow-lg');
+    btn.classList.add('shadow-xl');
+
+    // Focus input
+    setTimeout(function() {
+      getChatEl('ai-chat-input').focus();
+    }, 300);
+
+    // Show greeting if has profile and messages are empty
+    if (chatState.hasProfile) {
+      var messagesEl = getChatEl('ai-chat-messages');
+      if (messagesEl.children.length === 0 || (messagesEl.children.length === 1 && messagesEl.children[0].querySelector('.animate-spin'))) {
+        addAIMessage('Hi ' + chatState.userName + '! How can I help you today?');
+      }
+    }
+  }
+
+  function closeChat() {
+    chatState.open = false;
+    var panel = getChatEl('ai-chat-panel');
+    var icon = getChatEl('ai-chat-icon');
+    var closeIcon = getChatEl('ai-chat-close-icon');
+    var btn = getChatEl('ai-chat-btn');
+
+    panel.style.opacity = '0';
+    panel.style.transform = 'translateY(10px)';
+    setTimeout(function() {
+      panel.style.display = 'none';
+    }, 200);
+    icon.classList.remove('hidden');
+    closeIcon.classList.add('hidden');
+    btn.classList.remove('shadow-xl');
+    btn.classList.add('shadow-lg');
+  }
+
+  function toggleChat() {
+    if (chatState.open) {
+      closeChat();
+    } else {
+      openChat();
+    }
+  }
+
+  // ── Message display ────────────────────────────────────────────────────────
+
+  function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+  }
+
+  function formatMessageText(text) {
+    // Convert simple markdown-like formatting to HTML
+    text = escapeHtml(text);
+    // Bold **text**
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic *text*
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Code blocks ```text```
+    text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre class="bg-slate-100 text-slate-800 text-xs p-2 rounded mt-1 overflow-x-auto">$2</pre>');
+    // Inline code `text`
+    text = text.replace(/`([^`]+)`/g, '<code class="bg-slate-100 text-slate-800 text-xs px-1 py-0.5 rounded">$1</code>');
+    // Newlines to <br>
+    text = text.replace(/\n/g, '<br>');
+    return text;
+  }
+
+  function addUserMessage(text) {
+    var messagesEl = getChatEl('ai-chat-messages');
+    // Remove loading spinner if present
+    removeTypingIndicator();
+    
+    var div = document.createElement('div');
+    div.className = 'flex justify-end';
+    div.innerHTML = '<div class="max-w-[85%] px-3 py-2 bg-blue-600 text-white text-sm rounded-2xl rounded-br-sm">' + escapeHtml(text) + '</div>';
+    messagesEl.appendChild(div);
+    scrollChat();
+  }
+
+  function addAIMessage(text) {
+    var messagesEl = getChatEl('ai-chat-messages');
+    removeTypingIndicator();
+    
+    var div = document.createElement('div');
+    div.className = 'flex justify-start';
+    div.innerHTML = '<div class="max-w-[85%] px-3 py-2 bg-white border border-slate-200 text-slate-800 text-sm rounded-2xl rounded-bl-sm shadow-sm">' + formatMessageText(text) + '</div>';
+    messagesEl.appendChild(div);
+    scrollChat();
+  }
+
+  function showTypingIndicator() {
+    removeTypingIndicator();
+    var messagesEl = getChatEl('ai-chat-messages');
+    var div = document.createElement('div');
+    div.id = 'ai-typing-indicator';
+    div.className = 'flex justify-start';
+    div.innerHTML = '<div class="px-4 py-3 bg-white border border-slate-200 text-slate-400 text-sm rounded-2xl rounded-bl-sm shadow-sm flex items-center gap-1"><span class="typing-dot w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:0ms"></span><span class="typing-dot w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:150ms"></span><span class="typing-dot w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay:300ms"></span></div>';
+    messagesEl.appendChild(div);
+    scrollChat();
+  }
+
+  function removeTypingIndicator() {
+    var el = document.getElementById('ai-typing-indicator');
+    if (el) el.remove();
+  }
+
+  function scrollChat() {
+    var messagesEl = getChatEl('ai-chat-messages');
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  // ── Send message ───────────────────────────────────────────────────────────
+
+  async function sendChatMessage() {
+    var input = getChatEl('ai-chat-input');
+    var text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.disabled = true;
+    getChatEl('ai-chat-send-btn').disabled = true;
+
+    // Add user message to chat
+    addUserMessage(text);
+    chatState.history.push({ role: 'user', text: text });
+
+    // Show typing indicator
+    showTypingIndicator();
+
+    try {
+      var r = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          conversation_history: chatState.history,
+        }),
+      });
+
+      var data = await r.json();
+      removeTypingIndicator();
+
+      if (data.error) {
+        addAIMessage('Sorry, something went wrong. Please try again.');
+        return;
+      }
+
+      // Add AI reply
+      addAIMessage(data.reply);
+      chatState.history.push({
+        role: 'ai',
+        text: data.reply,
+        pending_action: data.pending_action || null,
+      });
+
+      // Handle pending action (user confirmed and action was executed)
+      if (data.action_result) {
+        // Action was already executed server-side, this is the result
+        if (data.action_result.success && data.action_result.lead_count) {
+          // Leads found - auto-refresh would be nice but we just show the message
+        }
+      }
+
+    } catch(e) {
+      removeTypingIndicator();
+      addAIMessage('Sorry, I couldn\'t reach the server. Please check your connection and try again.');
+      console.log('[AI Chat] Error:', e);
+    }
+
+    input.disabled = false;
+    getChatEl('ai-chat-send-btn').disabled = false;
+    input.focus();
+  }
+
+  // ── Init on page load ──────────────────────────────────────────────────────
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add typing animation styles
+    var style = document.createElement('style');
+    style.textContent = '.typing-dot { display: inline-block; } .animate-bounce { animation: bounce 1s infinite; } @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }';
+    document.head.appendChild(style);
+
+    initChat();
+  });
+  </script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

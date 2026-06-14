@@ -21,13 +21,10 @@ def _clean_company_name(name: str) -> str:
     """
     if not name:
         return name
-    # Split on common separators used for taglines
     for sep in [' -- ', ' - ', ' | ', ' / ', ' . ']:
         parts = name.split(sep)
         if len(parts) > 1:
             name = parts[0].strip()
-    # Also handle comma-separated extras (but keep 'Sdn Bhd', 'Bhd', 'LLC')
-    # Only strip if the comma part is short (location/number, not a suffix)
     if ',' in name:
         parts = [p.strip() for p in name.split(',')]
         if len(parts[0]) > 2:
@@ -38,21 +35,31 @@ def _clean_company_name(name: str) -> str:
     return name.strip()
 
 
-# ── Async helpers ──
-
-def _build_record(lead, source, account_id):
-    # Clean company name
+def _build_record(lead, source, account_id, location_hint: str = ""):
+    """Build a standard lead record dict from scraper data."""
     raw_name = lead.get('company_name', '')
     cleaned = _clean_company_name(raw_name)
     if cleaned != raw_name:
-        print(f'  [Clean] \"{raw_name}\" → \"{cleaned}\"')
+        print(f'  [Clean] "{raw_name}" -> "{cleaned}"')
 
-    # Determine contact method
     email = lead.get('email', '')
     needs_wa = not email
     notes = lead.get('notes', '')
     if needs_wa:
         notes = '[需 WhatsApp] ' + notes if notes else '[需 WhatsApp]'
+
+    city = lead.get('city', '') or ''
+    if not city:
+        address = lead.get('address', '') or ''
+        parts = [p.strip() for p in address.split(',')]
+        if len(parts) >= 2:
+            city = parts[-3] if len(parts) >= 4 else parts[-2]
+            # Strip postcode prefix (e.g. "57000 Kuala Lumpur" -> "Kuala Lumpur")
+            city_parts = city.split(' ', 1)
+            if len(city_parts) == 2 and city_parts[0].isdigit():
+                city = city_parts[1]
+        if not city:
+            city = location_hint
 
     return {
         'id': str(uuid.uuid4()),
@@ -62,9 +69,9 @@ def _build_record(lead, source, account_id):
         'website': lead.get('website', ''),
         'phone': lead.get('phone', ''),
         'whatsapp': lead.get('whatsapp', lead.get('phone', '')),
-        'email': lead.get('email', ''),
+        'email': email,
         'address': lead.get('address', ''),
-        'city': lead.get('city', ''),
+        'city': city,
         'state': lead.get('state', ''),
         'industry': lead.get('industry', ''),
         'employee_count': lead.get('employee_count', 0),
@@ -78,6 +85,7 @@ def _build_record(lead, source, account_id):
         'created_at': datetime.utcnow().isoformat(),
         'updated_at': datetime.utcnow().isoformat(),
     }
+
 
 # ── Google Maps API ──
 
@@ -93,7 +101,7 @@ async def scrape_google_maps(query: str, location: str, max_results: int = 50, a
         print('[Sales/Scraper] ERROR: GOOGLE_MAPS_API_KEY not configured')
         return []
 
-    query_str = f'{query} {location}'
+    query_str = f'{query} {location}'.strip()
     results = []
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -101,6 +109,15 @@ async def scrape_google_maps(query: str, location: str, max_results: int = 50, a
         params = {'query': query_str, 'key': api_key, 'language': 'en', 'region': 'my'}
         resp = await client.get('https://maps.googleapis.com/maps/api/place/textsearch/json', params=params)
         data = resp.json()
+
+        # Check for API errors
+        api_status = data.get('status', '')
+        if api_status != 'OK':
+            error_msg = data.get('error_message', api_status)
+            print(f'[Sales/Scraper] Google Maps API error: {error_msg}')
+            if api_status == 'ZERO_RESULTS':
+                print(f'[Sales/Scraper] No results for query="{query_str}"')
+            return []
 
         next_token = data.get('next_page_token')
         all_places = list(data.get('results', []))
@@ -113,6 +130,10 @@ async def scrape_google_maps(query: str, location: str, max_results: int = 50, a
             params = {'pagetoken': next_token, 'key': api_key}
             resp = await client.get('https://maps.googleapis.com/maps/api/place/textsearch/json', params=params)
             data = resp.json()
+            page_status = data.get('status', '')
+            if page_status != 'OK':
+                print(f'[Sales/Scraper] Pagination API error (attempt {attempts+1}): {data.get("error_message", page_status)}')
+                break
             all_places.extend(data.get('results', []))
             next_token = data.get('next_page_token')
             attempts += 1
@@ -123,14 +144,13 @@ async def scrape_google_maps(query: str, location: str, max_results: int = 50, a
             if status != 'OPERATIONAL':
                 continue
 
-            # Rate limit: 500ms between detail calls
             await asyncio.sleep(0.5)
 
             place_id = place.get('place_id', '')
             detail_params = {
                 'place_id': place_id,
                 'key': api_key,
-                'fields': 'name,formatted_phone_number,international_phone_number,website,formatted_address,business_status,rating,user_ratings_total,opening_hours',
+                'fields': 'name,formatted_phone_number,international_phone_number,website,formatted_address,business_status,rating,user_ratings_total',
                 'language': 'en',
             }
             detail_resp = await client.get('https://maps.googleapis.com/maps/api/place/details/json', params=detail_params)
@@ -159,10 +179,11 @@ async def scrape_google_maps(query: str, location: str, max_results: int = 50, a
                 'source': 'google_maps',
                 'source_url': f'https://maps.google.com/?q={detail.get("name", "")}' if detail.get('name') else '',
             }
-            results.append(_build_record(lead, 'google_maps', account_id))
+            results.append(_build_record(lead, 'google_maps', account_id, location_hint=location))
 
     print(f'[Sales/Scraper] Scraped {len(results)} leads from Google Maps (query="{query_str}")')
     return results
+
 
 async def _extract_email_from_website(url: str) -> str:
     """Extract email from website HTML using regex."""
@@ -182,14 +203,15 @@ async def _extract_email_from_website(url: str) -> str:
         pass
     return ''
 
+
 # ── News RSS Scraper (no API key needed) ──
 
 async def scrape_news_leads(keywords: list, max_results: int = 20, account_id: str = '00000000-0000-0000-0000-000000000001') -> list[dict]:
     """Scrape news for company leads using Google News RSS."""
-    
+
     query_str = ' '.join(keywords)
     url = f'https://news.google.com/rss/search?q={query_str}&hl=en-MY&gl=MY&ceid=MY:en'
-    
+
     results = []
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -203,10 +225,10 @@ async def scrape_news_leads(keywords: list, max_results: int = 20, account_id: s
                 link_elem = entry.find('atom:link', ns) if ns.get('atom') else entry.find('link')
                 link = (entry.findtext('link') or (link_elem.get('href') if link_elem is not None else ''))
                 pub_date = entry.findtext('pubDate') or entry.findtext('atom:published', '', ns)
-                
+
                 # Extract company name from title (simple heuristic: first proper noun phrase)
                 company_name = title.split('-')[0].split('|')[0].split(':')[0].strip()
-                
+
                 results.append(_build_record({
                     'company_name': company_name,
                     'industry': '',
@@ -215,9 +237,10 @@ async def scrape_news_leads(keywords: list, max_results: int = 20, account_id: s
                 }, 'news', account_id))
     except Exception as e:
         print(f'[Sales/Scraper] News RSS error: {e}')
-    
+
     print(f'[Sales/Scraper] Scraped {len(results)} news leads')
     return results
+
 
 # ── CSV Upload ──
 
@@ -225,7 +248,7 @@ async def process_csv_upload(file_content: str, account_id: str = '00000000-0000
     """Process CSV upload for manual lead import."""
     import csv, io
     reader = csv.DictReader(io.StringIO(file_content))
-    
+
     leads = []
     for row in reader:
         name = row.get('company_name', '').strip()
@@ -244,8 +267,9 @@ async def process_csv_upload(file_content: str, account_id: str = '00000000-0000
             'website': row.get('website', '').strip(),
             'notes': row.get('notes', '').strip(),
         }, 'manual_upload', account_id))
-    
+
     return leads
+
 
 # ── Existing API compatibility ──
 

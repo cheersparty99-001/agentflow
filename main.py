@@ -29,7 +29,7 @@ app.add_middleware(SessionMiddleware, secret_key=cfg.SECRET_KEY)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/locales", StaticFiles(directory="locales"), name="locales")
 
-from routers import auth, dashboard, settings, admin, sales, landing, email_auth, onboarding
+from routers import auth, dashboard, settings, admin, sales, landing, email_auth, onboarding, ai_chat
 
 app.include_router(landing.router)
 app.include_router(auth.router)
@@ -39,6 +39,7 @@ app.include_router(admin.router)
 app.include_router(sales.router)
 app.include_router(email_auth.router)
 app.include_router(onboarding.router)
+app.include_router(ai_chat.router)
 
 _REQUIRED_ENV_VARS = [
     "SUPABASE_URL",

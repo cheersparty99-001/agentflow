@@ -1229,17 +1229,16 @@ async def scraper_run(
     if not user:
         return JSONResponse({"ok": False, "error": "Not authenticated"})
 
+    account_id = user.get("account_id", "00000000-0000-0000-0000-000000000001")
+
     # Call real Google Maps scraper
     from services.sales.scraper import scrape_google_maps
 
-    # Build search query from industry + location
-    query = f"{industry} {location}" if location else industry
-
-    leads = await scrape_google_maps(query, "", max_results)
+    leads = await scrape_google_maps(industry, location, max_results, account_id)
     imported = 0
     for ld in leads:
-        # Clean company name: remove common suffixes
         name = ld.get("company_name", "")
+        # Clean company name: remove common suffixes
         for suffix in [" Sdn Bhd", " Sdn. Bhd.", " Bhd", " & Co", " Enterprise", " Trading"]:
             if name.endswith(suffix):
                 name = name[: -len(suffix)]
