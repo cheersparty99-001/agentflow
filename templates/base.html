@@ -147,8 +147,7 @@
       <div class="px-4 py-3 border-t border-slate-100 bg-white">
         <div class="flex items-center gap-2">
           <input id="ai-chat-input" type="text" placeholder="Ask me anything..."
-            class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            onkeydown="if(event.key==='Enter') sendChatMessage()">
+            class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           <button id="ai-chat-send-btn" onclick="sendChatMessage()"
             class="w-9 h-9 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center flex-shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -411,6 +410,14 @@
     document.head.appendChild(style);
 
     initChat();
+
+    // IME input method fix — don't send on character selection Enter
+    getChatEl('ai-chat-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.isComposing && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
   });
   </script>
 
